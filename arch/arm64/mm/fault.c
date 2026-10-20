@@ -19,6 +19,7 @@
  */
 
 #include <linux/extable.h>
+#include <linux/kfence.h>
 #include <linux/signal.h>
 #include <linux/mm.h>
 #include <linux/hardirq.h>
@@ -279,6 +280,11 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 	 * We are almost certainly not prepared to handle instruction faults.
 	 */
 	if (!is_el1_instruction_abort(esr) && fixup_exception(regs))
+		return;
+
+	/* Recoverable KFENCE faults must not enter the oops state. */
+	if (addr >= PAGE_SIZE && !is_permission_fault(esr, regs, addr) &&
+	    kfence_handle_page_fault(addr, esr & ESR_ELx_WNR, regs))
 		return;
 
 	/*

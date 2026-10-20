@@ -74,6 +74,12 @@ struct msm_busmon_extended_profile {
 	struct devfreq_dev_profile profile;
 };
 
+#ifdef CONFIG_SIMPLE_GPU_ALGORITHM
+extern int simple_gpu_active;
+int simple_gpu_algorithm(int level, int *val,
+			 struct devfreq_msm_adreno_tz_data *priv);
+#endif
+
 #ifdef CONFIG_DEVFREQ_GOV_QCOM_GPUBW_MON
 int devfreq_vbif_update_bw(unsigned long ib, unsigned long ab);
 int devfreq_vbif_register_callback(void *callback);
