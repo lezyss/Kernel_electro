@@ -1,0 +1,125 @@
+name: Build kernel (AOSP Clang r614150)
+
+on:
+  workflow_dispatch:
+    inputs:
+      defconfig:
+        description: ARM64 defconfig (relative to arch/arm64/configs)
+        type: string
+        default: vendor/xiaomi/miatoll_defconfig
+        required: true
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    env:
+      CLANG_REVISION: r614150
+      DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
+      KBUILD_BUILD_USER: github-actions
+      KBUILD_BUILD_HOST: kernel-ci
+    steps:
+      - name: Check out kernel
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison flex libssl-dev libelf-dev libncurses-dev \
+            make python3 git ca-certificates cpio rsync zip unzip \
+            xz-utils zstd lz4
+
+      - name: Restore AOSP toolchain
+        id: clang-cache
+        uses: actions/cache@v4
+        with:
+          path: .toolchains/r614150
+          key: aosp-clang-linux-x86-r614150-v1
+
+      - name: Download AOSP Clang r614150 (no GCC toolchain)
+        if: steps.clang-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Sparse checkout avoids downloading every prebuilt on AOSP main.
+          checkout="$RUNNER_TEMP/aosp-clang"
+          git clone --depth=1 --filter=blob:none --sparse \
+            https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
+            "$checkout"
+          git -C "$checkout" sparse-checkout set "clang-${CLANG_REVISION}"
+          test -x "$checkout/clang-${CLANG_REVISION}/bin/clang"
+          mkdir -p .toolchains
+          mv "$checkout/clang-${CLANG_REVISION}" ".toolchains/${CLANG_REVISION}"
+          git -C "$checkout" rev-parse HEAD > ".toolchains/${CLANG_REVISION}/aosp-prebuilts-commit.txt"
+
+      - name: Build with Clang and LLVM tools
+        env:
+          TOOLCHAIN_DIR: ${{ github.workspace }}/.toolchains/r614150
+        run: bash scripts/ci/build-kernel.sh
+
+      - name: Check out pinned AnyKernel3 installer
+        if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
+        uses: actions/checkout@v4
+        with:
+          repository: osm0sis/AnyKernel3
+          ref: 020dfeccf9d7e962a48400fc94d3e451df92eead
+          path: out/anykernel3
+          persist-credentials: false
+
+      - name: Package flashable miatoll kernel
+        if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
+        shell: bash
+        run: bash scripts/ci/package-anykernel.sh 2>&1 | tee out/package.log
+
+      - name: Upload flashable AnyKernel3 ZIP
+        if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Electro-miatoll-AnyKernel3-r614150-${{ github.run_number }}
+          path: |
+            out/flashable/*.zip
+            out/flashable/*.zip.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload kernel images and modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-arm64-clang-r614150-${{ github.run_number }}
+          path: |
+            out/arch/arm64/boot/Image
+            out/arch/arm64/boot/Image.gz
+            out/arch/arm64/boot/Image.gz-dtb
+            out/arch/arm64/boot/dtb.img
+            out/arch/arm64/boot/dtbo.img
+            out/arch/arm64/boot/dts/**/*.dtb
+            out/arch/arm64/boot/dts/**/*.dtbo
+            out/**/*.ko
+            out/System.map
+            out/Module.symvers
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload logs, resolved config, and toolchain provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-build-details-${{ github.run_number }}
+          path: |
+            out/*.log
+            out/.config
+            out/build-info.txt
+            out/package-info.txt
+          if-no-files-found: warn
+          retention-days: 14
