@@ -1,0 +1,46 @@
+ARM64 LZ4 standalone regression test
+==================================
+
+This optional developer test cross-compiles the real LZ4 sources and emulates
+AArch64/NEON instructions. It does NOT require an ARM64 host or device, and it
+does not change the kernel configuration. It is deliberately not registered
+in the normal native selftest run because it needs an emulator and a cross
+compiler/linker.
+
+Requirements:
+  * Python >= 3.9 (run without -O; assertions are test checks)
+  * pip packages unicorn==2.1.4 and pyelftools==0.32
+  * Clang and LLD with AArch64, SCS and ThinLTO support
+
+Example using a separately installed toolchain:
+  python3 test_arm64.py --cc /path/to/clang
+
+An alternative for freestanding checks only (NOT the release compiler) is
+Zig 0.14.1's Clang 19.1.7, available as the ziglang==0.14.1 pip package:
+  python3 test_arm64.py --cc '/path/to/zig cc'
+
+By default artifacts live in an automatically removed temporary directory.
+Use --output /path/outside/the/source/tree to retain objects and ELF files.
+The --cc argument also accepts the CC environment variable. No GCC is used.
+
+Two executables are tested: ordinary Clang and SCS+ThinLTO. The actual .S
+file and C dispatch are used; only kernel headers, SIMD context protection,
+CPU-part/FPSIMD queries, and memory primitives are replaced by small shims.
+Memory-access hooks enforce input/output bounds and read-only compressed
+input for nonoverlapping decoding. Callee-saved registers and x18 are checked.
+The SCS executable must exercise shadow-stack writes, not merely accept a
+compiler flag.
+
+Coverage includes valid and malformed blocks, full/partial output, all short
+match offsets, long lengths, unaligned buffers, multi-sequence blocks, C-tail
+matches into the SIMD prefix, forbidden SIMD/FPSIMD-unavailable fallbacks,
+DIP/overlapping-buffer fallbacks, small buffers, signed/size_t size guards,
+and first/prefix/external-dictionary streaming blocks. Error offsets need
+not be identical. Assembly rejects zero offsets even where upstream C may
+accept them; any accepted random malformed block must match C's output.
+
+The build also checks that STATIC, feature-off, and no-NEON objects do not
+reference SIMD. It does not validate real kernel preemption, FPSIMD ownership,
+module loading, the complete preboot wrapper, device boot or performance.
+A full AOSP Clang r614150 kernel build and device tests remain necessary.
+CONFIG_LZ4_ARM64_ACCEL is experimental and defaults to n.

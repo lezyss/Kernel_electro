@@ -65,6 +65,18 @@ make "${make_args[@]}" "$DEFCONFIG" 2>&1 | tee out/configure.log
 # Keep ThinLTO and the other device settings, changing only the output config.
 scripts/config --file out/.config --disable LLVM_POLLY
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
+# A requested accelerator must survive dependency resolution; do not silently
+# report a successful C-only build as validation of the optional assembly.
+if grep -qx 'CONFIG_LZ4_ARM64_ACCEL=y' "arch/arm64/configs/$DEFCONFIG"; then
+    for setting in CONFIG_ARM64=y CONFIG_KERNEL_MODE_NEON=y \
+                   CONFIG_LZ4_DECOMPRESS=y CONFIG_LZ4_ARM64_ACCEL=y; do
+        if ! grep -qx "$setting" out/.config; then
+            echo "Required LZ4 acceleration setting missing: $setting" >&2
+            exit 1
+        fi
+    done
+    echo "ARM64 LZ4 acceleration enabled in resolved config" | tee -a out/configure.log
+fi
 # Build device trees before packing images; this tree discovers them using find.
 make -j"$JOBS" "${make_args[@]}" dtbs 2>&1 | tee out/dtbs.log
 make -j"$JOBS" "${make_args[@]}" Image.gz-dtb dtb.img dtbo.img modules 2>&1 | tee out/build.log

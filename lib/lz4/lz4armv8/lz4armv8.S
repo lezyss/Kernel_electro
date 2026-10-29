@@ -16,7 +16,7 @@
  * x2 = destination end position
  * x3 = current source address ptr
  * x4 = source end position
- * x5 = flag for DIP
+ * Disjoint input/output only; exits rewind to a complete sequence boundary.
  * @ret:
  * 0 on success, -1 on failure
  *
@@ -39,9 +39,9 @@
 #define cplen_table_addr	x14
 #define save_dst		x15
 #define save_src		x16
-#define offset_src_ptr		x17
-#define w_tmp_match_length	w18
-#define tmp_match_length	x18
+/* x18 is reserved for Shadow Call Stack; x6 is caller-saved scratch. */
+#define w_tmp_match_length	w6
+#define tmp_match_length	x6
 
 
 /* x3 >= x4 src overflow */
@@ -138,8 +138,7 @@
 	add	x0, x0, literal_length
 
 	/* Decode offset and match_length */
-6:	 mov	offset_src_ptr, x3
-	ldrh	w_offset, [x3], #2	/* 2Byte:offset bytes */
+6:	 ldrh	w_offset, [x3], #2	/* 2Byte:offset bytes */
 	cbz	offset, Failed			/* match_length == 0 is invalid */
 	sub	copy_from_ptr, x0, offset
 	cmp	copy_from_ptr, x1
@@ -223,11 +222,8 @@ Failed:
 	mov	tmp, #-1
 	b	Exit_here
 
+/* Rewind the whole sequence; never rewrite the compressed input (old DIP). */
 Done1:
-	cbz	x5, Done
-	sub	save_src, offset_src_ptr, #1
-	strb	w_tmp_match_length, [save_src]
-	add	save_dst,save_dst,literal_length
 Done:
 	mov	tmp, #0
 

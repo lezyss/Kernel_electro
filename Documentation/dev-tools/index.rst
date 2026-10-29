@@ -27,6 +27,7 @@ whole; patches welcome!
    kgdb
    kselftest
    clone3-backport
+   lz4-backport
 
 
 .. only::  subproject and html
