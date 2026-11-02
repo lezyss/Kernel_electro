@@ -1,0 +1,38 @@
+BBRplus backport host checks
+===========================
+
+  python3 tools/testing/selftests/bbrplus/test_backport.py --cc clang
+
+Python 3 and a host C compiler are required. HOSTCC is also supported; cc is
+the default. The runner extracts production TCP TSO sizing/dispatch, BBRplus
+private state, BDP/quantization, probe/drain and ACK-aggregation helper bodies
+into a temporary program. Assertions remain enabled even with NDEBUG supplied.
+
+Checks cover 1,080 combinations of pacing rate/shift, TSO goal, device segment
+limit and optional callbacks; legacy fallback, the low-rate one/two-segment
+threshold, the 127-segment cache cap, randomized probe-cycle lengths, drain to
+BDP, app/receiver-window limits, and ACK-aggregation epoch/window accounting.
+Seven memory-limit cases extract the production TCP initialization assignments
+and check the unchanged floors/initial values, RAM dependence and 16-MiB caps
+with modeled 4-KiB pages. Source guards check the shared helper's GPL export,
+miatoll's explicit BBRplus default and the global CUBIC fallback.
+
+Negative control (MUST fail with a C assertion):
+
+  python3 tools/testing/selftests/bbrplus/test_backport.py --cc clang --donor-hook
+
+This deliberately disables the TCP callback dispatch omitted by the donor.
+The memory-limit negative control must also fail with a C assertion:
+
+  python3 tools/testing/selftests/bbrplus/test_backport.py --cc clang --old-memory-limits
+
+It deliberately restores the old 4/6-MiB TCP maximum-buffer caps.
+
+The model uses fake sockets, rates, skbs, random values and TCP helper shims.
+Its header budget is modeled, not a real device/network header size. It does
+not run packet I/O, locking, loss recovery, timer pacing, the complete BBRplus
+state machine, or a module loader. It cannot prove throughput, latency or
+fairness. model.c is a template for the runner, not a standalone test binary.
+
+See Documentation/networking/bbrplus-backport.rst for configuration, source
+provenance and selected-object/partial-link build results.

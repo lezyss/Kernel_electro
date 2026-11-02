@@ -1964,7 +1964,7 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 		cgroup_enter_frozen();
 		preempt_enable_no_resched();
 		freezable_schedule();
-		cgroup_leave_frozen(true);
+		cgroup_leave_frozen(false);
 	} else {
 		/*
 		 * By the time we got the lock, our tracer went away.
@@ -2337,10 +2337,6 @@ relock:
 		trace_signal_deliver(SIGKILL, SEND_SIG_NOINFO,
 				&sighand->action[SIGKILL - 1]);
 		recalc_sigpending();
-		current->jobctl &= ~JOBCTL_TRAP_FREEZE;
-		spin_unlock_irq(&sighand->siglock);
-		if (unlikely(cgroup_task_frozen(current)))
-			cgroup_leave_frozen(true);
 		goto fatal;
 	}
 
@@ -2368,7 +2364,7 @@ relock:
 		 */
 		if (unlikely(cgroup_task_frozen(current))) {
 			spin_unlock_irq(&sighand->siglock);
-			cgroup_leave_frozen(true);
+			cgroup_leave_frozen(false);
 			goto relock;
 		}
 
@@ -2462,8 +2458,10 @@ relock:
 			continue;
 		}
 
+fatal:
 		spin_unlock_irq(&sighand->siglock);
-	fatal:
+		if (unlikely(cgroup_task_frozen(current)))
+			cgroup_leave_frozen(true);
 
 		/*
 		 * Anything else is fatal, maybe with a core dump.

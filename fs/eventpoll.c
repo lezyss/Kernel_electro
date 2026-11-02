@@ -879,11 +879,34 @@ static int ep_eventpoll_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
+/*
+ * Callers hold ep->mtx, which prevents file teardown/reuse until the poll
+ * path completes. Only take a temporary reference if f_count is nonzero;
+ * a file whose final fput has already started must not be polled.
+ */
+static struct file *epi_fget(const struct epitem *epi)
+{
+	struct file *file = epi->ffd.file;
+
+	if (!atomic_long_inc_not_zero(&file->f_count))
+		return NULL;
+
+	return file;
+}
+
 static inline unsigned int ep_item_poll(struct epitem *epi, poll_table *pt)
 {
-	pt->_key = epi->event.events;
+	struct file *file = epi_fget(epi);
+	unsigned int events;
 
-	return epi->ffd.file->f_op->poll(epi->ffd.file, pt) & epi->event.events;
+	if (!file)
+		return 0;
+
+	pt->_key = epi->event.events;
+	events = vfs_poll(file, pt) & epi->event.events;
+	fput(file);
+
+	return events;
 }
 
 static int ep_read_events_proc(struct eventpoll *ep, struct list_head *head,

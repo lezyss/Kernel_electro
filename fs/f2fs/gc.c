@@ -1073,6 +1073,16 @@ next_step:
 				continue;
 			}
 
+			if (f2fs_has_inline_data(inode)) {
+				set_sbi_flag(sbi, SBI_NEED_FSCK);
+				printk_ratelimited(KERN_ERR
+					"F2FS-fs (%s): inode %lx has both inline_data flag and "
+					"data block, nid=%u, ofs_in_node=%u\n",
+					sb->s_id, inode->i_ino, dni.nid, ofs_in_node);
+				iput(inode);
+				continue;
+			}
+
 			if (!down_write_trylock(
 				&F2FS_I(inode)->i_gc_rwsem[WRITE])) {
 				iput(inode);

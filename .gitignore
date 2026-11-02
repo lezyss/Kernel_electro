@@ -10,6 +10,8 @@
 # Normal rules (sorted alphabetically)
 #
 .*
+!/.github/
+!/.github/**
 *.a
 *.bin
 *.bz2
@@ -129,3 +131,11 @@ kernel/configs/android-*.cfg
 #Ignoring Android.bp link file
 #
 Android.bp
+
+# Local/CI LLVM prebuilts and out-of-tree kernel builds
+/.toolchains/
+/out/
+
+# Python selftest caches
+__pycache__/
+*.py[cod]
