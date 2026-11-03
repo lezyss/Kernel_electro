@@ -1,0 +1,56 @@
+Selected MM backport host checks
+===============================
+Run from any directory with Python 3 and a host C compiler:
+
+  python3 tools/testing/selftests/mm_backport/test_backport.py --cc clang
+
+HOSTCC is also supported (default cc). A compiler command can contain flags:
+
+  python3 tools/testing/selftests/mm_backport/test_backport.py \
+    --cc 'clang -fsanitize=undefined -fno-sanitize-recover=all'
+
+The runner compiles a temporary C program with production functions inserted
+from the current tree: read_pages, swap_readpage, compaction predicates and
+should_compact_retry, compaction trace feedback, do_shrink_slab and
+quiet_vmstat. Filemap testing extracts only its two new callback guard blocks,
+not the complete generic_file_buffered_read/filemap_fault implementations.
+Use --source-root PATH to test another source tree with these changes.
+
+Coverage:
+* 36 filemap guard cases: absent callbacks, EIO, truncated-page passthrough,
+  uptodate/error outcomes, callback-owned unlock and guarded unlock.
+* 792 readahead cases: null mapping/a_ops, missing readpage, readpages
+  preference, partial bulk-list consumption, callback errors, zero/1..32 pages,
+  insertion failure, page-reference cleanup and plug balance.
+* 160 swap cases: five routes (frontswap, swap file, block read_page, BIO
+  allocation failure, completed BIO), workingset/cold, nested/non-nested,
+  PSI disabled, synchronous/asynchronous and PageWorkingset changes during IO.
+* 3,456 compaction retry combinations plus trace feedback and repeated
+  withdrawn attempts: priorities, results, costly/non-costly/order0, LMK gate,
+  suitability and retry counters. No-progress withdrawn retries must escalate
+  or stop, while skipped/reclaim-needed retries retain their distinct logic.
+* 11,440 shrinker cases: zero/positive seeks, priority, freeable counts,
+  deferred work, direct/background batching and SHRINK_STOP.
+* 12 quiet_vmstat outcomes and source guards for integrated zero-seek users,
+  MGLRU shadow limits/classification and unchanged policy defaults.
+
+Assertions remain enabled with NDEBUG. Wsign-compare/unused-parameter are
+suppressed for kernel production code/mocks; other Wall/Wextra warnings fail.
+
+Negative controls: EACH command must compile, then fail a C assertion:
+
+  python3 tools/testing/selftests/mm_backport/test_backport.py --negative donor-psi
+  python3 tools/testing/selftests/mm_backport/test_backport.py --negative old-trace
+  python3 tools/testing/selftests/mm_backport/test_backport.py --negative old-retry
+  python3 tools/testing/selftests/mm_backport/test_backport.py --negative old-shrinker
+
+Add --cc clang (or HOSTCC) as needed. A compile error is NOT a successful
+negative control. The flags mutate the extracted test copy, never the tree.
+
+Mocks are single-threaded and do not test real PSI/runqueue accounting,
+concurrent page/callback lifetime changes, complete VFS faults/short reads,
+allocator locks, real asynchronous IO, memcg/NUMA placement or shrinker races.
+Shrinker tests model scan/deferred arithmetic, not actual memory reclaimed.
+Source guards are not runtime proofs. No module or device-side test interface
+is installed. See Documentation/vm/mm-selected-backports.rst for provenance,
+corrections, build matrix and the remaining device-validation requirements.

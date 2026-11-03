@@ -1,0 +1,52 @@
+diff --git a/Kconfig b/Kconfig
+--- a/Kconfig
++++ b/Kconfig
+@@ -5,7 +5,7 @@
+ 	depends on !CPU_BIG_ENDIAN
+ 	depends on SECURITY_SELINUX
+ 	select SECCOMP
+-	default y
++	default n
+ 	help
+ 	  Enable kernel-level root privileges on Android System.
+ 
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -3,6 +3,9 @@
+ obj-$(CONFIG_KSU) := kernelsu.o
+ kernelsu-y := ksu.o
+ 
++CFLAGS_ksu.o += -I$(obj)
++# UTS_MACHINE is exported by Kbuild; avoid init/version.o header side effects.
++CFLAGS_ksu.o += -DUTS_MACHINE=\"$(UTS_MACHINE)\"
+ CFLAGS_ksu.o += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include
+ CFLAGS_ksu.o += -I$(objtree)/security/selinux
+ 
+@@ -153,3 +156,15 @@
+ 	$(MAKE) -C $(KDIR) M=$(MDIR) clean
+ 
+ # Keep a new line here!! Because someone may append config
++# Electro 4.14: generate a private copy of the SELinux class headers.
++# The security/ subtree may be built in parallel with drivers/, so depending
++# on its side effects races clean builds. scripts/ builds genheaders first.
++$(obj)/ksu.o: $(obj)/flask.h
++
++quiet_cmd_ksu_flask = GEN     $(obj)/flask.h $(obj)/av_permissions.h
++      cmd_ksu_flask = $< $(obj)/flask.h $(obj)/av_permissions.h
++
++targets += flask.h av_permissions.h
++$(obj)/flask.h: scripts/selinux/genheaders/genheaders \
++		$(srctree)/security/selinux/include/classmap.h FORCE
++	$(call if_changed,ksu_flask)
+diff --git a/kernel_includes.h b/kernel_includes.h
+--- a/kernel_includes.h
++++ b/kernel_includes.h
+@@ -36,7 +36,6 @@
+ #include <asm/current.h>
+ #include <asm/syscall.h>
+ #include <crypto/hash.h>
+-#include <generated/compile.h>
+ #include <generated/utsrelease.h>
+ #include <linux/aio.h>
+ #include <linux/anon_inodes.h>

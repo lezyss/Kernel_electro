@@ -250,6 +250,20 @@ config LZ4KD_COMPRESS
 
 config LZ4_DECOMPRESS
 	tristate
+
+config LZ4_ARM64_ACCEL
+	bool "ARM64 LZ4 decompression acceleration (EXPERIMENTAL)"
+	depends on ARM64 && KERNEL_MODE_NEON
+	depends on LZ4_DECOMPRESS != n
+	default n
+	help
+	  Use the ARM64 NEON decoder in the architecture-specific LZ4 helpers
+	  and the first dictionary-free streaming block.  Other decoding,
+	  preboot, overlapping buffers and contexts which cannot use SIMD
+	  continue to use C.  The assembly does not use the SCS register x18.
+
+	  Leave disabled until validated on the target with its release
+	  compiler, Shadow Call Stack and LTO settings.  If unsure, say N.
 	
 config LZ4KD_DECOMPRESS
 	tristate

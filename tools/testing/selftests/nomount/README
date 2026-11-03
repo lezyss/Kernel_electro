@@ -1,0 +1,35 @@
+NoMount offline integration and extracted-source tests
+=====================================================
+
+From the kernel source root:
+
+    python3 tools/testing/selftests/nomount/test_integration.py
+    python3 tools/testing/selftests/nomount/test_integration.py --config out/.config
+    python3 tools/testing/selftests/nomount/test_integration.py --host-tests --cc clang
+    python3 tools/testing/selftests/nomount/test_integration.py --host-tests \
+        --cc 'clang -fsanitize=undefined -fno-sanitize-recover=all'
+
+The integrity-only checks need Python's standard library, not network/compiler.
+They check the pinned source, local adaptation hashes, regular files/no nested
+Git metadata, parent wiring, default-off/keyring dependency, retained kernel
+build flags and resolved built-in configuration. For a disabled output config:
+
+    python3 tools/testing/selftests/nomount/test_integration.py \
+        --config /path/to/disabled/.config --expect-disabled
+
+CI invokes the integrity check when the selected defconfig requests NoMount.
+
+--host-tests extracts current nm_key_preparse, UID bloom/add/delete/read helpers,
+nm_select_rule and native/compat position-cookie helpers into model.c. Single-
+threaded mocks check 44 capability/pointer-size gate cases, 131072 position
+roundtrips, 400384 UID/bloom/isolation checks and 1001 rule-selection cases.
+Mocks are not real keyring, RCU, VFS, mmap, shutdown or Android operations.
+
+--negative deliberately breaks extracted code in memory. Accepted values:
+no-capability-gate, no-rcu-unlock, wrong-compat-cookie, no-uid-bloom.
+Each must compile and fail a runtime assertion; a nonzero result is expected.
+It does not change repository files. No test configures actual NoMount rules.
+
+See Documentation/filesystems/nomount-integration.md for build/device testing
+requirements. These tests do not establish root authorization security, actual
+RCU/concurrency safety, filesystem IO correctness or a successful boot.

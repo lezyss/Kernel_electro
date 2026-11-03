@@ -26,8 +26,12 @@
 
 static unsigned total_tests __initdata;
 static unsigned failed_tests __initdata;
+static unsigned skipped_tests __initdata;
+
 static char *test_buffer __initdata;
 static char *alloced_buffer __initdata;
+
+extern bool no_hash_pointers;
 
 static int __printf(4, 0) __init
 do_test(int bufsize, const char *expect, int elen,
@@ -279,6 +283,12 @@ static void __init
 plain(void)
 {
 	int err;
+
+	if (no_hash_pointers) {
+		pr_warn("skipping plain 'p' tests");
+		skipped_tests += 2;
+		return;
+	}
 
 	err = plain_hash();
 	if (err) {
@@ -554,6 +564,9 @@ test_printf_init(void)
 		pr_info("all %u tests passed\n", total_tests);
 	else
 		pr_warn("failed %u out of %u tests\n", failed_tests, total_tests);
+
+	if (skipped_tests)
+		pr_info("skipped %u tests\n", skipped_tests);
 
 	return failed_tests ? -EINVAL : 0;
 }

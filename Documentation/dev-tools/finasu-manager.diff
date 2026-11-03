@@ -1,0 +1,384 @@
+--- a/drivers/kernelsu/manager/apk_sign.c
++++ b/drivers/kernelsu/manager/apk_sign.c
+@@ -317,8 +317,41 @@
+ 	return 0;
+ }
+ 
++bool ksu_is_manager_package(const char *package)
++{
++	return !strcmp(package, KSU_PACKAGE_NAME) ||
++	       !strcmp(package, "com.kowx712.supermanager") ||
++	       !strcmp(package, "com.midori.supermanager") ||
++	       !strcmp(package, KSU_FINASU_PACKAGE_NAME);
++}
++
++int ksu_package_from_apk_path(char *package, const char *path)
++{
++	char directory[KSU_MAX_PACKAGE_NAME];
++	const char *end = strrchr(path, '/');
++	size_t length;
++
++	if (!end || strcmp(end, "/base.apk"))
++		return -EINVAL;
++	length = end - path;
++	if (length >= sizeof(directory))
++		return -ENAMETOOLONG;
++	memcpy(directory, path, length);
++	directory[length] = '\0';
++	return get_pkg_from_apk_dir_path(package, directory);
++}
++
+ bool is_manager_apk(char *path)
+ {
++	char package[KSU_MAX_PACKAGE_NAME];
++
++	if (ksu_package_from_apk_path(package, path) || !ksu_is_manager_package(package))
++		return false;
++
++	/* A FinaSU package must have FinaSU's key, not another accepted key. */
++	if (!strcmp(package, KSU_FINASU_PACKAGE_NAME))
++		return check_v2_signature(path, KSU_FINASU_CERT_SIZE, KSU_FINASU_CERT_SHA256);
++
+ 	// dummy.keystore
+ 	if (check_v2_signature(path, 0x363, "4359c171f32543394cbc23ef908c4bb94cad7c8087002ba164c8230948c21549"))
+ 		return true;
+--- a/drivers/kernelsu/manager/apk_sign.h
++++ b/drivers/kernelsu/manager/apk_sign.h
+@@ -1,7 +1,14 @@
+ #ifndef __KSU_H_APK_V2_SIGN
+ #define __KSU_H_APK_V2_SIGN
+ 
++/* Production FinaSU only: no PR/debug package suffix or unrelated fork keys. */
++#define KSU_FINASU_PACKAGE_NAME "me.yuki.fina"
++#define KSU_FINASU_CERT_SIZE 0x2cc
++#define KSU_FINASU_CERT_SHA256 "2d89b50aaf1db013c2b6738f973f48b62ea21a3a8d7216bfec3521065d448458"
++
+ bool is_manager_apk(char *path);
++bool ksu_is_manager_package(const char *package);
++int ksu_package_from_apk_path(char *package, const char *path);
+ int get_pkg_from_apk_dir_path(char *pkg, const char *path);
+ 
+ #endif
+--- a/drivers/kernelsu/manager/throne_tracker.c
++++ b/drivers/kernelsu/manager/throne_tracker.c
+@@ -5,16 +5,6 @@
+ #define DATA_PATH_LEN 384 // 384 is enough for /data/app/<package>/base.apk
+ 
+ static char cached_manager_apk_path[DATA_PATH_LEN];
+-
+-// extendable manager support
+-#define extra_manager_apk(tgt, name) ({			\
+-	static_assert(__builtin_constant_p(name));	\
+-	static_assert(DATA_PATH_LEN > sizeof(name));	\
+-	!strncmp(tgt, name, sizeof(name));		\
+-})
+-#define is_kowsu_apk(tgt) extra_manager_apk(tgt, "com.kowx712.supermanager")
+-#define is_midorisu_apk(tgt) extra_manager_apk(tgt, "com.midori.supermanager")
+-#define test_extra_pkgs(tgt) (is_kowsu_apk(tgt) || is_midorisu_apk(tgt))
+ 
+ #define SYSTEM_PACKAGES_LIST_PATH "/data/system/packages.list"
+ 
+@@ -24,18 +14,22 @@
+ 	char package[KSU_MAX_PACKAGE_NAME];
+ };
+ 
+-static void crown_manager(const char *apk, struct list_head *uid_data)
+-{
+-	struct list_head *list = (struct list_head *)uid_data;
++/* Called only after this exact APK passes certificate verification. */
++static bool crown_manager(const char *apk, struct list_head *uid_data)
++{
+ 	struct uid_data *np;
+-
+-	list_for_each_entry (np, list, list) {
+-		if (test_extra_pkgs(np->package) || strncmp(np->package, KSU_PACKAGE_NAME, KSU_MAX_PACKAGE_NAME) == 0) {
+-			pr_info("Crowning manager: uid=%d\n", np->uid);
++	char package[KSU_MAX_PACKAGE_NAME];
++
++	if (ksu_package_from_apk_path(package, apk) || !ksu_is_manager_package(package))
++		return false;
++	list_for_each_entry(np, uid_data, list) {
++		if (!strcmp(np->package, package)) {
++			pr_info("Crowning verified manager %s: uid=%d\n", package, np->uid);
+ 			ksu_set_manager_appid(np->uid);
+-			break;
+-		}
+-	}
++			return true;
++		}
++	}
++	return false;
+ }
+ 
+ struct data_path {
+@@ -72,11 +66,7 @@
+ 		return false;
+ 	}
+ 
+-	if (test_extra_pkgs(pkg))
+-		return true;
+-
+-	// pkg is `<real package>`
+-	return strncmp(pkg, KSU_PACKAGE_NAME, sizeof(KSU_PACKAGE_NAME)) == 0;
++	return ksu_is_manager_package(pkg);
+ }
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,19,0)
+@@ -130,7 +120,6 @@
+ 	if (d_type == DT_REG && namelen == 8 && !memcmp(name, "base.apk", 8)) {
+ 		if (maybe_manager_apk_dir(my_ctx->parent_dir)) {
+ 			snprintf(candidate_path, DATA_PATH_LEN, "%s/%.*s", my_ctx->parent_dir, namelen, name);
+-			strcpy(cached_manager_apk_path, candidate_path);
+ 		}
+ 		// As soon as we met the base.apk, we can stop
+ 		return FILLDIR_ACTOR_STOP;
+@@ -199,15 +188,13 @@
+ 				goto skip_iterate;
+ 			}
+ 
++			candidate_path[0] = 0;
+ 			iterate_dir(file, &ctx.ctx);
+ 			filp_close(file, NULL);
+ 
+ 			if (!candidate_path[0])
+ 				goto skip_iterate;
+ 
+-			// As soon as we get the manager apk path, we can stop
+-			stop = 1;
+-
+ 			bool is_manager = is_manager_apk(candidate_path);
+ 			pr_info("Found manager base.apk at path: %s, is_manager: %d\n", candidate_path, is_manager);
+ 
+@@ -215,7 +202,10 @@
+ 			if (unlikely(!is_manager))
+ 				goto skip_iterate;
+ 
+-			crown_manager(candidate_path, uid_data);
++			if (crown_manager(candidate_path, uid_data)) {
++				strscpy(cached_manager_apk_path, candidate_path, DATA_PATH_LEN);
++				stop = 1;
++			}
+ 
+ 		skip_iterate:
+ 			list_del(&pos->list);
+@@ -305,56 +295,18 @@
+ 	if (prune_only)
+ 		goto prune;
+ 
+-	// first, check if manager_uid exist!
+-	uid_t manager_package_uid = KSU_INVALID_APPID;
+-	bool need_rescan = false;
+-	list_for_each_entry (np, &uid_list, list) {
+-		if (test_extra_pkgs(np->package) || strcmp(np->package, KSU_PACKAGE_NAME) == 0) {
+-			manager_package_uid = np->uid;
+-			break;
+-		}
+-	}
+-
+-	if (manager_package_uid == KSU_INVALID_APPID) {
+-		cached_manager_apk_path[0] = 0;
+-		if (ksu_is_manager_appid_valid()) {
+-			pr_info("manager is uninstalled, invalidate it!\n");
+-			ksu_invalidate_manager_uid();
+-			goto prune;
+-		}
+-	} else {
+-		if (!ksu_is_manager_appid_valid()) {
+-			need_rescan = true;
+-		} else if (unlikely(np->uid != ksu_get_manager_appid())) {
+-			// this should not happen in normal android system
+-			pr_info("manager uid changed, invalidate it!\n");
+-			cached_manager_apk_path[0] = 0;
+-			ksu_invalidate_manager_uid();
+-			need_rescan = true;
+-		} else {
+-			// uid unchanged, skip
+-			pr_info("manager uid unchanged, skip search!\n");
+-		}
+-	}
+-
+-	if (need_rescan) {
+-		// If the apk path still exists, the verification result won't be changed
+-		if (cached_manager_apk_path[0]) {
+-			struct path p;
+-			int ret = kern_path(cached_manager_apk_path, 0, &p);
+-			if (ret == 0) {
+-				// skip search
+-				pr_info("manager apk path unchanged, skip search!\n");
+-				path_put(&p);
+-				goto prune;
+-			} else if (ret != -ENOENT) {
+-				pr_err("stat cached manager path failed: %d (path=%s)\n", ret, cached_manager_apk_path);
+-			}
+-		}
+-		pr_info("Searching manager " KSU_PACKAGE_NAME "...\n");
+-		search_manager("/data/app", 2, &uid_list);
+-		pr_info("Search manager finished\n");
+-	}
++	/* Preserve the active manager if its exact cached package/key still verifies.
++	 * Recheck on package updates: path existence alone is not authentication.
++	 */
++	if (cached_manager_apk_path[0] && is_manager_apk(cached_manager_apk_path) &&
++	    crown_manager(cached_manager_apk_path, &uid_list))
++		goto prune;
++
++	ksu_invalidate_manager_uid();
++	cached_manager_apk_path[0] = 0;
++	pr_info("Searching supported manager APKs...\n");
++	search_manager("/data/app", 2, &uid_list);
++	pr_info("Search manager finished\n");
+ 
+ prune:
+ 	// then prune the allowlist
+--- a/drivers/kernelsu/manager/manager_identity.h
++++ b/drivers/kernelsu/manager/manager_identity.h
+@@ -10,32 +10,33 @@
+ 
+ static inline bool ksu_is_manager_appid_valid()
+ {
+-	return ksu_manager_appid != KSU_INVALID_APPID;
++	return READ_ONCE(ksu_manager_appid) != KSU_INVALID_APPID;
+ }
+ 
+ static inline bool is_manager()
+ {
+-	return unlikely(ksu_manager_appid == current_uid().val % KSU_PER_USER_RANGE);
++	return unlikely(READ_ONCE(ksu_manager_appid) == current_uid().val % KSU_PER_USER_RANGE);
+ }
+ 
+ static inline bool is_uid_manager(uid_t uid)
+ {
+-	return unlikely(ksu_manager_appid == uid % KSU_PER_USER_RANGE);
++	return unlikely(READ_ONCE(ksu_manager_appid) == uid % KSU_PER_USER_RANGE);
+ }
+ 
+ static inline uid_t ksu_get_manager_appid()
+ {
+-	return ksu_manager_appid;
++	return READ_ONCE(ksu_manager_appid);
+ }
+ 
+ static inline void ksu_set_manager_appid(uid_t appid)
+ {
+-	ksu_manager_appid = appid;
++	WRITE_ONCE(ksu_manager_appid, appid == KSU_INVALID_APPID ?
++		   KSU_INVALID_APPID : appid % KSU_PER_USER_RANGE);
+ }
+ 
+ static inline void ksu_invalidate_manager_uid()
+ {
+-	ksu_manager_appid = KSU_INVALID_APPID;
++	WRITE_ONCE(ksu_manager_appid, KSU_INVALID_APPID);
+ }
+ 
+ #endif
+--- a/drivers/kernelsu/include/uapi/supercall.h
++++ b/drivers/kernelsu/include/uapi/supercall.h
+@@ -199,4 +199,26 @@
+ #define KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT	_IO('K', 21)
+ #define KSU_IOCTL_LOOKUP_SYMBOLS		_IOW('K', 22, struct ksu_lookup_symbols_cmd)
+ 
++/* FinaSU manager display ABI; existing GET_INFO/version/features are unchanged. */
++struct ksu_finasu_full_version_cmd {
++	char version_full[64];
++};
++struct ksu_compat_hook_mode_cmd {
++	char mode[16];
++};
++struct ksu_compat_version_tag_cmd {
++	char tag[32];
++};
++struct ksu_compat_full_version_cmd {
++	char version_full[255];
++};
++struct ksu_compat_hook_type_cmd {
++	char hook_type[32];
++};
++#define KSU_IOCTL_GET_FULL_VERSION_FINASU _IOR('K', 29, struct ksu_finasu_full_version_cmd)
++#define KSU_IOCTL_GET_HOOK_MODE _IOC(_IOC_READ, 'K', 98, 0)
++#define KSU_IOCTL_GET_VERSION_TAG _IOC(_IOC_READ, 'K', 99, 0)
++#define KSU_IOCTL_GET_FULL_VERSION _IOC(_IOC_READ, 'K', 100, 0)
++#define KSU_IOCTL_HOOK_TYPE _IOC(_IOC_READ, 'K', 101, 0)
++
+ #endif
+--- a/drivers/kernelsu/supercall/dispatch.c
++++ b/drivers/kernelsu/supercall/dispatch.c
+@@ -790,6 +790,66 @@
+ 	kvfree(names);
+ 	kvfree(addrs);
+ 	return ret;
++}
++
++/* These describe the actual pinned backslashxx driver, not a FinaSU kernel. */
++#define KSU_COMPAT_VERSION_TAG "v3.3.1+36"
++#define KSU_COMPAT_VERSION_FULL "v3.3.1+36-backslashxx-Electro"
++
++static int ksu_metadata_to_user(void __user *arg, const void *data, size_t size)
++{
++	return copy_to_user(arg, data, size) ? -EFAULT : 0;
++}
++
++static const char *ksu_configured_hook_type(void)
++{
++#if defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) || defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
++	return "Manipulated";
++#elif defined(CONFIG_KSU_KPROBES_KSUD)
++	return "Kprobes";
++#else
++	return "Manual";
++#endif
++}
++
++static int do_get_full_version_finasu(void __user *arg)
++{
++	struct ksu_finasu_full_version_cmd cmd = { 0 };
++
++	strscpy(cmd.version_full, KSU_COMPAT_VERSION_FULL, sizeof(cmd.version_full));
++	return ksu_metadata_to_user(arg, &cmd, sizeof(cmd));
++}
++
++static int do_get_full_version(void __user *arg)
++{
++	struct ksu_compat_full_version_cmd cmd = { 0 };
++
++	strscpy(cmd.version_full, KSU_COMPAT_VERSION_FULL, sizeof(cmd.version_full));
++	return ksu_metadata_to_user(arg, &cmd, sizeof(cmd));
++}
++
++static int do_get_version_tag(void __user *arg)
++{
++	struct ksu_compat_version_tag_cmd cmd = { 0 };
++
++	strscpy(cmd.tag, KSU_COMPAT_VERSION_TAG, sizeof(cmd.tag));
++	return ksu_metadata_to_user(arg, &cmd, sizeof(cmd));
++}
++
++static int do_get_hook_mode(void __user *arg)
++{
++	struct ksu_compat_hook_mode_cmd cmd = { 0 };
++
++	strscpy(cmd.mode, ksu_configured_hook_type(), sizeof(cmd.mode));
++	return ksu_metadata_to_user(arg, &cmd, sizeof(cmd));
++}
++
++static int do_get_hook_type(void __user *arg)
++{
++	struct ksu_compat_hook_type_cmd cmd = { 0 };
++
++	strscpy(cmd.hook_type, ksu_configured_hook_type(), sizeof(cmd.hook_type));
++	return ksu_metadata_to_user(arg, &cmd, sizeof(cmd));
+ }
+ 
+ // IOCTL handlers mapping table
+@@ -819,6 +879,11 @@
+ 	{ .cmd = KSU_IOCTL_GET_SULOG_FD, .name = "GET_SULOG_FD", .handler = do_get_sulog_fd, .perm_check = only_root },
+ 	{ .cmd = KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT, .name = "DISABLE_ESCAPE_TO_ROOT", .handler = do_disable_escape_to_root, .perm_check = only_root, .allow_su_session = true },
+ 	{ .cmd = KSU_IOCTL_LOOKUP_SYMBOLS, .name = "LOOKUP_SYMBOLS", .handler = do_lookup_symbols, .perm_check = only_root },
++	{ .cmd = KSU_IOCTL_GET_FULL_VERSION_FINASU, .name = "GET_FULL_VERSION_FINASU", .handler = do_get_full_version_finasu, .perm_check = always_allow },
++	{ .cmd = KSU_IOCTL_GET_FULL_VERSION, .name = "GET_FULL_VERSION", .handler = do_get_full_version, .perm_check = always_allow },
++	{ .cmd = KSU_IOCTL_GET_VERSION_TAG, .name = "GET_VERSION_TAG", .handler = do_get_version_tag, .perm_check = manager_or_root },
++	{ .cmd = KSU_IOCTL_GET_HOOK_MODE, .name = "GET_HOOK_MODE", .handler = do_get_hook_mode, .perm_check = manager_or_root },
++	{ .cmd = KSU_IOCTL_HOOK_TYPE, .name = "HOOK_TYPE", .handler = do_get_hook_type, .perm_check = manager_or_root },
+ 	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL } // Sentinel
+ };
+ 
