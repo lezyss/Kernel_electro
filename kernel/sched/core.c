@@ -144,11 +144,12 @@ struct rq *task_rq_lock(struct task_struct *p, struct rq_flags *rf)
 		 *					[L] ->on_rq
 		 *	RELEASE (rq->lock)
 		 *
-		 * If we observe the old cpu in task_rq_lock, the acquire of
+		 * If we observe the old CPU in task_rq_lock(), the acquire of
 		 * the old rq->lock will fully serialize against the stores.
 		 *
-		 * If we observe the new CPU in task_rq_lock, the acquire will
-		 * pair with the WMB to ensure we must then also see migrating.
+		 * If we observe the new CPU in task_rq_lock(), the address
+		 * dependency headed by '[L] rq = task_rq()' and the acquire
+		 * will pair with the WMB to ensure we then also see migrating.
 		 */
 		if (likely(rq == task_rq(p) && !task_on_rq_migrating(p))) {
 			rq_pin_lock(rq, rf);
@@ -763,6 +764,9 @@ static void set_load_weight(struct task_struct *p)
 		return;
 	}
 
+#ifdef CONFIG_SCHED_BORE
+	prio = min(39, prio + p->se.burst_score);
+#endif
 	load->weight = scale_load(sched_prio_to_weight[prio]);
 	load->inv_weight = sched_prio_to_wmult[prio];
 }
@@ -972,7 +976,7 @@ static struct rq *move_queued_task(struct rq *rq, struct rq_flags *rf,
 {
 	lockdep_assert_held(&rq->lock);
 
-	p->on_rq = TASK_ON_RQ_MIGRATING;
+	WRITE_ONCE(p->on_rq, TASK_ON_RQ_MIGRATING);
 	dequeue_task(rq, p, DEQUEUE_NOCLOCK);
 #ifdef CONFIG_SCHED_WALT
 	double_lock_balance(rq, cpu_rq(new_cpu));
@@ -2459,6 +2463,157 @@ int wake_up_state(struct task_struct *p, unsigned int state)
  *
  * __sched_fork() is basic setup used by init_idle() too:
  */
+#ifdef CONFIG_SCHED_BORE
+extern unsigned int sched_burst_fork_atavistic;
+extern unsigned int sched_burst_cache_lifetime;
+
+/* Bound IRQ-off process-tree work, including single-child chains. */
+#define BORE_INHERIT_BUDGET 1024U
+
+static void sched_fork_bore(struct task_struct *p)
+{
+	p->se.burst_time = 0;
+	p->se.prev_burst_penalty = READ_ONCE(current->se.burst_penalty);
+	p->se.curr_burst_penalty = 0;
+	p->se.burst_penalty = p->se.prev_burst_penalty;
+	p->se.burst_score = p->se.burst_penalty >> 2;
+	p->se.child_burst = 0;
+	p->se.child_burst_cnt = 0;
+	p->se.child_burst_last_cached = 0;
+	set_load_weight(p);
+}
+
+/* Callers only need to distinguish zero, one and multiple children. */
+static u32 count_child_tasks(struct task_struct *p)
+{
+	struct task_struct *child;
+	u32 cnt = 0;
+
+	list_for_each_entry(child, &p->children, sibling)
+		if (++cnt == 2)
+			break;
+	return cnt;
+}
+
+static bool task_is_inheritable(struct task_struct *p)
+{
+	return READ_ONCE(p->sched_class) == &fair_sched_class;
+}
+
+static bool child_burst_cache_expired(struct task_struct *p, u64 now)
+{
+	u64 stamp = p->se.child_burst_last_cached;
+
+	return !stamp || now - stamp >= READ_ONCE(sched_burst_cache_lifetime);
+}
+
+static void __update_child_burst_cache(struct task_struct *p, u64 cnt,
+				     u64 sum, u64 now, u32 budget)
+{
+	u8 avg = cnt ? div64_u64(sum, cnt) : 0;
+
+	p->se.child_burst = max(avg, READ_ONCE(p->se.burst_penalty));
+	p->se.child_burst_cnt = min_t(u64, cnt, U32_MAX);
+	/* Do not memoize a traversal truncated by the work budget. */
+	p->se.child_burst_last_cached = budget ? now : 0;
+}
+
+static void update_child_burst_direct(struct task_struct *p, u64 now,
+				      u32 *budget)
+{
+	struct task_struct *child;
+	u64 cnt = 0, sum = 0;
+
+	list_for_each_entry(child, &p->children, sibling) {
+		if (!*budget)
+			break;
+		--*budget;
+		if (!task_is_inheritable(child))
+			continue;
+		cnt++;
+		sum += READ_ONCE(child->se.burst_penalty);
+	}
+	__update_child_burst_cache(p, cnt, sum, now, *budget);
+}
+
+static void update_child_burst_topological(struct task_struct *p, u64 now,
+					 u32 depth, u64 *acnt, u64 *asum,
+					 u32 *budget)
+{
+	struct task_struct *child, *dec;
+	u64 cnt = 0, sum = 0;
+	u32 dcnt;
+
+	list_for_each_entry(child, &p->children, sibling) {
+		if (!*budget)
+			break;
+		--*budget;
+		dec = child;
+		while (*budget && count_child_tasks(dec) == 1) {
+			--*budget;
+			dec = list_first_entry(&dec->children, struct task_struct, sibling);
+		}
+		dcnt = count_child_tasks(dec);
+		if (!dcnt || !depth || !*budget) {
+			if (!task_is_inheritable(dec))
+				continue;
+			cnt++;
+			sum += READ_ONCE(dec->se.burst_penalty);
+		} else if (!child_burst_cache_expired(dec, now)) {
+			cnt += dec->se.child_burst_cnt;
+			sum += (u64)dec->se.child_burst * dec->se.child_burst_cnt;
+		} else {
+			update_child_burst_topological(dec, now, depth - 1,
+						      &cnt, &sum, budget);
+		}
+	}
+	__update_child_burst_cache(p, cnt, sum, now, *budget);
+	*acnt += cnt;
+	*asum += sum;
+}
+
+static void sched_post_fork_bore(struct task_struct *p)
+{
+	struct task_struct *anc = p->real_parent;
+	u32 depth = min(READ_ONCE(sched_burst_fork_atavistic), 3U);
+	u32 budget = BORE_INHERIT_BUDGET;
+	u64 cnt = 0, sum = 0, now = ktime_get_ns();
+
+	/*
+	 * copy_process holds tasklist_lock for write; p is not published yet.
+	 * This serializes caches and tree traversal without taking rq locks.
+	 */
+	lockdep_assert_held(&tasklist_lock);
+	if (p->sched_class != &fair_sched_class)
+		return;
+	if (depth) {
+		while (budget && anc->real_parent != anc && count_child_tasks(anc) == 1) {
+			--budget;
+			anc = anc->real_parent;
+		}
+		if (child_burst_cache_expired(anc, now))
+			update_child_burst_topological(anc, now, depth - 1,
+						      &cnt, &sum, &budget);
+	} else if (child_burst_cache_expired(anc, now)) {
+		update_child_burst_direct(anc, now, &budget);
+	}
+	p->se.prev_burst_penalty = max(p->se.prev_burst_penalty,
+				     anc->se.child_burst);
+	p->se.burst_penalty = p->se.prev_burst_penalty;
+	p->se.burst_score = p->se.burst_penalty >> 2;
+	/* Child is still private: no runqueue accounting or rq lock needed. */
+	set_load_weight(p);
+	init_entity_runnable_average(&p->se);
+}
+#endif /* CONFIG_SCHED_BORE */
+
+void sched_post_fork(struct task_struct *p)
+{
+#ifdef CONFIG_SCHED_BORE
+	sched_post_fork_bore(p);
+#endif
+}
+
 static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 {
 	p->on_rq			= 0;
@@ -2469,6 +2624,9 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->se.prev_sum_exec_runtime	= 0;
 	p->se.nr_migrations		= 0;
 	p->se.vruntime			= 0;
+#ifdef CONFIG_SCHED_BORE
+	sched_fork_bore(p);
+#endif
 	p->last_sleep_ts		= 0;
 	p->boost                = 0;
 	p->boost_expires        = 0;
@@ -3128,8 +3286,10 @@ context_switch(struct rq *rq, struct task_struct *prev,
 		next->active_mm = oldmm;
 		mmgrab(oldmm);
 		enter_lazy_tlb(oldmm, next);
-	} else
+	} else {
 		switch_mm_irqs_off(oldmm, mm, next);
+		lru_gen_use_mm(mm);
+	}
 
 	if (!prev->mm) {
 		prev->active_mm = NULL;
@@ -3410,8 +3570,10 @@ void scheduler_tick(void)
 		set_preferred_cluster(grp);
 	rcu_read_unlock();
 
+#ifdef CONFIG_SCHED_WALT
 	if (curr->sched_class == &fair_sched_class)
 		check_for_migration(rq, curr);
+#endif /* CONFIG_SCHED_WALT */
 }
 
 #ifdef CONFIG_NO_HZ_FULL
@@ -5993,7 +6155,7 @@ int cpuset_cpumask_can_shrink(const struct cpumask *cur,
 }
 
 int task_can_attach(struct task_struct *p,
-		    const struct cpumask *cs_cpus_allowed)
+		    const struct cpumask *cs_effective_cpus)
 {
 	int ret = 0;
 
@@ -6012,8 +6174,8 @@ int task_can_attach(struct task_struct *p,
 	}
 
 	if (dl_task(p) && !cpumask_intersects(task_rq(p)->rd->span,
-					      cs_cpus_allowed))
-		ret = dl_task_can_attach(p, cs_cpus_allowed);
+					      cs_effective_cpus))
+		ret = dl_task_can_attach(p, cs_effective_cpus);
 
 out:
 	return ret;
@@ -6786,6 +6948,9 @@ void __init sched_init(void)
 	unsigned long alloc_size = 0, ptr;
 
 	sched_clock_init();
+#ifdef CONFIG_SCHED_BORE
+	pr_info("BORE 5.1.0 CPU scheduler modification by Masahito Suzuki\n");
+#endif
 	wait_bit_init();
 
 	init_clusters();

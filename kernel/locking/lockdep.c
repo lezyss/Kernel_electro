@@ -601,7 +601,7 @@ static int very_verbose(struct lock_class *class)
  * Is this the address of a static object:
  */
 #ifdef __KERNEL__
-static int static_obj(void *obj)
+static int static_obj(const void *obj)
 {
 	unsigned long start = (unsigned long) &_stext,
 		      end   = (unsigned long) &_end,
@@ -656,6 +656,73 @@ static int count_matching_names(struct lock_class *new_class)
  * yet. Otherwise we look it up. We cache the result in the lock object
  * itself, so actual lookup of the hash should be once per lock object.
  */
+#define KEYHASH_BITS (MAX_LOCKDEP_KEYS_BITS - 1)
+#define KEYHASH_SIZE (1UL << KEYHASH_BITS)
+static struct hlist_head lock_keys_hash[KEYHASH_SIZE];
+
+static inline struct hlist_head *keyhashentry(const struct lock_class_key *key)
+{
+	unsigned long hash = hash_long((unsigned long)key, KEYHASH_BITS);
+
+	return lock_keys_hash + hash;
+}
+
+void lockdep_register_key(struct lock_class_key *key)
+{
+	struct hlist_head *hash_head;
+	struct lock_class_key *k;
+	unsigned long flags;
+
+	if (WARN_ON_ONCE(static_obj(key)))
+		return;
+	hash_head = keyhashentry(key);
+
+	raw_local_irq_save(flags);
+	if (!graph_lock())
+		goto restore_irqs;
+	hlist_for_each_entry_rcu(k, hash_head, hash_entry) {
+		if (WARN_ON_ONCE(k == key))
+			goto out_unlock;
+	}
+	hlist_add_head_rcu(&key->hash_entry, hash_head);
+out_unlock:
+	graph_unlock();
+restore_irqs:
+	raw_local_irq_restore(flags);
+}
+EXPORT_SYMBOL_GPL(lockdep_register_key);
+
+static bool is_dynamic_key(const struct lock_class_key *key)
+{
+	struct hlist_head *hash_head;
+	struct lock_class_key *k;
+	bool found = false;
+
+	if (WARN_ON_ONCE(static_obj(key)))
+		return false;
+
+	/*
+	 * If lock debugging is disabled lock_keys_hash[] may contain
+	 * pointers to memory that has already been freed. Avoid triggering
+	 * a use-after-free in that case by returning early.
+	 */
+	if (!debug_locks)
+		return true;
+
+	hash_head = keyhashentry(key);
+
+	rcu_read_lock();
+	hlist_for_each_entry_rcu(k, hash_head, hash_entry) {
+		if (k == key) {
+			found = true;
+			break;
+		}
+	}
+	rcu_read_unlock();
+
+	return found;
+}
+
 static inline struct lock_class *
 look_up_lock_class(struct lockdep_map *lock, unsigned int subclass)
 {
@@ -724,7 +791,8 @@ look_up_lock_class(struct lockdep_map *lock, unsigned int subclass)
 		}
 	}
 
-	return is_static || static_obj(lock->key) ? NULL : ERR_PTR(-EINVAL);
+	return is_static || static_obj(lock->key) || is_dynamic_key(lock->key) ?
+		NULL : ERR_PTR(-EINVAL);
 }
 
 #ifdef CONFIG_LOCKDEP_CROSSRELEASE
@@ -3253,7 +3321,7 @@ static void __lockdep_init_map(struct lockdep_map *lock, const char *name,
 	/*
 	 * Sanity check, the lock-class key must be persistent:
 	 */
-	if (!static_obj(key)) {
+	if (!static_obj(key) && !is_dynamic_key(key)) {
 		printk("BUG: key %p not in .data!\n", key);
 		/*
 		 * What it says above ^^^^^, I suggest you read it.
@@ -5155,3 +5223,37 @@ void lockdep_free_task(struct task_struct *task)
 	}
 }
 #endif
+
+/* Adapted from 108c14858b9e to the synchronous 4.14 class retirement API. */
+void lockdep_unregister_key(struct lock_class_key *key)
+{
+	struct lock_class_key *k;
+	struct hlist_head *head = keyhashentry(key);
+	unsigned long flags;
+	bool found = false;
+
+	might_sleep();
+	if (WARN_ON_ONCE(static_obj(key)))
+		return;
+	raw_local_irq_save(flags);
+	if (!graph_lock()) {
+		raw_local_irq_restore(flags);
+		return;
+	}
+	hlist_for_each_entry_rcu(k, head, hash_entry) {
+		if (k == key) {
+			hlist_del_rcu(&k->hash_entry);
+			found = true;
+			break;
+		}
+	}
+	graph_unlock();
+	raw_local_irq_restore(flags);
+	if (WARN_ON_ONCE(!found))
+		return;
+	/* Drain key-registry readers and IRQ-disabled lock-class readers. */
+	synchronize_rcu();
+	synchronize_sched();
+	lockdep_free_key_range(key, sizeof(*key));
+}
+EXPORT_SYMBOL_GPL(lockdep_unregister_key);

@@ -1,0 +1,52 @@
+Corrected vmalloc backport host regression models
+================================================
+
+From the repository root:
+
+  python3 tools/testing/selftests/vmalloc_backport/test_backport.py --cc clang
+  python3 tools/testing/selftests/vmalloc_backport/test_backport.py \
+    --cc 'clang -fsanitize=undefined -fno-sanitize-recover=all'
+
+Requires Python 3 and a GNU-C-compatible host compiler. HOSTCC is supported;
+the default is cc. --source-root PATH selects another kernel source tree.
+Build products use a temporary directory and are removed automatically.
+No root access or running-kernel changes are needed. model.c is a template,
+not a standalone kernel selftest executable. These standalone tests are not
+added to the legacy top-level kselftest target list.
+
+The runner extracts the production vmap layout, allocator and proc iterator,
+seq-list helpers, list code, red-black tree and augmentation implementation.
+It does not maintain a second copy of the allocator. Assertions are enabled
+even when NDEBUG is supplied. Locks, slab, CPUs, atomics, pending lists, TLB
+flushes and seq output have single-threaded mocks.
+
+Coverage:
+* 400,000 search/alignment/overflow comparisons against independent page-bitmap
+  and 128-bit arithmetic oracles, plus the exact aligned-hole regression.
+* 30,016 allocation/free/split/merge/GFP/failure operations; red-black tree,
+  augmentation, ordering and page-coverage invariants.
+* 4,014 congruent per-CPU allocation/oracle/rollback cases, with shuffled offset
+  arrays and allocation-failure injection.
+* Boot import success and all five occupied/free metadata allocation failures.
+* Lazy quarantine until TLB flush, pending proc records with an empty busy
+  tree or final vm_map_ram area, ordinary busy records, and iterator lock
+  balance for complete reads, short reads, restarts, nonzero positions and EOF.
+* Source guards for user-map alignment/flags, vendor interfaces, metadata
+  ownership, GFP masking and intentional omission of donor #17.
+
+Negative controls (each command MUST compile, then fail a C assertion):
+
+  python3 tools/testing/selftests/vmalloc_backport/test_backport.py --cc clang --negative donor-search
+  python3 tools/testing/selftests/vmalloc_backport/test_backport.py --cc clang --negative missing-unlock
+  python3 tools/testing/selftests/vmalloc_backport/test_backport.py --cc clang --negative boot-skip
+  python3 tools/testing/selftests/vmalloc_backport/test_backport.py --cc clang --negative wrong-gfp
+  python3 tools/testing/selftests/vmalloc_backport/test_backport.py --cc clang --negative early-reuse
+
+A compile failure or integration-guard failure is NOT a successful negative
+control. Inspect the assertion diagnostic. Negative source changes affect
+only the temporary extracted model, never the checkout.
+
+These tests do not prove SMP memory ordering, real preemption/CPU hotplug,
+lockdep correctness, hardware TLB behavior, vmalloc pressure/concurrency or
+performance. See Documentation/vm/vmalloc-backport.rst for provenance,
+intentional corrections, ARM64 object-build coverage and device follow-up.

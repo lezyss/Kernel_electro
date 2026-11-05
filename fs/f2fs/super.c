@@ -102,6 +102,10 @@ enum {
 	Opt_inline_data,
 	Opt_inline_dentry,
 	Opt_noinline_dentry,
+	Opt_checkpoint_merge,
+	Opt_nocheckpoint_merge,
+	Opt_gc_merge,
+	Opt_nogc_merge,
 	Opt_flush_merge,
 	Opt_noflush_merge,
 	Opt_nobarrier,
@@ -168,6 +172,10 @@ static match_table_t f2fs_tokens = {
 	{Opt_inline_data, "inline_data"},
 	{Opt_inline_dentry, "inline_dentry"},
 	{Opt_noinline_dentry, "noinline_dentry"},
+	{Opt_checkpoint_merge, "checkpoint_merge"},
+	{Opt_nocheckpoint_merge, "nocheckpoint_merge"},
+	{Opt_gc_merge, "gc_merge"},
+	{Opt_nogc_merge, "nogc_merge"},
 	{Opt_flush_merge, "flush_merge"},
 	{Opt_noflush_merge, "noflush_merge"},
 	{Opt_nobarrier, "nobarrier"},
@@ -591,6 +599,18 @@ static int parse_options(struct super_block *sb, char *options, bool is_remount)
 			break;
 		case Opt_noinline_dentry:
 			clear_opt(sbi, INLINE_DENTRY);
+			break;
+		case Opt_checkpoint_merge:
+			set_opt(sbi, MERGE_CHECKPOINT);
+			break;
+		case Opt_nocheckpoint_merge:
+			clear_opt(sbi, MERGE_CHECKPOINT);
+			break;
+		case Opt_gc_merge:
+			set_opt(sbi, GC_MERGE);
+			break;
+		case Opt_nogc_merge:
+			clear_opt(sbi, GC_MERGE);
 			break;
 		case Opt_flush_merge:
 			set_opt(sbi, FLUSH_MERGE);
@@ -1291,15 +1311,8 @@ int f2fs_sync_fs(struct super_block *sb, int sync)
 	if (unlikely(is_sbi_flag_set(sbi, SBI_POR_DOING)))
 		return -EAGAIN;
 
-	if (sync) {
-		struct cp_control cpc;
-
-		cpc.reason = __get_cp_reason(sbi);
-
-		down_write(&sbi->gc_lock);
-		err = f2fs_write_checkpoint(sbi, &cpc);
-		up_write(&sbi->gc_lock);
-	}
+	if (sync)
+		err = f2fs_issue_checkpoint(sbi, __get_cp_reason(sbi));
 	f2fs_trace_ios(NULL, 1);
 
 	return err;
@@ -1546,6 +1559,14 @@ static int f2fs_show_options(struct seq_file *seq, struct dentry *root)
 		seq_puts(seq, ",inline_dentry");
 	else
 		seq_puts(seq, ",noinline_dentry");
+	if (test_opt(sbi, MERGE_CHECKPOINT))
+		seq_puts(seq, ",checkpoint_merge");
+	else
+		seq_puts(seq, ",nocheckpoint_merge");
+	if (test_opt(sbi, GC_MERGE))
+		seq_puts(seq, ",gc_merge");
+	else
+		seq_puts(seq, ",nogc_merge");
 	if (!f2fs_readonly(sbi->sb) && test_opt(sbi, FLUSH_MERGE))
 		seq_puts(seq, ",flush_merge");
 	if (test_opt(sbi, NOBARRIER))
@@ -1760,6 +1781,7 @@ static int f2fs_remount(struct super_block *sb, int *flags, char *data)
 	unsigned long old_sb_flags;
 	int err;
 	bool need_restart_gc = false;
+	bool need_stop_ckpt = false;
 	bool need_stop_gc = false;
 	bool no_extent_cache = !test_opt(sbi, EXTENT_CACHE);
 	bool disable_checkpoint = test_opt(sbi, DISABLE_CHECKPOINT);
@@ -1819,6 +1841,15 @@ static int f2fs_remount(struct super_block *sb, int *flags, char *data)
 	if (f2fs_readonly(sb) && (*flags & MS_RDONLY))
 		goto skip;
 
+	/* Fail worker allocation before changing quota activation state. */
+	if (!(*flags & MS_RDONLY) && test_opt(sbi, MERGE_CHECKPOINT) &&
+	    !sbi->cprc_info.task) {
+		err = f2fs_start_ckpt_thread(sbi);
+		if (err)
+			goto restore_opts;
+		need_stop_ckpt = true;
+	}
+
 #ifdef CONFIG_QUOTA
 	if (!f2fs_readonly(sb) && (*flags & MS_RDONLY)) {
 		err = dquot_suspend(sb, -1);
@@ -1869,7 +1900,7 @@ static int f2fs_remount(struct super_block *sb, int *flags, char *data)
 	} else if (!sbi->gc_thread) {
 		err = f2fs_start_gc_thread(sbi);
 		if (err)
-			goto restore_opts;
+			goto restore_gc;
 		need_stop_gc = true;
 	}
 
@@ -1907,6 +1938,8 @@ static int f2fs_remount(struct super_block *sb, int *flags, char *data)
 			goto restore_gc;
 	}
 skip:
+	if ((*flags & MS_RDONLY) || !test_opt(sbi, MERGE_CHECKPOINT))
+		f2fs_stop_ckpt_thread(sbi);
 #ifdef CONFIG_QUOTA
 	/* Release old quota file names */
 	for (i = 0; i < MAXQUOTAS; i++)
@@ -1928,6 +1961,8 @@ restore_gc:
 		f2fs_stop_gc_thread(sbi);
 	}
 restore_opts:
+	if (need_stop_ckpt)
+		f2fs_stop_ckpt_thread(sbi);
 #ifdef CONFIG_QUOTA
 	F2FS_OPTION(sbi).s_jquota_fmt = org_mount_opt.s_jquota_fmt;
 	for (i = 0; i < MAXQUOTAS; i++) {
@@ -3526,8 +3561,11 @@ try_onemore:
 	/* init f2fs-specific super block info */
 	sbi->valid_super_block = valid_super_block;
 	init_rwsem(&sbi->gc_lock);
+	spin_lock_init(&sbi->gc_merge.lock);
+	init_waitqueue_head(&sbi->gc_merge.wait);
 	mutex_init(&sbi->writepages);
 	mutex_init(&sbi->cp_mutex);
+	f2fs_init_ckpt_req_control(sbi);
 	init_rwsem(&sbi->node_write);
 	init_rwsem(&sbi->node_change);
 
@@ -3782,6 +3820,12 @@ reset_checkpoint:
 		f2fs_enable_checkpoint(sbi);
 	}
 
+	if (test_opt(sbi, MERGE_CHECKPOINT) && !f2fs_readonly(sb)) {
+		err = f2fs_start_ckpt_thread(sbi);
+		if (err)
+			goto sync_free_meta;
+	}
+
 	/*
 	 * If filesystem is not mounted as read-only then
 	 * do start the gc_thread.
@@ -3813,11 +3857,13 @@ reset_checkpoint:
 	return 0;
 
 sync_free_meta:
+	f2fs_stop_ckpt_thread(sbi);
 	/* safe to flush all the data */
 	sync_filesystem(sbi->sb);
 	retry_cnt = 0;
 
 free_meta:
+	f2fs_stop_ckpt_thread(sbi);
 #ifdef CONFIG_QUOTA
 	f2fs_truncate_quota_inode_pages(sb);
 	if (f2fs_sb_has_quota_ino(sbi) && !f2fs_readonly(sb))
@@ -3906,6 +3952,7 @@ static void kill_f2fs_super(struct super_block *sb)
 
 		set_sbi_flag(sbi, SBI_IS_CLOSE);
 		f2fs_stop_gc_thread(sbi);
+		f2fs_stop_ckpt_thread(sbi);
 		f2fs_stop_discard_thread(sbi);
 
 		if (is_sbi_flag_set(sbi, SBI_IS_DIRTY) ||

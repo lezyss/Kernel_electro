@@ -1,0 +1,738 @@
+--- a/lib/lz4/lz4.c
++++ b/lib/lz4/lz4.c
+@@ -1,3 +1,4 @@
++// SPDX-License-Identifier: BSD-2-Clause
+ /*
+    LZ4 - Fast LZ compression algorithm
+    Copyright (c) Yann Collet. All rights reserved.
+@@ -103,6 +104,16 @@
+ #  define LZ4_STATIC_LINKING_ONLY
+ #endif
+ #include "lz4.h"
++#include <linux/errno.h>
++
++/* The STATIC preboot decoder and compressor objects must remain C-only. */
++#if defined(CONFIG_LZ4_ARM64_ACCEL) && defined(CONFIG_ARM64) && \
++	defined(CONFIG_KERNEL_MODE_NEON) && !defined(STATIC) && \
++	!defined(LZ4_KERNEL_COMPRESS_ONLY) && !defined(LZ4_COMMONDEFS_ONLY)
++#define LZ4_USE_ARM64_ACCEL
++#include "lz4armv8/lz4accel.h"
++#endif
++
+ /* see also "memory routines" below */
+ 
+ 
+@@ -139,7 +150,7 @@
+ #  if defined(_MSC_VER)
+ #    define LZ4_FORCE_NOINLINE static __declspec(noinline)
+ #  elif defined(__GNUC__) || defined(__clang__)
+-#    define LZ4_FORCE_NOINLINE static __attribute__((noinline))
++#    define LZ4_FORCE_NOINLINE static __attribute__((__noinline__))
+ #  else
+ #    define LZ4_FORCE_NOINLINE static
+ #  endif
+@@ -289,7 +300,7 @@
+ #  define DEBUGLOG(l, ...) {}    /* disabled */
+ #endif
+ 
+-static int LZ4_isAligned(const void* ptr, size_t alignment)
++LZ4_FORCE_INLINE int LZ4_isAligned(const void* ptr, size_t alignment)
+ {
+     return ((size_t)ptr & (alignment -1)) == 0;
+ }
+@@ -298,26 +309,13 @@
+ /*-************************************
+ *  Types
+ **************************************/
+-#include <limits.h>
+-#if defined(__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
+-# include <stdint.h>
+-  typedef unsigned char BYTE; /*uint8_t not necessarily blessed to alias arbitrary type*/
+-  typedef uint16_t      U16;
+-  typedef uint32_t      U32;
+-  typedef  int32_t      S32;
+-  typedef uint64_t      U64;
+-  typedef uintptr_t     uptrval;
+-#else
+-# if UINT_MAX != 4294967295UL
+-#   error "LZ4 code (when not C++ or C99) assumes that sizeof(int) == 4"
+-# endif
+-  typedef unsigned char       BYTE;
+-  typedef unsigned short      U16;
+-  typedef unsigned int        U32;
+-  typedef   signed int        S32;
+-  typedef unsigned long long  U64;
+-  typedef size_t              uptrval;   /* generally true, except OpenVMS-64 */
+-#endif
++#include <linux/types.h>
++typedef unsigned char BYTE; /* permitted to alias arbitrary input */
++typedef uint16_t U16;
++typedef uint32_t U32;
++typedef int32_t S32;
++typedef uint64_t U64;
++typedef uintptr_t uptrval;
+ 
+ #if defined(__x86_64__)
+   typedef U64    reg_t;   /* 64-bits in x32 mode */
+@@ -427,7 +425,7 @@
+ #endif /* LZ4_FORCE_MEMORY_ACCESS */
+ 
+ 
+-static U16 LZ4_readLE16(const void* memPtr)
++LZ4_FORCE_INLINE U16 LZ4_readLE16(const void* memPtr)
+ {
+     if (LZ4_isLittleEndian()) {
+         return LZ4_read16(memPtr);
+@@ -449,7 +447,7 @@
+ }
+ #endif
+ 
+-static void LZ4_writeLE16(void* memPtr, U16 value)
++LZ4_FORCE_INLINE void LZ4_writeLE16(void* memPtr, U16 value)
+ {
+     if (LZ4_isLittleEndian()) {
+         LZ4_write16(memPtr, value);
+@@ -772,10 +770,11 @@
+ /*-************************************
+ *  Local Utils
+ **************************************/
++#ifndef LZ4_KERNEL_DECOMPRESS_ONLY
+ int LZ4_versionNumber (void) { return LZ4_VERSION_NUMBER; }
+ const char* LZ4_versionString(void) { return LZ4_VERSION_STRING; }
+-int LZ4_compressBound(int isize)  { return LZ4_COMPRESSBOUND(isize); }
+ int LZ4_sizeofState(void) { return sizeof(LZ4_stream_t); }
++#endif
+ 
+ 
+ /*-****************************************
+@@ -828,6 +827,7 @@
+ /*-******************************
+ *  Compression functions
+ ********************************/
++#ifndef LZ4_KERNEL_DECOMPRESS_ONLY
+ LZ4_FORCE_INLINE U32 LZ4_hash4(U32 sequence, tableType_t const tableType)
+ {
+     const U32 hashLog = (tableType == byU16) ? LZ4_HASHLOG+1 : LZ4_HASHLOG;
+@@ -1578,28 +1578,15 @@
+ }
+ 
+ 
+-int LZ4_compress_fast(const char* src, char* dest, int srcSize, int dstCapacity, int acceleration)
+-{
+-    int result;
+-#if (LZ4_HEAPMODE)
+-    LZ4_stream_t* const ctxPtr = (LZ4_stream_t*)ALLOC(sizeof(LZ4_stream_t));   /* malloc-calloc always properly aligned */
+-    if (ctxPtr == NULL) return 0;
+-#else
+-    LZ4_stream_t ctx;
+-    LZ4_stream_t* const ctxPtr = &ctx;
+-#endif
+-    result = LZ4_compress_fast_extState(ctxPtr, src, dest, srcSize, dstCapacity, acceleration);
+-
+-#if (LZ4_HEAPMODE)
+-    FREEMEM(ctxPtr);
+-#endif
+-    return result;
+-}
+-
+-
+-int LZ4_compress_default(const char* src, char* dst, int srcSize, int dstCapacity)
+-{
+-    return LZ4_compress_fast(src, dst, srcSize, dstCapacity, 1);
++int LZ4_compress_fast(const char* src, char* dest, int srcSize, int dstCapacity, int acceleration, void *wrkmem)
++{
++    return LZ4_compress_fast_extState(wrkmem, src, dest, srcSize, dstCapacity, acceleration);
++}
++
++
++int LZ4_compress_default(const char* src, char* dst, int srcSize, int dstCapacity, void *wrkmem)
++{
++    return LZ4_compress_fast_extState(wrkmem, src, dst, srcSize, dstCapacity, LZ4_ACCELERATION_DEFAULT);
+ }
+ 
+ 
+@@ -1631,22 +1618,9 @@
+ }
+ 
+ 
+-int LZ4_compress_destSize(const char* src, char* dst, int* srcSizePtr, int targetDstSize)
+-{
+-    int result;
+-#if (LZ4_HEAPMODE)
+-    LZ4_stream_t* const ctx = (LZ4_stream_t*)ALLOC(sizeof(LZ4_stream_t));   /* malloc-calloc always properly aligned */
+-    if (ctx == NULL) return 0;
+-#else
+-    LZ4_stream_t ctxBody;
+-    LZ4_stream_t* const ctx = &ctxBody;
+-#endif
+-    result = LZ4_compress_destSize_extState_internal(ctx, src, dst, srcSizePtr, targetDstSize, 1);
+-
+-#if (LZ4_HEAPMODE)
+-    FREEMEM(ctx);
+-#endif
+-    return result;
++int LZ4_compress_destSize(const char* src, char* dst, int* srcSizePtr, int targetDstSize, void *wrkmem)
++{
++    return LZ4_compress_destSize_extState(wrkmem, src, dst, srcSizePtr, targetDstSize, LZ4_ACCELERATION_DEFAULT);
+ }
+ 
+ 
+@@ -1989,6 +1963,9 @@
+  *  Decompression functions
+  ********************************/
+ 
++#endif /* !LZ4_KERNEL_DECOMPRESS_ONLY */
++#ifndef LZ4_KERNEL_COMPRESS_ONLY
++
+ typedef enum { decode_full_block = 0, partial_decode = 1 } earlyEnd_directive;
+ 
+ #undef MIN
+@@ -2208,9 +2185,10 @@
+  *  in order to remove useless branches during compilation optimization.
+  */
+ LZ4_FORCE_INLINE int
+-LZ4_decompress_generic(
++__LZ4_decompress_generic(
+                  const char* const src,
+                  char* const dst,
++                 const BYTE* ip, BYTE* op,
+                  int srcSize,
+                  int outputSize,         /* dstCapacity, or MIN(targetOutputSize, dstCapacity) when partialDecoding */
+ 
+@@ -2221,13 +2199,12 @@
+                  const size_t dictSize         /* note : = 0 if noDict */
+                  )
+ {
+-    if ((src == NULL) || (outputSize < 0)) { return -1; }
+-
+-    {   const BYTE* ip = (const BYTE*) src;
+-        const BYTE* const iend = ip + srcSize;
+-
+-        BYTE* op = (BYTE*) dst;
+-        BYTE* const oend = op + outputSize;
++    if (src == NULL || srcSize < 0 || outputSize < 0 ||
++        (dst == NULL && outputSize != 0)) return -1;
++
++    {   const BYTE* const iend = (const BYTE*)src + srcSize;
++
++        BYTE* const oend = (BYTE*)dst + outputSize;
+ 
+         const BYTE* const dictEnd = (dictStart == NULL) ? NULL : dictStart + dictSize;
+ 
+@@ -2561,6 +2538,15 @@
+ }
+ 
+ 
++LZ4_FORCE_INLINE int LZ4_decompress_generic(
++        const char *src, char *dst, int srcSize, int outputSize,
++        earlyEnd_directive partialDecoding, dict_directive dict,
++        const BYTE *lowPrefix, const BYTE *dictStart, size_t dictSize)
++{
++    return __LZ4_decompress_generic(src, dst, (const BYTE *)src, (BYTE *)dst,
++            srcSize, outputSize, partialDecoding, dict, lowPrefix, dictStart, dictSize);
++}
++
+ /*===== Instantiate the API decoding functions. =====*/
+ 
+ LZ4_FORCE_O2
+@@ -2754,10 +2740,16 @@
+     LZ4_streamDecode_t_internal* lz4sd = &LZ4_streamDecode->internal_donotuse;
+     int result;
+ 
++    if (compressedSize < 0 || maxOutputSize < 0) return -1;
+     if (lz4sd->prefixSize == 0) {
+         /* The first call, no dictionary yet. */
+         assert(lz4sd->extDictSize == 0);
++#ifdef LZ4_USE_ARM64_ACCEL
++        if (compressedSize < 0 || maxOutputSize < 0) return -1;
++        result = LZ4_arm64_decompress_safe(source, dest, compressedSize, maxOutputSize, false);
++#else
+         result = LZ4_decompress_safe(source, dest, compressedSize, maxOutputSize);
++#endif
+         if (result <= 0) return result;
+         lz4sd->prefixSize = (size_t)result;
+         lz4sd->prefixEnd = (BYTE*)dest + result;
+@@ -2881,73 +2873,64 @@
+ }
+ 
+ 
+-/*=*************************************************
+-*  Obsolete Functions
+-***************************************************/
+-/* obsolete compression functions */
+-int LZ4_compress_limitedOutput(const char* source, char* dest, int inputSize, int maxOutputSize)
+-{
+-    return LZ4_compress_default(source, dest, inputSize, maxOutputSize);
+-}
+-int LZ4_compress(const char* src, char* dest, int srcSize)
+-{
+-    return LZ4_compress_default(src, dest, srcSize, LZ4_compressBound(srcSize));
+-}
+-int LZ4_compress_limitedOutput_withState (void* state, const char* src, char* dst, int srcSize, int dstSize)
+-{
+-    return LZ4_compress_fast_extState(state, src, dst, srcSize, dstSize, 1);
+-}
+-int LZ4_compress_withState (void* state, const char* src, char* dst, int srcSize)
+-{
+-    return LZ4_compress_fast_extState(state, src, dst, srcSize, LZ4_compressBound(srcSize), 1);
+-}
+-int LZ4_compress_limitedOutput_continue (LZ4_stream_t* LZ4_stream, const char* src, char* dst, int srcSize, int dstCapacity)
+-{
+-    return LZ4_compress_fast_continue(LZ4_stream, src, dst, srcSize, dstCapacity, 1);
+-}
+-int LZ4_compress_continue (LZ4_stream_t* LZ4_stream, const char* source, char* dest, int inputSize)
+-{
+-    return LZ4_compress_fast_continue(LZ4_stream, source, dest, inputSize, LZ4_compressBound(inputSize), 1);
+-}
+-
+ /*
+-These decompression functions are deprecated and should no longer be used.
+-They are only provided here for compatibility with older user programs.
+-- LZ4_uncompress is totally equivalent to LZ4_decompress_fast
+-- LZ4_uncompress_unknownOutputSize is totally equivalent to LZ4_decompress_safe
+-*/
+-int LZ4_uncompress (const char* source, char* dest, int outputSize)
+-{
+-    return LZ4_decompress_fast(source, dest, outputSize);
+-}
+-int LZ4_uncompress_unknownOutputSize (const char* source, char* dest, int isize, int maxOutputSize)
+-{
+-    return LZ4_decompress_safe(source, dest, isize, maxOutputSize);
+-}
+-
+-/* Obsolete Streaming functions */
+-
+-int LZ4_sizeofStreamState(void) { return sizeof(LZ4_stream_t); }
+-
+-int LZ4_resetStreamState(void* state, char* inputBuffer)
+-{
+-    (void)inputBuffer;
+-    LZ4_resetStream((LZ4_stream_t*)state);
+-    return 0;
+-}
+-
+-#if !defined(LZ4_STATIC_LINKING_ONLY_DISABLE_MEMORY_ALLOCATION)
+-void* LZ4_create (char* inputBuffer)
+-{
+-    (void)inputBuffer;
+-    return LZ4_createStream();
+-}
+-#endif
+-
+-char* LZ4_slideInputBuffer (void* state)
+-{
+-    /* avoid const char * -> char * conversion warning */
+-    return (char *)(uptrval)((LZ4_stream_t*)state)->internal_donotuse.dictionary;
+-}
++ * Decode whole sequences in SIMD, then resume C at the saved sequence boundary.
++ * Keep the original block base: matches in the C tail may refer to SIMD output.
++ */
++LZ4_FORCE_INLINE ssize_t LZ4_arm64_decompress_generic(
++	const void *source, void *dest, size_t inputSize, size_t outputSize,
++	bool dip, earlyEnd_directive partialDecoding)
++{
++	const BYTE *ip = source;
++	BYTE *op = dest;
++
++	if (inputSize > LZ4_INT_MAX || outputSize > LZ4_INT_MAX)
++		return -EIO;
++#ifdef LZ4_USE_ARM64_ACCEL
++	/*
++	 * SIMD wildcopies must not overwrite input awaiting the C tail.
++	 * The old source-rewriting DIP exit has been removed from assembly;
++	 * keep all supported in-place decoding on the C path nonetheless.
++	 * Address differences avoid overflowing end-address calculations.
++	 */
++	if (source && dest && !dip && inputSize > LZ4_FAST_MARGIN &&
++	    outputSize > LZ4_FAST_MARGIN &&
++	    ((unsigned long)dest >= (unsigned long)source ?
++	     (unsigned long)dest - (unsigned long)source >= inputSize :
++	     (unsigned long)source - (unsigned long)dest >= outputSize) &&
++	    lz4_decompress_accel_enable()) {
++		const BYTE *const iend =
++			(const BYTE *)source + inputSize - LZ4_FAST_MARGIN;
++		BYTE *const oend = (BYTE *)dest + outputSize - LZ4_FAST_MARGIN;
++
++		if (lz4_decompress_asm(&op, dest, oend, &ip, iend))
++			return -EIO;
++	}
++#else
++	(void)dip;
++#endif
++	return __LZ4_decompress_generic(source, dest, ip, op, inputSize,
++					outputSize, partialDecoding, noDict,
++					dest, NULL, 0);
++}
++
++LZ4_FORCE_O2
++ssize_t LZ4_arm64_decompress_safe_partial(const void *source, void *dest,
++					  size_t inputSize, size_t outputSize, bool dip)
++{
++	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
++					  dip, partial_decode);
++}
++
++LZ4_FORCE_O2
++ssize_t LZ4_arm64_decompress_safe(const void *source, void *dest,
++				  size_t inputSize, size_t outputSize, bool dip)
++{
++	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
++					  dip, decode_full_block);
++}
++
++
++#endif /* !LZ4_KERNEL_COMPRESS_ONLY */
+ 
+ #endif   /* LZ4_COMMONDEFS_ONLY */
+--- a/lib/lz4/lz4.h
++++ b/lib/lz4/lz4.h
+@@ -1,3 +1,4 @@
++// SPDX-License-Identifier: BSD-2-Clause
+ /*
+  *  LZ4 - Fast LZ compression algorithm
+  *  Header File
+@@ -34,10 +35,21 @@
+ */
+ /* --- Dependencies --- */
+ /* note : included before extern "C", since C++ forbids including headers within a linkage specification */
+-#include <stddef.h>   /* size_t */
+-#if defined(__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
+-#  include <stdint.h>   /* private definitions */
+-#endif
++#include <linux/types.h>
++#include <linux/compiler.h>
++#include <linux/string.h>
++
++#define LZ4_FORCE_INLINE static inline __attribute__((always_inline))
++#define LZ4_INT_MAX 0x7fffffff
++#define LZ4_ACCELERATION_DEFAULT 1
++#define LZ4_ACCELERATION_MAX 65537
++#ifndef LZ4_FREESTANDING
++#define LZ4_FREESTANDING 1
++#endif
++#define LZ4_DISABLE_DEPRECATE_WARNINGS
++#define LZ4_memcpy(dst, src, size) __builtin_memcpy(dst, src, size)
++#define LZ4_memmove(dst, src, size) __builtin_memmove(dst, src, size)
++#define LZ4_memset(dst, src, size) __builtin_memset(dst, src, size)
+ 
+ #if defined (__cplusplus)
+ extern "C" {
+@@ -192,7 +204,7 @@
+  *                or 0 if compression fails
+  * Note : This function is protected against buffer overflow scenarios (never writes outside 'dst' buffer, nor read outside 'source' buffer).
+  */
+-LZ4LIB_API int LZ4_compress_default(const char* src, char* dst, int srcSize, int dstCapacity);
++LZ4LIB_API int LZ4_compress_default(const char* src, char* dst, int srcSize, int dstCapacity, void *wrkmem);
+ 
+ /*! LZ4_decompress_safe() :
+  * @compressedSize : is the exact complete size of the compressed block.
+@@ -230,7 +242,12 @@
+         return : maximum output size in a "worst case" scenario
+               or 0, if input size is incorrect (too large or negative)
+ */
+-LZ4LIB_API int LZ4_compressBound(int inputSize);
++static inline int LZ4_compressBound(size_t inputSize)
++{
++	if (inputSize > LZ4_MAX_INPUT_SIZE)
++		return 0;
++	return (int)inputSize + (int)(inputSize / 255) + 16;
++}
+ 
+ /*! LZ4_compress_fast() :
+     Same as LZ4_compress_default(), but allows selection of "acceleration" factor.
+@@ -240,7 +257,7 @@
+     Values <= 0 will be replaced by LZ4_ACCELERATION_DEFAULT (currently == 1, see LZ4_STATIC_LINKING_ONLY section).
+     Values > LZ4_ACCELERATION_MAX will be replaced by LZ4_ACCELERATION_MAX (currently == 65537, see LZ4_STATIC_LINKING_ONLY section).
+ */
+-LZ4LIB_API int LZ4_compress_fast (const char* src, char* dst, int srcSize, int dstCapacity, int acceleration);
++LZ4LIB_API int LZ4_compress_fast (const char* src, char* dst, int srcSize, int dstCapacity, int acceleration, void *wrkmem);
+ 
+ 
+ /*! LZ4_compress_fast_extState() :
+@@ -278,7 +295,7 @@
+  *        a dstCapacity which is > decompressedSize, by at least 1 byte.
+  *        See https://github.com/lz4/lz4/issues/859 for details
+  */
+-LZ4LIB_API int LZ4_compress_destSize(const char* src, char* dst, int* srcSizePtr, int targetDstSize);
++LZ4LIB_API int LZ4_compress_destSize(const char* src, char* dst, int* srcSizePtr, int targetDstSize, void *wrkmem);
+ 
+ /*! LZ4_decompress_safe_partial() :
+  *  Decompress an LZ4 compressed block, of size 'srcSize' at position 'src',
+@@ -863,6 +880,17 @@
+ LZ4_DEPRECATED("use LZ4_initStream() instead") LZ4LIB_API void LZ4_resetStream (LZ4_stream_t* streamPtr);
+ 
+ 
++/* Kernel compatibility APIs; legacy fast decoders require trusted input. */
++LZ4LIB_API int LZ4_decompress_fast(const char *src, char *dst, int originalSize);
++LZ4LIB_API int LZ4_decompress_fast_continue(LZ4_streamDecode_t *stream,
++                        const char *src, char *dst, int originalSize);
++LZ4LIB_API int LZ4_decompress_fast_usingDict(const char *src, char *dst,
++                        int originalSize, const char *dictStart, int dictSize);
++LZ4LIB_API ssize_t LZ4_arm64_decompress_safe(const void *source, void *dest,
++                        size_t inputSize, size_t outputSize, bool dip);
++LZ4LIB_API ssize_t LZ4_arm64_decompress_safe_partial(const void *source, void *dest,
++                        size_t inputSize, size_t outputSize, bool dip);
++
+ #endif /* LZ4_H_98237428734687 */
+ 
+ 
+--- a/lib/lz4/lz4hc.c
++++ b/lib/lz4/lz4hc.c
+@@ -1,3 +1,4 @@
++// SPDX-License-Identifier: BSD-2-Clause
+ /*
+     LZ4 HC - High Compression Mode of LZ4
+     Copyright (c) Yann Collet. All rights reserved.
+@@ -45,14 +46,14 @@
+  *  Since workspace is rather large, heap mode is recommended.
+ **/
+ #ifndef LZ4HC_HEAPMODE
+-#  define LZ4HC_HEAPMODE 1
++#  define LZ4HC_HEAPMODE 0
+ #endif
+ 
+ 
+ /*===    Dependency    ===*/
+ #define LZ4_HC_STATIC_LINKING_ONLY
+ #include "lz4hc.h"
+-#include <limits.h>
++
+ 
+ 
+ /*===   Shared lz4.c code   ===*/
+@@ -465,7 +466,7 @@
+         /* ll validated; now adjust match length */
+         size_t const bytesLeftForMl = (size_t)(maxLitPos - (op+ll_totalCost));
+         size_t const maxMlSize = MINMATCH + (ML_MASK-1) + (bytesLeftForMl * 255);
+-        assert(maxMlSize < INT_MAX); assert(matchLength >= 0);
++        assert(maxMlSize < LZ4_INT_MAX); assert(matchLength >= 0);
+         if ((size_t)matchLength > maxMlSize) matchLength = (int)maxMlSize;
+         if (dstEnd - (op + ll_totalCost + 2) - 1 + matchLength >= MFLIMIT) {
+             DEBUGLOG(6, "Let's encode a last sequence (ll=%u, ml=%i)", (unsigned)ll, matchLength);
+@@ -861,7 +862,7 @@
+     *srcSizePtr = (int)(ip - (const BYTE*)src);
+     assert((char*)op >= dst);
+     assert((char*)op - dst <= maxOutputSize);
+-    assert((char*)op - dst < INT_MAX);
++    assert((char*)op - dst < LZ4_INT_MAX);
+     return (int)((char*)op - dst);
+ }
+ 
+@@ -1610,23 +1611,9 @@
+     return LZ4_compress_HC_extStateHC_fastReset(state, src, dst, srcSize, dstCapacity, compressionLevel);
+ }
+ 
+-int LZ4_compress_HC(const char* src, char* dst, int srcSize, int dstCapacity, int compressionLevel)
+-{
+-    int cSize;
+-    DEBUGLOG(5, "LZ4_compress_HC")
+-#if defined(LZ4HC_HEAPMODE) && LZ4HC_HEAPMODE==1
+-    {   /* extended state : a single allocation, including the temporary buffer of levels >= 10 */
+-        LZ4_streamHC_t* const statePtr = LZ4_initStreamHC(ALLOC(LZ4_STREAMHC_EXTSIZE), LZ4_STREAMHC_EXTSIZE);
+-        if (statePtr==NULL) return 0;
+-        cSize = LZ4_compress_HC_extStateHC_fastReset(statePtr, src, dst, srcSize, dstCapacity, compressionLevel);
+-        FREEMEM(statePtr);
+-    }
+-#else
+-    {   LZ4_streamHC_t state;
+-        cSize = LZ4_compress_HC_extStateHC(&state, src, dst, srcSize, dstCapacity, compressionLevel);
+-    }
+-#endif
+-    return cSize;
++int LZ4_compress_HC(const char* src, char* dst, int srcSize, int dstCapacity, int compressionLevel, void *wrkmem)
++{
++    return LZ4_compress_HC_extStateHC(wrkmem, src, dst, srcSize, dstCapacity, compressionLevel);
+ }
+ 
+ /* state is presumed sized correctly (>= sizeof(LZ4_streamHC_t)) */
+@@ -1685,7 +1672,9 @@
+ /* size of an initialized state, to initialize it again : extended states are followed by their buffer */
+ static size_t LZ4HC_sizeofState(const LZ4_streamHC_t* s)
+ {
+-    return s->internal_donotuse.hasWorkspace ? LZ4_STREAMHC_EXTSIZE : sizeof(*s);
++    /* Kernel reset accepts first-use, indeterminate state: do not read hasWorkspace. */
++    (void)s;
++    return sizeof(LZ4_streamHC_t);
+ }
+ 
+ /* just a stub */
+@@ -2184,121 +2173,14 @@
+                                     const dictCtx_directive dict,
+                                     const HCfavor_e favorDecSpeed)
+ {
+-    LZ4_STATIC_ASSERT(LZ4_STREAMHC_EXTSIZE == sizeof(LZ4_streamHC_t) + sizeof(LZ4HC_optimal_t) * (LZ4_OPT_NUM + TRAILING_LITERALS));
+-    if (ctx->hasWorkspace) {   /* extended state : the buffer follows it */
+-        LZ4HC_optimal_t* const opt = (LZ4HC_optimal_t*)(void*)((BYTE*)ctx + sizeof(LZ4_streamHC_t));
+-        return LZ4HC_compress_optimal_internal(ctx, source, dst, srcSizePtr, dstCapacity,
+-                    nbSearches, nbSearchesSeq, targetLength, limit, dict, favorDecSpeed, opt);
+-    }
+-  { /* plain state */
+-#if defined(LZ4HC_HEAPMODE) && LZ4HC_HEAPMODE==1
+-    LZ4HC_optimal_t* const opt = (LZ4HC_optimal_t*)ALLOC(sizeof(LZ4HC_optimal_t) * (LZ4_OPT_NUM + TRAILING_LITERALS));
+-    int result;
+-    if (opt == NULL) return 0;
+-    result = LZ4HC_compress_optimal_internal(ctx, source, dst, srcSizePtr, dstCapacity,
+-                    nbSearches, nbSearchesSeq, targetLength, limit, dict, favorDecSpeed, opt);
+-    FREEMEM(opt);
+-    return result;
+-#else
+-    LZ4HC_optimal_t opt[LZ4_OPT_NUM + TRAILING_LITERALS];   /* ~64 KB, which can be a bit large for some stacks... */
++    LZ4HC_optimal_t *const opt = (LZ4HC_optimal_t *)(void *)((BYTE *)ctx + LZ4_STREAMHC_MINSIZE);
++    LZ4_STATIC_ASSERT(LZ4_STREAMHC_EXTSIZE == LZ4_STREAMHC_MINSIZE +
++                     sizeof(LZ4HC_optimal_t) * (LZ4_OPT_NUM + TRAILING_LITERALS));
++    LZ4_STATIC_ASSERT(sizeof(LZ4HC_CCtx_internal) <= LZ4_STREAMHC_MINSIZE);
++    LZ4_STATIC_ASSERT(sizeof(LZ4_streamHC_t) >= LZ4_STREAMHC_EXTSIZE);
+     return LZ4HC_compress_optimal_internal(ctx, source, dst, srcSizePtr, dstCapacity,
+-                    nbSearches, nbSearchesSeq, targetLength, limit, dict, favorDecSpeed, opt);
+-#endif
+-  }
+-}
+-
+-
+-/***************************************************
+-*  Obsolete functions, removed from lz4hc.h (v1.11.0)
+-*  still exported, for programs linked to previous versions
+-***************************************************/
+-#if defined (__cplusplus)
+-extern "C" {
+-#endif
+-
+-LZ4LIB_API int LZ4_compressHC (const char* source, char* dest, int inputSize);
+-LZ4LIB_API int LZ4_compressHC_limitedOutput (const char* source, char* dest, int inputSize, int maxOutputSize);
+-LZ4LIB_API int LZ4_compressHC2 (const char* source, char* dest, int inputSize, int compressionLevel);
+-LZ4LIB_API int LZ4_compressHC2_limitedOutput (const char* source, char* dest, int inputSize, int maxOutputSize, int compressionLevel);
+-LZ4LIB_API int LZ4_compressHC_withStateHC (void* state, const char* source, char* dest, int inputSize);
+-LZ4LIB_API int LZ4_compressHC_limitedOutput_withStateHC (void* state, const char* source, char* dest, int inputSize, int maxOutputSize);
+-LZ4LIB_API int LZ4_compressHC2_withStateHC (void* state, const char* source, char* dest, int inputSize, int compressionLevel);
+-LZ4LIB_API int LZ4_compressHC2_limitedOutput_withStateHC (void* state, const char* source, char* dest, int inputSize, int maxOutputSize, int compressionLevel);
+-LZ4LIB_API int LZ4_compressHC_continue (LZ4_streamHC_t* LZ4_streamHCPtr, const char* source, char* dest, int inputSize);
+-LZ4LIB_API int LZ4_compressHC_limitedOutput_continue (LZ4_streamHC_t* LZ4_streamHCPtr, const char* source, char* dest, int inputSize, int maxOutputSize);
+-LZ4LIB_API void* LZ4_createHC (const char* inputBuffer);
+-LZ4LIB_API int   LZ4_freeHC (void* LZ4HC_Data);
+-LZ4LIB_API char* LZ4_slideInputBufferHC (void* LZ4HC_Data);
+-LZ4LIB_API int LZ4_compressHC2_continue (void* LZ4HC_Data, const char* source, char* dest, int inputSize, int compressionLevel);
+-LZ4LIB_API int LZ4_compressHC2_limitedOutput_continue (void* LZ4HC_Data, const char* source, char* dest, int inputSize, int maxOutputSize, int compressionLevel);
+-LZ4LIB_API int   LZ4_sizeofStreamStateHC(void);
+-LZ4LIB_API int   LZ4_resetStreamStateHC(void* state, char* inputBuffer);
+-
+-#if defined (__cplusplus)
+-}
+-#endif
+-
+-/* Wrappers for deprecated compression functions */
+-int LZ4_compressHC(const char* src, char* dst, int srcSize) { return LZ4_compress_HC (src, dst, srcSize, LZ4_compressBound(srcSize), 0); }
+-int LZ4_compressHC_limitedOutput(const char* src, char* dst, int srcSize, int maxDstSize) { return LZ4_compress_HC(src, dst, srcSize, maxDstSize, 0); }
+-int LZ4_compressHC2(const char* src, char* dst, int srcSize, int cLevel) { return LZ4_compress_HC (src, dst, srcSize, LZ4_compressBound(srcSize), cLevel); }
+-int LZ4_compressHC2_limitedOutput(const char* src, char* dst, int srcSize, int maxDstSize, int cLevel) { return LZ4_compress_HC(src, dst, srcSize, maxDstSize, cLevel); }
+-int LZ4_compressHC_withStateHC (void* state, const char* src, char* dst, int srcSize) { return LZ4_compress_HC_extStateHC (state, src, dst, srcSize, LZ4_compressBound(srcSize), 0); }
+-int LZ4_compressHC_limitedOutput_withStateHC (void* state, const char* src, char* dst, int srcSize, int maxDstSize) { return LZ4_compress_HC_extStateHC (state, src, dst, srcSize, maxDstSize, 0); }
+-int LZ4_compressHC2_withStateHC (void* state, const char* src, char* dst, int srcSize, int cLevel) { return LZ4_compress_HC_extStateHC(state, src, dst, srcSize, LZ4_compressBound(srcSize), cLevel); }
+-int LZ4_compressHC2_limitedOutput_withStateHC (void* state, const char* src, char* dst, int srcSize, int maxDstSize, int cLevel) { return LZ4_compress_HC_extStateHC(state, src, dst, srcSize, maxDstSize, cLevel); }
+-int LZ4_compressHC_continue (LZ4_streamHC_t* ctx, const char* src, char* dst, int srcSize) { return LZ4_compress_HC_continue (ctx, src, dst, srcSize, LZ4_compressBound(srcSize)); }
+-int LZ4_compressHC_limitedOutput_continue (LZ4_streamHC_t* ctx, const char* src, char* dst, int srcSize, int maxDstSize) { return LZ4_compress_HC_continue (ctx, src, dst, srcSize, maxDstSize); }
+-
+-
+-/* Deprecated streaming functions */
+-int LZ4_sizeofStreamStateHC(void) { return sizeof(LZ4_streamHC_t); }
+-
+-/* state is presumed correctly sized, aka >= sizeof(LZ4_streamHC_t)
+- * @return : 0 on success, !=0 if error */
+-int LZ4_resetStreamStateHC(void* state, char* inputBuffer)
+-{
+-    LZ4_streamHC_t* const hc4 = LZ4_initStreamHC(state, sizeof(*hc4));
+-    if (hc4 == NULL) return 1;   /* init failed */
+-    LZ4HC_init_internal (&hc4->internal_donotuse, (const BYTE*)inputBuffer);
+-    return 0;
+-}
+-
+-#if !defined(LZ4_STATIC_LINKING_ONLY_DISABLE_MEMORY_ALLOCATION)
+-void* LZ4_createHC (const char* inputBuffer)
+-{
+-    LZ4_streamHC_t* const hc4 = LZ4_createStreamHC();
+-    if (hc4 == NULL) return NULL;   /* not enough memory */
+-    LZ4HC_init_internal (&hc4->internal_donotuse, (const BYTE*)inputBuffer);
+-    return hc4;
+-}
+-
+-int LZ4_freeHC (void* LZ4HC_Data)
+-{
+-    if (!LZ4HC_Data) return 0;  /* support free on NULL */
+-    FREEMEM(LZ4HC_Data);
+-    return 0;
+-}
+-#endif
+-
+-/* LZ4_compress_HC_continue() at level @cLevel : notably, restarts the stream after LZ4_slideInputBufferHC() */
+-int LZ4_compressHC2_continue (void* LZ4HC_Data, const char* src, char* dst, int srcSize, int cLevel)
+-{
+-    LZ4_setCompressionLevel((LZ4_streamHC_t*)LZ4HC_Data, cLevel);
+-    return LZ4_compress_HC_continue((LZ4_streamHC_t*)LZ4HC_Data, src, dst, srcSize, LZ4_compressBound(srcSize));
+-}
+-
+-int LZ4_compressHC2_limitedOutput_continue (void* LZ4HC_Data, const char* src, char* dst, int srcSize, int dstCapacity, int cLevel)
+-{
+-    LZ4_setCompressionLevel((LZ4_streamHC_t*)LZ4HC_Data, cLevel);
+-    return LZ4_compress_HC_continue((LZ4_streamHC_t*)LZ4HC_Data, src, dst, srcSize, dstCapacity);
+-}
+-
+-char* LZ4_slideInputBufferHC(void* LZ4HC_Data)
+-{
+-    LZ4HC_CCtx_internal* const s = &((LZ4_streamHC_t*)LZ4HC_Data)->internal_donotuse;
+-    const BYTE* const bufferStart = s->prefixStart - s->dictLimit + s->lowLimit;
+-    LZ4_resetStreamHC_fast((LZ4_streamHC_t*)LZ4HC_Data, s->compressionLevel);
+-    /* ugly conversion trick, required to evade (const char*) -> (char*) cast-qual warning :( */
+-    return (char*)(uptrval)bufferStart;
+-}
++                nbSearches, nbSearchesSeq, targetLength, limit, dict, favorDecSpeed, opt);
++}
++
++
++/* Obsolete userspace-only entry points are not part of the kernel API. */
+--- a/lib/lz4/lz4hc.h
++++ b/lib/lz4/lz4hc.h
+@@ -1,3 +1,4 @@
++// SPDX-License-Identifier: BSD-2-Clause
+ /*
+    LZ4 HC - High Compression Mode of LZ4
+    Header File
+@@ -66,7 +67,7 @@
+  * @return : the number of bytes written into 'dst'
+  *           or 0 if compression fails.
+  */
+-LZ4LIB_API int LZ4_compress_HC (const char* src, char* dst, int srcSize, int dstCapacity, int compressionLevel);
++LZ4LIB_API int LZ4_compress_HC (const char* src, char* dst, int srcSize, int dstCapacity, int compressionLevel, void *wrkmem);
+ 
+ 
+ /* Note :
+@@ -260,8 +261,10 @@
+ };
+ 
+ #define LZ4_STREAMHC_MINSIZE  262200  /* static size, for inter-version compatibility */
++#define LZ4_STREAMHC_EXTSIZE (LZ4_STREAMHC_MINSIZE + 65584)
+ union LZ4_streamHC_u {
+-    char minStateSize[LZ4_STREAMHC_MINSIZE];
++    /* Kernel callers always own the optimal parser workspace, including 10+. */
++    char minStateSize[LZ4_STREAMHC_EXTSIZE];
+     LZ4HC_CCtx_internal internal_donotuse;
+ }; /* previously typedef'd to LZ4_streamHC_t */
+ 
+@@ -365,15 +368,10 @@
+ LZ4LIB_STATIC_API void LZ4_resetStreamHC_fast(
+     LZ4_streamHC_t* LZ4_streamHCPtr, int compressionLevel);
+ 
+-/*! LZ4_STREAMHC_EXTSIZE : v1.11.0+ (experimental)
+- *  Levels >= LZ4HC_CLEVEL_OPT_MIN employ a temporary buffer (~64 KB), allocated at each compression
+- *  (or on stack, when lz4hc.c is compiled with LZ4HC_HEAPMODE=0).
+- *  A state initialized by LZ4_initStreamHC() on a buffer of LZ4_STREAMHC_EXTSIZE bytes includes this buffer :
+- *  its compressions allocate nothing. States created by LZ4_createStreamHC() include it.
+- *  It is preserved by LZ4_resetStreamHC_fast() and LZ4_loadDictHC(), but not by LZ4_compress_HC_extStateHC(),
+- *  which initializes @state as a state of LZ4_sizeofStateHC() bytes : use LZ4_compress_HC_extStateHC_fastReset() instead.
+- */
+-#define LZ4_STREAMHC_EXTSIZE (LZ4_STREAMHC_MINSIZE + 65584)
++/* Kernel HC states always include the optimal parser scratch area.
++ * LZ4_initStreamHC(), reset/loadDict and extStateHC preserve that allocation;
++ * no compression entry point allocates memory or uses a large stack buffer.
++ */
+ 
+ /*! LZ4_compress_HC_extStateHC_fastReset() :
+  *  A variant of LZ4_compress_HC_extStateHC().

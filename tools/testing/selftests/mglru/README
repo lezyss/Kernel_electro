@@ -1,0 +1,25 @@
+MGLRU backport host checks
+=========================
+
+Run from the repository root:
+
+    python3 tools/testing/selftests/mglru/test_backport.py
+
+HOSTCC (or --cc) selects a host C compiler. Python 3 and a C compiler are
+required; no root, kernel module or running MGLRU kernel is needed.
+
+The runner extracts clear_shadow_from_swap_cache() from mm/swap_state.c
+and compiles it into shadow_model.c. The model provides sparse slots,
+chunk-end next_index semantics, page/shadow sentinels and lock assertions.
+It checks 2006 deterministic cases, including a hole beyond the requested
+end, multiple entries in a chunk, swap-address-space boundaries, reversed
+ranges, ULONG_MAX and seeded random sparse trees. The original donor
+cleanup fails the range checks. Assertions are kept active at optimization.
+
+This is deliberately NOT a kernel radix-tree, RCU, concurrency, page-table,
+reclaim or device test. Source-guard checks supplement the range model but
+do not prove the algorithm safe. See Documentation/vm/mglru-backport.rst.
+
+For reproducing a historical cleanup regression, --swap-source may name a
+file containing the old function, with --cleanup-only to skip source guards.
+The test binary/source are created in a temporary directory and removed.

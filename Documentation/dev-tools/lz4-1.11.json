@@ -1,0 +1,172 @@
+{
+  "upstream": {
+    "repository": "https://github.com/lz4/lz4",
+    "version": "1.11.0",
+    "commit": "c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc",
+    "pull_request": 2037,
+    "sources": {
+      "lib/lz4.c": "45061782ff932eb8cf71c3aea9495cec0d392f012395272e0550e30c8593c740",
+      "lib/lz4.h": "6fee8f913ce3bc65bf716060f65ce890d83bea905445256c7a56da5bf4824d73",
+      "lib/lz4hc.c": "2511d51c3026999536b8cb56806a7f1b6a5bd8a81295a02ff2e1efc10ab071aa",
+      "lib/lz4hc.h": "a92a509858c3b79afb033bfa64335d633802884e5c1d5a15aaa54cdb3e9e5103"
+    },
+    "release_notes": "NEWS"
+  },
+  "adaptation": {
+    "patch": "lz4-1.11-adaptation.diff",
+    "sha256": "7f912cca0c8949198d3eb0cad3f4ab8cc10899485bb1de40c9e7d50839d1f95c",
+    "replay": "git apply --check, git apply, four postimages byte-identical",
+    "kernel_sources": {
+      "lib/lz4/lz4.c": "ce908074bbf10d145faadbe733dd10ac4ecbeb5c745b6e0e7245a391b961f51c",
+      "lib/lz4/lz4.h": "9612af4c93985aec9ec3a6314415d8b7996c0b3a544cd22c219a7167ae5c20d5",
+      "lib/lz4/lz4hc.c": "287699b6288a1aca81c5708c354dc756d3c1fcd163dc9eca902d51ca09d20559",
+      "lib/lz4/lz4hc.h": "6529823ac498f3d2c2d34fb74d2dabbef6bb3a24727c98b8f496021f0dd3c5db"
+    },
+    "workspaces_64_bit": {
+      "normal": 16416,
+      "HC": 327784,
+      "HC_scratch_offset": 262200,
+      "HC_scratch_bytes": 65584
+    },
+    "heap_allocations": false,
+    "large_stack_fallback": false,
+    "exports": 16
+  },
+  "validation": {
+    "date": "2026-11-04",
+    "compiler": "Clang 19.1.7 (Zig 0.14.1), not AOSP r614150",
+    "native_compiler_driver": "#!/bin/sh\nz=/home/user/.cache/lz4-tools/ziglang/zig\ncase \" $* \" in\n  *' -c '*|*' -E '*) exec \"$z\" clang -target x86_64-linux-gnu -fsanitize-trap=undefined -resource-dir /home/user/.cache/lz4-tools/ziglang/lib \"$@\" ;;\n  *) exec \"$z\" clang -target x86_64-linux-gnu -fsanitize-trap=undefined -resource-dir /home/user/.cache/lz4-tools/ziglang/lib -fuse-ld=/home/user/lz4-1.11-review/ld.lld -fno-sanitize-link-runtime \"$@\" -Wl,--no-as-needed /usr/lib/x86_64-linux-gnu/libasan.so.8 /usr/lib/x86_64-linux-gnu/libubsan.so.1 ;;\nesac\n",
+    "native_linker_driver": "#!/bin/sh\nexec /home/user/.cache/lz4-tools/ziglang/zig ld.lld \"$@\"\n",
+    "native_sanitizers": [
+      "ASan via host libasan.so.8",
+      "UBSan undefined traps (probe requires SIGILL/SIGTRAP)"
+    ],
+    "native": {
+      "applicable_upstream_tests": 70,
+      "kernel_tests": 4,
+      "passed": 74,
+      "failed": 0,
+      "seeds": [
+        1,
+        2037
+      ],
+      "upstream_1_11_cross_decode": "both directions PASS",
+      "upstream_1_10_cross_decode": "both directions PASS",
+      "preboot": "actual STATIC lib/decompress_unlz4.c and public header PASS",
+      "workspace_negative_control": "wrong scratch offset rejected by ASan heap-buffer-overflow",
+      "omitted_upstream_tests": [
+        "lz4.compress_deprecatedFunctions",
+        "lz4.createStream",
+        "lz4.stream_returnValues",
+        "lz4hc.createStreamHC",
+        "lz4hc.streamHC_returnValues",
+        "lz4hc.resetStreamStateHC_compressHC2_continue",
+        "lz4hc.compressHC2_continue_roundTrip",
+        "lz4hc.slideInputBufferHC",
+        "lz4hc.compress_HC_extendedState"
+      ],
+      "alignment_test_adaptation": "Remove only two obsolete resetStreamStateHC assertions; keep extState/destSize checks"
+    },
+    "arm": {
+      "unicorn": "2.1.4",
+      "pyelftools": "0.32",
+      "word_sizes": [
+        32,
+        64
+      ],
+      "flags": [
+        "-O3",
+        "-std=gnu89",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wframe-larger-than=2048"
+      ],
+      "ARM64_flags": [
+        "-mgeneral-regs-only",
+        "-ffixed-x18"
+      ],
+      "compression_roundtrips": 27,
+      "decoder_executables": [
+        "ordinary",
+        "Shadow Call Stack + ThinLTO"
+      ],
+      "valid_blocks_each": 483,
+      "malformed_blocks_each": 1000,
+      "full_block_entries_per_assembly_variant_each": 476,
+      "allocation_free_symbol_checks": "PASS",
+      "exports": "unchanged 16",
+      "feature_off_no_neon_STATIC": "no SIMD references PASS",
+      "ABI_x18_and_buffer_guards": "PASS"
+    },
+    "logs": {
+      "arm64.log": "6eae2f7a700b820f762eee38f5f9b254dc83a5dc00976b80427dbf654069ad01",
+      "native-asan.log": "d46c14946855a9ab3447653ad33f7fefcb0c7b371e5a54bed4c0ba62b07e71a9",
+      "seed2037.log": "2d3cc3539bccdbec91bc1336aabe36989f5a72d716867f28d107c23fe8822103",
+      "negative/scratch-mutant.log": "8129d37c93d4422d8ccfaea285a1c5adf012c7f4a130a4d791324a9870e8d925"
+    }
+  },
+  "scope": {
+    "baseline_files": 72940,
+    "expected_changed_existing": [
+      "include/linux/lz4.h",
+      "lib/lz4/lz4.c",
+      "lib/lz4/lz4.h",
+      "lib/lz4/lz4hc.c",
+      "lib/lz4/lz4hc.h",
+      "lib/lz4/lz4_compress.c",
+      "lib/lz4/lz4_decompress.c",
+      "lib/lz4/lz4hc_compress.c",
+      "tools/testing/selftests/lz4/test_arm64.py",
+      "tools/testing/selftests/lz4/README",
+      "Documentation/dev-tools/lz4-backport.rst"
+    ],
+    "expected_new": [
+      "tools/testing/selftests/lz4/test_codec.py",
+      "Documentation/dev-tools/lz4-1.11-adaptation.diff",
+      "Documentation/dev-tools/lz4-1.11.json"
+    ],
+    "deleted": [],
+    "preserved_integration_files": {
+      "lib/lz4/Makefile": "aee6de5d418defe49f375efe04d0b64111f79cc4d744929049ee0a26a01dc8e1",
+      "lib/lz4/lz4_decompress_main.c": "1edf3143982c896680bb11cd0289f8e77bcd7b52bf93cda50425f3c6b1aa04e2",
+      "lib/lz4/lz4armv8/lz4accel.c": "0caa7a0c736b6a43ecc3368a46db7972db3db9dec22220861597ad600db195ab",
+      "lib/lz4/lz4armv8/lz4accel.h": "6d6c39b21f6eb2124c4b2cebc74570c8849174ac7f2d5965e70b563a27d9e1f9",
+      "lib/lz4/lz4armv8/lz4armv8.S": "80ee3fce4c22868fd1d6f6b981cf079cb83ba3899371973ba82ca6d0e3dc32ec",
+      "lib/Kconfig": "16b14ee3153b3d2f235b842fa32883792741cdffcdeebaa1293a226f3b3a94d0",
+      "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig": "7d049399dbd01e9f517db96c152a86148d1fdf1a307be95745ba2fa29a456a75"
+    },
+    "preservation": "Entire tracked + nonignored untracked regular-file baseline audited separately; no unrelated edits/deletions."
+  },
+  "postimages": {
+    "include/linux/lz4.h": "4eedb92fb82d5877122cbdd408e1316b3e2318fee6352b909f9876d92af49549",
+    "lib/lz4/lz4.c": "8f9195beee62d811fe09bc453de1165a1eb23a33744789f6f037aed2ff5b7de2",
+    "lib/lz4/lz4.h": "9612af4c93985aec9ec3a6314415d8b7996c0b3a544cd22c219a7167ae5c20d5",
+    "lib/lz4/lz4hc.c": "287699b6288a1aca81c5708c354dc756d3c1fcd163dc9eca902d51ca09d20559",
+    "lib/lz4/lz4hc.h": "6529823ac498f3d2c2d34fb74d2dabbef6bb3a24727c98b8f496021f0dd3c5db",
+    "lib/lz4/lz4_compress.c": "f94063469fd9e7426a0a69a72a2f4e07e5a12577e876da445f9d29e37ea596d1",
+    "lib/lz4/lz4_decompress.c": "4a2c6fdb30b1d530740bfa57bb220dba1694afc900ce8f2b826cac113af90ef6",
+    "lib/lz4/lz4hc_compress.c": "ef1214657465b6922a9925d6b9f81fc466d3bd706c530ce32e1bb27c9ec7b11a",
+    "tools/testing/selftests/lz4/test_arm64.py": "1bcdc5a15b21bbc6331197e65ec34586322f0a2203614624d983b50a10a43db5",
+    "tools/testing/selftests/lz4/README": "ce6c0a3edc40989bee940aee466c3e7b60d7bebdc24bb96f9022e981e9a5ff95",
+    "Documentation/dev-tools/lz4-backport.rst": "1513ac0bff4df1a784d257f82fe35211cb4e21bc9806a8aeaa8ea812f1ec8a1d",
+    "tools/testing/selftests/lz4/test_codec.py": "958ff77eb0d4985c44bad0d08a178d2f5f8115314cd578f6e8bed8f0144e5877",
+    "Documentation/dev-tools/lz4-1.11-adaptation.diff": "03351243c8c342bd1b9b7d16c123c6b16d664e3be946ec92e66e678af2cdd859"
+  },
+  "limits": [
+    "Host shims and instruction emulation, not a production kernel build",
+    "Assembly is not ASan-instrumented",
+    "No new device boot, kernel-context/FPSIMD validation, pressure stress or benchmarks",
+    "No push or CI run",
+    "No claimed SM6250/ZRAM/EROFS performance improvement"
+  ],
+  "compatibility_followup": {
+    "date": "2026-11-05",
+    "scope": "Spell the noinline compiler attribute __noinline__ to prevent expansion of the kernel noinline macro; no codec logic or tuning changes.",
+    "replay": "Four pinned-upstream sources -> refreshed adaptation patch -> byte-identical current kernel sources; PASS",
+    "regression": "74 native codec/cross-decode/preboot tests, seed 1, ASan + UBSan trap probe; PASS",
+    "compiler": "Host GCC 12.2.0; wrapper translates Clang fsanitize-trap=undefined to GCC fsanitize-undefined-trap-on-error. Production target build separately uses exact AOSP r614150."
+  }
+}

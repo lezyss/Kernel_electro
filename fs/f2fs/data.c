@@ -882,12 +882,39 @@ static int add_ipu_page(struct f2fs_io_info *fio, struct bio **bio,
 	return ret;
 }
 
+/* Detach under the list lock; retain each bio's submit reference until IO. */
+void f2fs_submit_merged_ipu_write_all(struct f2fs_sb_info *sbi)
+{
+	enum temp_type temp;
+
+	for (temp = HOT; temp < NR_TEMP_TYPE; temp++) {
+		struct f2fs_bio_info *io = sbi->write_io[DATA] + temp;
+		struct bio_entry *be, *tmp;
+		LIST_HEAD(list);
+
+		down_write(&io->bio_list_lock);
+		list_splice_init(&io->bio_list, &list);
+		up_write(&io->bio_list_lock);
+
+		list_for_each_entry_safe(be, tmp, &list, list) {
+			struct bio *bio = be->bio;
+
+			del_bio_entry(be);
+			__submit_bio(sbi, bio, DATA);
+		}
+	}
+}
+
 void f2fs_submit_merged_ipu_write(struct f2fs_sb_info *sbi,
 					struct bio **bio, struct page *page)
 {
 	enum temp_type temp;
 	bool found = false;
 	struct bio *target = bio ? *bio : NULL;
+
+	/* No selector is not a request to flush an arbitrary cached bio. */
+	if (!target && !page)
+		return;
 
 	for (temp = HOT; temp < NR_TEMP_TYPE && !found; temp++) {
 		struct f2fs_bio_info *io = sbi->write_io[DATA] + temp;
@@ -951,6 +978,15 @@ int f2fs_merge_page_bio(struct f2fs_io_info *fio)
 	trace_f2fs_submit_page_bio(page, fio);
 	f2fs_trace_ios(fio, 0);
 
+	/*
+	 * Account the original page before publishing the bio. Another task may
+	 * submit it immediately, completing and freeing the encrypted bounce page.
+	 * Retrying a full/detached bio below must not account this page twice.
+	 */
+	if (fio->io_wbc)
+		wbc_account_io(fio->io_wbc, fio->page, PAGE_SIZE);
+	inc_page_count(fio->sbi, WB_DATA_TYPE(fio->page));
+
 alloc_new:
 	if (!bio) {
 		bio = __bio_alloc(fio, BIO_MAX_PAGES);
@@ -964,11 +1000,6 @@ alloc_new:
 		if (add_ipu_page(fio, &bio, page))
 			goto alloc_new;
 	}
-
-	if (fio->io_wbc)
-		wbc_account_io(fio->io_wbc, page, PAGE_SIZE);
-
-	inc_page_count(fio->sbi, WB_DATA_TYPE(page));
 
 	*fio->last_block = fio->new_blkaddr;
 	*fio->bio = bio;
@@ -2886,7 +2917,8 @@ out:
 
 	if (unlikely(f2fs_cp_error(sbi))) {
 		f2fs_submit_merged_write(sbi, DATA);
-		f2fs_submit_merged_ipu_write(sbi, bio, NULL);
+		if (bio && *bio)
+			f2fs_submit_merged_ipu_write(sbi, bio, NULL);
 		submitted = NULL;
 	}
 

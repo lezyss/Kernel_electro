@@ -480,3 +480,42 @@ late_initcall(init_ima);	/* Start IMA after the TPM is available */
 
 MODULE_DESCRIPTION("Integrity Measurement Architecture");
 MODULE_LICENSE("GPL");
+
+/* Cached IMA measurement access for sleepable BPF LSM hooks (v5.15). */
+int ima_inode_hash(struct inode *inode, char *buf, size_t buf_size)
+{
+	struct integrity_iint_cache *iint;
+	int hash_algo;
+
+	if (!inode)
+		return -EINVAL;
+	if (!ima_policy_flag)
+		return -EOPNOTSUPP;
+
+	iint = integrity_iint_find(inode);
+	if (!iint)
+		return -EOPNOTSUPP;
+
+	mutex_lock(&iint->mutex);
+
+	/*
+	 * ima_file_hash can be called when ima_collect_measurement has still
+	 * not been called, we might not always have a hash.
+	 */
+	if (!iint->ima_hash) {
+		mutex_unlock(&iint->mutex);
+		return -EOPNOTSUPP;
+	}
+
+	if (buf) {
+		size_t copied_size;
+
+		copied_size = min_t(size_t, iint->ima_hash->length, buf_size);
+		memcpy(buf, iint->ima_hash->digest, copied_size);
+	}
+	hash_algo = iint->ima_hash->algo;
+	mutex_unlock(&iint->mutex);
+
+	return hash_algo;
+}
+EXPORT_SYMBOL_GPL(ima_inode_hash);

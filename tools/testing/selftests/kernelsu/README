@@ -1,0 +1,50 @@
+KernelSU vendoring/configuration checks
+=====================================
+
+Run from the kernel root:
+
+    python3 tools/testing/selftests/kernelsu/test_integration.py
+    python3 tools/testing/selftests/kernelsu/test_integration.py --config out/.config
+
+Checks all 104 imported source files against recorded upstream Git blob IDs or
+reviewed local SHA-256 overrides, licenses, regular files/no nested .git, the
+single Kbuild/Kconfig inclusion, clean-build header wiring, opt-in default, and
+miatoll's resolved built-in hook/security policy. No network or compiler needed.
+
+For a separate output configuration with CONFIG_KSU disabled:
+
+    python3 tools/testing/selftests/kernelsu/test_integration.py \
+        --config /path/to/disabled/.config --expect-disabled
+
+CI calls the enabled check after olddefconfig if the selected defconfig requests
+CONFIG_KSU=y. An unintended dropped dependency/hook option stops the build.
+
+These are integrity/integration checks, NOT runtime tests of root authorization,
+SELinux policy changes, syscall hooks, safe mode or compatibility. A full build
+and device boot with a known-good recovery path are still required.
+
+The current source manifest also records the corrected SUSFS 2.3.0 overlay on
+this same backslashxx revision. After the FinaSU overlay, 15 files have reviewed overrides; 89 match
+upstream blobs. See Documentation/filesystems/susfs/ for bridge provenance and
+additional source/configuration/host tests. KSU-only CONFIG_KSU_SUSFS=n remains
+supported; the KSU test does not require SUSFS to be enabled.
+
+FinaSU alternative-manager checks
+--------------------------------
+
+    python3 tools/testing/selftests/kernelsu/test_finasu.py
+    python3 tools/testing/selftests/kernelsu/test_finasu.py \
+        --host-tests --negative-tests --cc clang
+    python3 tools/testing/selftests/kernelsu/test_finasu.py \
+        --host-tests --cc 'clang -fsanitize=undefined -fno-sanitize-recover=all'
+
+Checks six pinned postimages, package/UID/cache sequencing, real kernel identity,
+read-only display ABIs/permissions. Host tests extract production package/key
+selection, identity accessors, crown/scanner and metadata handlers into
+finasu_model.c, mocking certificate-parser results, VFS and credentials. Runs
+four configured-hook branches, output-boundary/fault tests and optionally six
+deliberate regressions. Not APK signature, concurrent VFS, Android or boot tests.
+
+CI calls the FinaSU source check alongside the KSU check. See
+Documentation/dev-tools/finasu-manager.md for signing policy, single-active-manager
+behavior, commands, provenance chaining with SUSFS and runtime limitations.

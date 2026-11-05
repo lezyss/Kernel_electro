@@ -1,0 +1,170 @@
+{
+  "component": "corrected Cambyses v0.6.0 adaptation",
+  "date": "2026-11-05",
+  "donor": {
+    "repository": "https://github.com/manipvlator/los_kernel_xiaomi_sm6150",
+    "commit": "b53dda13d958ee8bf47e7ad9a9eda3bae51e7f47"
+  },
+  "original": {
+    "repository": "https://github.com/firelzrd/cambyses",
+    "patch_path": "patches/0001-6.12.74-cambyses-v0.6.0.patch",
+    "git_blob": "c86b4b7622b44b46240cb6ee0b268ea71210390f",
+    "mail_patch_commit": "19331ed9f4df9d572363e587d5ac0cd2b4c942d3",
+    "patch_sha256": "c7f683113fb5be750d4007e17cc7c9af72ac71a2bc0959a9cbc4afd72fa6eb2d",
+    "attribution": "Masahito Suzuki / firelzrd"
+  },
+  "adaptation": {
+    "baseline_head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183",
+    "baseline": "already modified working tree; not clean HEAD",
+    "patch": "Documentation/scheduler/cambyses-adaptation.diff",
+    "patch_sha256": "55ef1defe6d46803ea83a7caa8ee433a7e301035bcdd4e711b0a4cdb342d7da5",
+    "replay": "PASS",
+    "production_files": {
+      "include/linux/list.h": {
+        "before_sha256": "ee43b68c46b12250e2caf9b9c1c0f2856bf45a9be205379538cc1337bd5984ae",
+        "after_sha256": "5ec2d81399a9a227e83defc66c992814005b3c18d64462595f8067867c92a429"
+      },
+      "kernel/sched/fair.c": {
+        "before_sha256": "63169875768218361b3c166e4388b0077172febb3702619f5ee8825f01246681",
+        "after_sha256": "435398a050d08f2c9e4536507f8392666eb91c26d5928a3fcaea6f59bce64472"
+      },
+      "kernel/sched/features.h": {
+        "before_sha256": "7a5b9984aa208762bb4a53f40b338d94d6afdcf7b1a5e1576af7c3eacd71f4d4",
+        "after_sha256": "a3886da5e4089df2841585f32faafaa68d89f059e3d8e2b5761c48bccec123c6"
+      }
+    },
+    "feature_defaults": {
+      "LB_ROTATE_BLOCK": true,
+      "LB_STRICT_BUDGET": true
+    },
+    "defconfig_changed": false,
+    "vorpal_imported": false,
+    "nap_imported": false
+  },
+  "host_tests": {
+    "method": "extracted actual functions and kernel list.h; mocked rq context",
+    "sanitizers": [
+      "ASan (ELF symbols verified)",
+      "UBSan (overflow trap probe verified)"
+    ],
+    "preempt_walt_variants": 4,
+    "deterministic_suites": "PASS",
+    "feature_off_legacy_comparisons": 12000,
+    "mixed_feature_cases": 48000,
+    "legacy_fixture_matches_baseline": true,
+    "negative_controls_rejected": [
+      "single-node-rotation",
+      "no-concession",
+      "stale-cursor",
+      "no-pre-detach-flush",
+      "no-sticky-progress",
+      "bypass-filters",
+      "post-timeout-concession",
+      "lose-two-task-exception",
+      "overflow-concession",
+      "no-timeout",
+      "no-lb-min",
+      "zero-load-cost"
+    ],
+    "stale_cursor_control": "ASan heap-use-after-free",
+    "log_sha256": "eab12db6ad644de8559898efdb67202319de04fd4c042faad1063d5700e73bdf"
+  },
+  "arm64_tests": {
+    "compiler": "Zig 0.14.1 / Clang 19 / LLD",
+    "production_aosp_r614150_used": false,
+    "variants": [
+      {
+        "variant": "base",
+        "config_sha256": "5454b2e2428da5b00941fb2b8f1bcfbd3a1a961b7543ec7bf7732dd5cb279aa0",
+        "fair_object_sha256": "c79c513d92701f74d0714a0cb10d1ce291066ba684265e85e26665107eac8d58",
+        "core_object_sha256": "0fabfb498164962262fa8547a98a3bf1b3ed1e5f04d8b296a49075a767e07236",
+        "partial_link_sha256": "80d67ec95ef35a406ccfce6dbd703278bc7b3809979b83cf85da1717a13fc1f8",
+        "partial_link_executable_bytes": 111144,
+        "build_log_sha256": "90eccc0cd7910f2897f615db2cdaae2e3b6357492febc73630002a49a5719cd1",
+        "compile_and_lld_partial_link": "PASS",
+        "scheduler_compiler_warnings_or_errors": 0
+      },
+      {
+        "variant": "walt",
+        "config_sha256": "e8fc163a417dede415670610a89ae5e394d7d20f5ad75d2048d63aa7bd95cb0c",
+        "fair_object_sha256": "36087cbe83c720fc39b8225067addf352928bb9861f23b38e8cb1d1198f18406",
+        "core_object_sha256": "a5a0b8132e98dbf79c54e0601c2ccd89f0db257c8d2b72802ef02f3d1ee24924",
+        "partial_link_sha256": "43e590a0ca24ae23556cfe3dbeb7ee442902d2b2f552a978f6913c6b486fa0fc",
+        "partial_link_executable_bytes": 118116,
+        "build_log_sha256": "90eccc0cd7910f2897f615db2cdaae2e3b6357492febc73630002a49a5719cd1",
+        "compile_and_lld_partial_link": "PASS",
+        "scheduler_compiler_warnings_or_errors": 0
+      },
+      {
+        "variant": "debug",
+        "config_sha256": "878284ae7fbe4f52200c054e97f1fdcc16a9a22699f7e1123f6f0cd653de44da",
+        "fair_object_sha256": "08013f35866a9626e0db460c70c1cfb756080e8ab918a0a479c8dc9f0b96af00",
+        "core_object_sha256": "694f04752df3d38d2394edd5f20a47326793ca19ca82a4595b438c64dbd09ee2",
+        "partial_link_sha256": "2558db8cd9cd1a70fb69cca6a5e3ca66defc91a7284d20c512271fcd83cfebb4",
+        "partial_link_executable_bytes": 151908,
+        "build_log_sha256": "5dadad4bf52c224aa7df60c7740405487283307bd7492edcee5a87b9c110e3f5",
+        "compile_and_lld_partial_link": "PASS",
+        "scheduler_compiler_warnings_or_errors": 0
+      },
+      {
+        "variant": "thinlto",
+        "config_sha256": "a82a5c536ac453837afc0350aaa0deab06e1b9990a4e090edfd4f27cb7496f8f",
+        "fair_object_sha256": "b1dc9f479355d275f86f09b4bccdb14463d16a775422c8ef3b14582b0fea9110",
+        "core_object_sha256": "b5028370b6acd7e57ff082670641cda5cafb0747419687acef782ebf8b5246ee",
+        "partial_link_sha256": "2c49c9c13f81827d208841f8a2129eb042cd1dcdae4ee1a020a1126da159aec7",
+        "partial_link_executable_bytes": 111384,
+        "build_log_sha256": "31fa00d37cac43585a1c4eb6d7fcf5dcf93d2d8a70f7c3e4fa5a7c2bd017d803",
+        "compile_and_lld_partial_link": "PASS",
+        "scheduler_compiler_warnings_or_errors": 0
+      },
+      {
+        "variant": "minimal",
+        "config_sha256": "e8c8c976c667cb5aa9251e0160635478ace6573de76635404d4b5e565deaf454",
+        "fair_object_sha256": "2fc9f3acd84ef5fe32f8579f1ccf0ce61cb4f4a89ba61ed712699213529a74c3",
+        "core_object_sha256": "672ea13c820239402889c7c5c7bfb30d03db806bbe0497b5b482794ecb3bb824",
+        "partial_link_sha256": "4c51aebdbf79af840a28b9f68e429e0caf5cdd23fa61f97a4661167a78ee5423",
+        "partial_link_executable_bytes": 115876,
+        "build_log_sha256": "4e19d2bb2a7a43d6efdba82ad32f158510099d01fc574aa306036d8f013b86f9",
+        "compile_and_lld_partial_link": "PASS",
+        "scheduler_compiler_warnings_or_errors": 0
+      }
+    ],
+    "test_only_overrides": [
+      "disable LLVM_POLLY",
+      "disable FS_VERITY_BUILTIN_SIGNATURES",
+      "disable SYSTEM_TRUSTED_KEYRING/SYSTEM_REVOCATION_LIST/MODULE_SIG",
+      "disable LTO/SCS except the ThinLTO variant"
+    ],
+    "build_driver_sha256": "f456d7e64f3428e6e72d2de1dddac767e92652686a83b64f0db5610a27d9eb20"
+  },
+  "preservation": {
+    "baseline_files": 72943,
+    "expected_changed": [
+      "include/linux/list.h",
+      "kernel/sched/fair.c",
+      "kernel/sched/features.h"
+    ],
+    "expected_added": [
+      "Documentation/scheduler/cambyses-backport.rst",
+      "Documentation/scheduler/cambyses-backport.json",
+      "Documentation/scheduler/cambyses-adaptation.diff",
+      "tools/testing/selftests/cambyses/README.md",
+      "tools/testing/selftests/cambyses/model.c",
+      "tools/testing/selftests/cambyses/legacy_detach.c",
+      "tools/testing/selftests/cambyses/test_backport.py"
+    ],
+    "deleted": [],
+    "unexpected_changes": [],
+    "defconfig_sha256": "7d049399dbd01e9f517db96c152a86148d1fdf1a307be95745ba2fa29a456a75",
+    "audit": "PASS"
+  },
+  "limitations": [
+    "no production-toolchain full image build",
+    "no boot or device scheduler stress",
+    "no live lockdep run",
+    "no performance/power/thermal claims",
+    "userspace WALT churn is not a parallel kernel concurrency test"
+  ],
+  "push_performed": false,
+  "ci_performed": false
+}

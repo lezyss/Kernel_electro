@@ -21,6 +21,90 @@
 #include "gc.h"
 #include <trace/events/f2fs.h>
 
+static void finish_gc_merge(struct f2fs_sb_info *sbi)
+{
+	struct f2fs_gc_merge *merge = &sbi->gc_merge;
+
+	spin_lock(&merge->lock);
+	if (merge->pending) {
+		merge->pending = false;
+		merge->seq++;
+	}
+	spin_unlock(&merge->lock);
+	wake_up_all(&merge->wait);
+}
+
+bool f2fs_is_gc_thread(struct f2fs_sb_info *sbi)
+{
+	struct f2fs_gc_merge *merge = &sbi->gc_merge;
+	bool is_gc;
+
+	spin_lock(&merge->lock);
+	is_gc = current == merge->task;
+	spin_unlock(&merge->lock);
+	return is_gc;
+}
+
+bool f2fs_gc_merge_request(struct f2fs_sb_info *sbi)
+{
+	struct f2fs_gc_merge *merge = &sbi->gc_merge;
+	unsigned long seq;
+
+	spin_lock(&merge->lock);
+	if (!merge->online || merge->paused || current == merge->task ||
+	    current == READ_ONCE(sbi->cprc_info.task)) {
+		spin_unlock(&merge->lock);
+		return false;
+	}
+	spin_unlock(&merge->lock);
+
+	/* GC can wait for cached writeback owned by this very caller. */
+	f2fs_submit_merged_write(sbi, DATA);
+	f2fs_submit_merged_ipu_write_all(sbi);
+
+	spin_lock(&merge->lock);
+	if (!merge->online || merge->paused ||
+	    sbi->sb->s_writers.frozen >= SB_FREEZE_WRITE) {
+		spin_unlock(&merge->lock);
+		return false;
+	}
+	seq = merge->seq;
+	merge->pending = true;
+	/* stop clears online under this lock before freeing gc_thread. */
+	wake_up(&sbi->gc_thread->gc_wait_queue_head);
+	spin_unlock(&merge->lock);
+
+	wait_event(merge->wait, READ_ONCE(merge->seq) != seq ||
+		   !READ_ONCE(merge->online));
+	return true;
+}
+
+/* Close admission across the freezer check, including a late freeze request. */
+static bool gc_merge_freezable_should_stop(struct f2fs_sb_info *sbi,
+					   bool *was_frozen)
+{
+	struct f2fs_gc_merge *merge = &sbi->gc_merge;
+	bool pending, stop;
+
+	spin_lock(&merge->lock);
+	merge->paused = true;
+	pending = merge->pending;
+	spin_unlock(&merge->lock);
+
+	if (pending && !freezing(current)) {
+		/* Service accepted writers before attempting to freeze next time. */
+		stop = kthread_should_stop();
+	} else {
+		finish_gc_merge(sbi);
+		stop = kthread_freezable_should_stop(was_frozen);
+	}
+
+	spin_lock(&merge->lock);
+	merge->paused = false;
+	spin_unlock(&merge->lock);
+	return stop;
+}
+
 static int gc_thread_func(void *data)
 {
 	struct f2fs_sb_info *sbi = data;
@@ -32,26 +116,29 @@ static int gc_thread_func(void *data)
 
 	set_freezable();
 	do {
-		bool sync_mode;
+		bool sync_mode, foreground, was_frozen = false;
 
 		wait_event_interruptible_timeout(*wq,
 				kthread_should_stop() || freezing(current) ||
-				gc_th->gc_wake,
+				gc_th->gc_wake || READ_ONCE(sbi->gc_merge.pending),
 				msecs_to_jiffies(wait_ms));
 
 		/* give it a try one time */
 		if (gc_th->gc_wake)
 			gc_th->gc_wake = 0;
 
-		if (try_to_freeze()) {
+		foreground = READ_ONCE(sbi->gc_merge.pending);
+		if (gc_merge_freezable_should_stop(sbi, &was_frozen))
+			break;
+		if (was_frozen) {
 			stat_other_skip_bggc_count(sbi);
 			continue;
 		}
-		if (kthread_should_stop())
-			break;
 
 		if (sbi->sb->s_writers.frozen >= SB_FREEZE_WRITE) {
-			increase_sleep_time(gc_th, &wait_ms);
+			finish_gc_merge(sbi);
+			if (!foreground)
+				increase_sleep_time(gc_th, &wait_ms);
 			stat_other_skip_bggc_count(sbi);
 			continue;
 		}
@@ -62,9 +149,17 @@ static int gc_thread_func(void *data)
 		}
 
 		if (!sb_start_write_trylock(sbi->sb)) {
+			finish_gc_merge(sbi);
 			stat_other_skip_bggc_count(sbi);
 			continue;
 		}
+
+		if (READ_ONCE(sbi->gc_merge.pending)) {
+			foreground = true;
+			down_write(&sbi->gc_lock);
+			goto do_gc;
+		}
+		foreground = false;
 
 		/*
 		 * [GC triggering condition]
@@ -102,16 +197,20 @@ static int gc_thread_func(void *data)
 		else
 			increase_sleep_time(gc_th, &wait_ms);
 do_gc:
-		stat_inc_bggc_count(sbi->stat_info);
+		if (!foreground)
+			stat_inc_bggc_count(sbi->stat_info);
 
-		sync_mode = F2FS_OPTION(sbi).bggc_mode == BGGC_MODE_SYNC;
+		sync_mode = !foreground &&
+			F2FS_OPTION(sbi).bggc_mode == BGGC_MODE_SYNC;
 
-		/* if return value is not zero, no victim was selected */
-		if (f2fs_gc(sbi, sync_mode, true, NULL_SEGNO))
+		/* Foreground requests must not change the background interval. */
+		if (f2fs_gc(sbi, sync_mode, !foreground, NULL_SEGNO) && !foreground)
 			wait_ms = gc_th->no_gc_sleep_time;
-
-		trace_f2fs_background_gc(sbi->sb, wait_ms,
-				prefree_segments(sbi), free_segments(sbi));
+		if (foreground)
+			finish_gc_merge(sbi);
+		else
+			trace_f2fs_background_gc(sbi->sb, wait_ms,
+						 prefree_segments(sbi), free_segments(sbi));
 
 		/* balancing f2fs's metadata periodically */
 		f2fs_balance_fs_bg(sbi, true);
@@ -119,6 +218,7 @@ next:
 		sb_end_write(sbi->sb);
 
 	} while (!kthread_should_stop());
+	finish_gc_merge(sbi);
 	return 0;
 }
 
@@ -149,6 +249,11 @@ int f2fs_start_gc_thread(struct f2fs_sb_info *sbi)
 		err = PTR_ERR(gc_th->f2fs_gc_task);
 		kvfree(gc_th);
 		sbi->gc_thread = NULL;
+	} else {
+		spin_lock(&sbi->gc_merge.lock);
+		sbi->gc_merge.task = gc_th->f2fs_gc_task;
+		sbi->gc_merge.online = true;
+		spin_unlock(&sbi->gc_merge.lock);
 	}
 out:
 	return err;
@@ -159,6 +264,13 @@ void f2fs_stop_gc_thread(struct f2fs_sb_info *sbi)
 	struct f2fs_gc_kthread *gc_th = sbi->gc_thread;
 	if (!gc_th)
 		return;
+	spin_lock(&sbi->gc_merge.lock);
+	sbi->gc_merge.online = false;
+	sbi->gc_merge.task = NULL;
+	sbi->gc_merge.pending = false;
+	sbi->gc_merge.seq++;
+	spin_unlock(&sbi->gc_merge.lock);
+	wake_up_all(&sbi->gc_merge.wait);
 	kthread_stop(gc_th->f2fs_gc_task);
 	kvfree(gc_th);
 	sbi->gc_thread = NULL;
@@ -1070,6 +1182,16 @@ next_step:
 			if (IS_ERR(inode) || is_bad_inode(inode) ||
 					special_file(inode->i_mode)) {
 				set_sbi_flag(sbi, SBI_NEED_FSCK);
+				continue;
+			}
+
+			if (f2fs_has_inline_data(inode)) {
+				set_sbi_flag(sbi, SBI_NEED_FSCK);
+				printk_ratelimited(KERN_ERR
+					"F2FS-fs (%s): inode %lx has both inline_data flag and "
+					"data block, nid=%u, ofs_in_node=%u\n",
+					sb->s_id, inode->i_ino, dni.nid, ofs_in_node);
+				iput(inode);
 				continue;
 			}
 

@@ -34,8 +34,8 @@
 #define A64_COMP_BRANCH(sf, Rt, offset, type) \
 	aarch64_insn_gen_comp_branch_imm(0, offset, Rt, A64_VARIANT(sf), \
 		AARCH64_INSN_BRANCH_COMP_##type)
-#define A64_CBZ(sf, Rt, imm19) A64_COMP_BRANCH(sf, Rt, (imm19) << 2, ZERO)
-#define A64_CBNZ(sf, Rt, imm19) A64_COMP_BRANCH(sf, Rt, (imm19) << 2, NONZERO)
+#define A64_CBZ(sf, Rt, imm19) A64_COMP_BRANCH(sf, Rt, ((s64)(imm19) * 4), ZERO)
+#define A64_CBNZ(sf, Rt, imm19) A64_COMP_BRANCH(sf, Rt, ((s64)(imm19) * 4), NONZERO)
 
 /* Conditional branch (immediate) */
 #define A64_COND_BRANCH(cond, offset) \
@@ -50,13 +50,13 @@
 #define A64_COND_GT	AARCH64_INSN_COND_GT /* signed > */
 #define A64_COND_LE	AARCH64_INSN_COND_LE /* signed <= */
 #define A64_COND_LT	AARCH64_INSN_COND_LT /* signed < */
-#define A64_B_(cond, imm19) A64_COND_BRANCH(cond, (imm19) << 2)
+#define A64_B_(cond, imm19) A64_COND_BRANCH(cond, ((s64)(imm19) * 4))
 
 /* Unconditional branch (immediate) */
 #define A64_BRANCH(offset, type) aarch64_insn_gen_branch_imm(0, offset, \
 	AARCH64_INSN_BRANCH_##type)
-#define A64_B(imm26)  A64_BRANCH((imm26) << 2, NOLINK)
-#define A64_BL(imm26) A64_BRANCH((imm26) << 2, LINK)
+#define A64_B(imm26)  A64_BRANCH(((s64)(imm26) * 4), NOLINK)
+#define A64_BL(imm26) A64_BRANCH(((s64)(imm26) * 4), LINK)
 
 /* Unconditional branch (register) */
 #define A64_BR(Rn)  aarch64_insn_gen_branch_reg(Rn, AARCH64_INSN_BRANCH_NOLINK)
@@ -99,6 +99,14 @@
 /* [Rn] = Rt; (atomic) Rs = [state] */
 #define A64_STXR(sf, Rt, Rn, Rs) \
 	A64_LSX(sf, Rt, Rn, Rs, STORE_EX)
+/* [Rn] = Rt (store-release); (atomic) Rs = [state]
+ * STLXR is STXR with the o0 ordering bit (bit 15) set.
+ */
+#define A64_STLXR(sf, Rt, Rn, Rs) \
+	(A64_STXR(sf, Rt, Rn, Rs) | BIT(15))
+
+/* DMB ISH: full barrier, inner shareable domain */
+#define A64_DMB_ISH 0xd5033bbf
 
 /* LSE atomics */
 #define A64_STADD(sf, Rn, Rs) \

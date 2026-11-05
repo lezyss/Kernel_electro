@@ -26,6 +26,7 @@
 #define SLAB_POISON		0x00000800UL	/* DEBUG: Poison objects */
 #define SLAB_HWCACHE_ALIGN	0x00002000UL	/* Align objs on cache lines */
 #define SLAB_CACHE_DMA		0x00004000UL	/* Use GFP_DMA memory */
+#define SLAB_CACHE_DMA32	0x00008000UL	/* Use GFP_DMA32 memory */
 #define SLAB_STORE_USER		0x00010000UL	/* DEBUG: Store the last owner for bug hunting */
 #define SLAB_PANIC		0x00040000UL	/* Panic if kmem_cache_create() fails */
 /*
@@ -150,6 +151,7 @@ void * __must_check __krealloc(const void *, size_t, gfp_t);
 void * __must_check krealloc(const void *, size_t, gfp_t);
 void kfree(const void *);
 void kzfree(const void *);
+size_t __ksize(const void *);
 size_t ksize(const void *);
 
 #ifdef CONFIG_HAVE_HARDENED_USERCOPY_ALLOCATOR
@@ -639,6 +641,22 @@ static inline void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 	if (__builtin_constant_p(n) && __builtin_constant_p(size))
 		return kmalloc(n * size, flags);
 	return __kmalloc(n * size, flags);
+}
+
+/**
+ * krealloc_array - reallocate memory for an array (from 5.11).
+ * @p: pointer to the memory chunk to reallocate
+ * @new_n: new number of elements to alloc
+ * @new_size: new size of a single member of the array
+ * @flags: the type of memory to allocate (see kmalloc)
+ */
+static inline void * __must_check krealloc_array(void *p, size_t new_n,
+						 size_t new_size, gfp_t flags)
+{
+	if (new_size != 0 && new_n > SIZE_MAX / new_size)
+		return NULL;
+
+	return krealloc(p, new_n * new_size, flags);
 }
 
 /**

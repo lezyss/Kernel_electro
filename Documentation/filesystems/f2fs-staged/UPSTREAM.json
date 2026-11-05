@@ -1,0 +1,628 @@
+{
+  "status": "A, B1 and B2 implemented locally; new merge features default off; no publication or CI dispatch",
+  "date": "2026-11-04",
+  "branch": "arena/e63a046d-kernel-electro",
+  "starting_head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183",
+  "starting_tree": "cumulative approved dirty/untracked tree, not clean HEAD; all stage diffs are already applied",
+  "review": "Documentation/filesystems/f2fs-staged-review.json",
+  "broad_donor": {
+    "repository": "https://github.com/manipvlator/los_kernel_xiaomi_sm6150",
+    "commit": "81605352aac4c8995b6346939cb3931e14c0d7b6",
+    "full_import": false,
+    "inventory_paths": 73
+  },
+  "source_boundary": [
+    "fs/f2fs/checkpoint.c",
+    "fs/f2fs/data.c",
+    "fs/f2fs/debug.c",
+    "fs/f2fs/f2fs.h",
+    "fs/f2fs/gc.c",
+    "fs/f2fs/gc.h",
+    "fs/f2fs/segment.c",
+    "fs/f2fs/super.c"
+  ],
+  "changed_source_paths": [
+    "fs/f2fs/checkpoint.c",
+    "fs/f2fs/data.c",
+    "fs/f2fs/debug.c",
+    "fs/f2fs/f2fs.h",
+    "fs/f2fs/gc.c",
+    "fs/f2fs/segment.c",
+    "fs/f2fs/super.c"
+  ],
+  "unchanged_allowed_path": "fs/f2fs/gc.h",
+  "stages": {
+    "A": {
+      "status": "implemented; boundary replay and applicable extracted tests passed",
+      "upstream_references": [
+        "5cdb422c839134273866208dad5360835ddb9794",
+        "edf7e9040fc52c922db947f9c6c36f07377c52ea",
+        "6d1f622b9c069378cdb83088be2b15a9b480b8a3"
+      ],
+      "patch": "Documentation/filesystems/f2fs-staged/stage-a.diff",
+      "patch_sha256": "22e0e02145098d1cbb2c01996fba4845a427d74f10358845b8bdd572223125b8",
+      "source_sha256": {
+        "fs/f2fs/data.c": {
+          "before": "5acbb8da5b0300d8b98d9a3bcc05183fdba048815cb130c90cd087be1f27ddf3",
+          "after": "baac2ac4c85a70e49eab9677beaa556cb449c63cef11fed57bde8283793e8f35"
+        },
+        "fs/f2fs/segment.c": {
+          "before": "f91022e502e86ff634a1dc3bd4874e8f2bef373bc3d75a6b98b6865bdfcb09e7",
+          "after": "6f76e9929227b796d826ff7858ddf902efb39245fda8e9503464510c9129c115"
+        }
+      }
+    },
+    "B1": {
+      "status": "implemented; boundary replay and applicable extracted tests passed",
+      "upstream_references": [
+        "5911d2d1d1a38b26585383478bd71d9254e48bdf",
+        "8b4468ec023d0d1b4669dfb867588997cc03a06b",
+        "1adaa71ea9bff3a0ca0b37eabbb7f89225b595cb",
+        "c836d3b8d94e3dd381e7d4bb918875084f85715e"
+      ],
+      "patch": "Documentation/filesystems/f2fs-staged/stage-b1.diff",
+      "patch_sha256": "61a2e1201739dfc7607a41da7fe89f11cb47c4a08da7cd70e1373c9172ae2df1",
+      "source_sha256": {
+        "fs/f2fs/data.c": {
+          "before": "baac2ac4c85a70e49eab9677beaa556cb449c63cef11fed57bde8283793e8f35",
+          "after": "6df7ee26c75c451657f3e9f23dbdc53929c6f646e238152a76fe3f0f51e0576b"
+        },
+        "fs/f2fs/f2fs.h": {
+          "before": "128e643a95eaba0e20b8cd1193a3fc0f9602d5ecb3c9ae0d1c7060a6cf119892",
+          "after": "37008d61f9b668da947f5dc85da72953a58f58caf5f63e1e6d03f392ecf32757"
+        },
+        "fs/f2fs/gc.c": {
+          "before": "d173e7b6ebc1b6a45cde20eca0818daa3cc38662f3d0dcda39ce8820267b74f2",
+          "after": "9f24833ba1381f5f01bf620b582f208799b92453878ab3b10c3f4147c381e09e"
+        },
+        "fs/f2fs/segment.c": {
+          "before": "6f76e9929227b796d826ff7858ddf902efb39245fda8e9503464510c9129c115",
+          "after": "eddd590c7a917ddd9e4afed534c2e4352095a8e8c3946f8541020a52ce77ccd1"
+        },
+        "fs/f2fs/super.c": {
+          "before": "81643c93f123aa74f936163d3e51b0293116ecee185c9a866bab8bce28c1ad75",
+          "after": "01fbc15cca859e835d2df796184bd720a646579377012c7fa1feae061a247acb"
+        }
+      }
+    },
+    "B2": {
+      "status": "implemented; boundary replay and applicable extracted tests passed",
+      "upstream_references": [
+        "261eeb9c1585de4515a770b48a3c89672c08ae7f",
+        "7b02b2201893a71b881026cf574902019ab00db5",
+        "f6f8f34480c78eade6542faea6386c47c9b4c6b3"
+      ],
+      "patch": "Documentation/filesystems/f2fs-staged/stage-b2.diff",
+      "patch_sha256": "9af276fe91690f23b168b1bfa623a4b39120390aad5a509ed94ed0fac4cd1d50",
+      "source_sha256": {
+        "fs/f2fs/checkpoint.c": {
+          "before": "794833bcb31ddfa5381251cdcd689c0ea995786006aed9ae3b52e3c94bf80c8f",
+          "after": "afefd47317fc246202e0309e7f8222cb2155fef9f8ddc3b6d7bef993083803cd"
+        },
+        "fs/f2fs/debug.c": {
+          "before": "75a5b4158cee7bbcdbf3fdf2d3adfb31eb15cff4740500788bd19031b5f00242",
+          "after": "321a1177482ed9d3f4186c4a2e4f6f0038ec3f6292cf75224fdcec9cfc1c1d8b"
+        },
+        "fs/f2fs/f2fs.h": {
+          "before": "37008d61f9b668da947f5dc85da72953a58f58caf5f63e1e6d03f392ecf32757",
+          "after": "fa5f9207ceedba21aa07093436af5b63ce34d164775042022dcb87222b9c3a62"
+        },
+        "fs/f2fs/gc.c": {
+          "before": "9f24833ba1381f5f01bf620b582f208799b92453878ab3b10c3f4147c381e09e",
+          "after": "140d8b55f7eeb555eb666b459e84f40dd6f941114bd7d2feb506f08f563cfedb"
+        },
+        "fs/f2fs/super.c": {
+          "before": "01fbc15cca859e835d2df796184bd720a646579377012c7fa1feae061a247acb",
+          "after": "6ca154d85fcca7a20cd1fece4121c029e2257cf7d75633da3e62b0c9592097ed"
+        }
+      }
+    }
+  },
+  "upstream_references": [
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "5cdb422c839134273866208dad5360835ddb9794",
+      "url": "https://github.com/torvalds/linux/commit/5cdb422c839134273866208dad5360835ddb9794",
+      "subject": "f2fs: fix to avoid use-after-free for cached IPU bio",
+      "role": "adapted IPU missing-selector fix; caller and helper guarded",
+      "fetched_metadata_sha256": "43b4fb5149431ee80be13ed6b8d10df95b09c2522973ab1bc1fd0b2ff7fc07cb"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "edf7e9040fc52c922db947f9c6c36f07377c52ea",
+      "url": "https://github.com/torvalds/linux/commit/edf7e9040fc52c922db947f9c6c36f07377c52ea",
+      "subject": "f2fs: fix UAF issue in f2fs_merge_page_bio()",
+      "role": "adapted encrypted-page lifetime fix to original struct page; accounting also moved before publication",
+      "fetched_metadata_sha256": "4f1183b776e287ba27398c0500b9126bd411372555f81a453e7e0a33c85569e2"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "6d1f622b9c069378cdb83088be2b15a9b480b8a3",
+      "url": "https://github.com/torvalds/linux/commit/6d1f622b9c069378cdb83088be2b15a9b480b8a3",
+      "subject": "f2fs: fix submit accounting for IPU writeback",
+      "role": "successful IPU submission accounting",
+      "fetched_metadata_sha256": "518d0830e93d234ad99ce47d96043a5609d9fd1fa74c4f53932fdc398910bfc3"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "5911d2d1d1a38b26585383478bd71d9254e48bdf",
+      "url": "https://github.com/torvalds/linux/commit/5911d2d1d1a38b26585383478bd71d9254e48bdf",
+      "subject": "f2fs: introduce gc_merge mount option",
+      "role": "GC merge intent; adapted to local four-argument GC and embedded request lifetime",
+      "fetched_metadata_sha256": "a1c8ab910c9c470a43b8b224e7748f10c56fc8f44a25da1ffa2e5405b5805eff"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "8b4468ec023d0d1b4669dfb867588997cc03a06b",
+      "url": "https://github.com/torvalds/linux/commit/8b4468ec023d0d1b4669dfb867588997cc03a06b",
+      "subject": "f2fs: fix potential deadlock in gc_merge path of f2fs_balance_fs()",
+      "role": "drain cached OPU and all IPU writes before GC waits; also used before checkpoint queueing",
+      "fetched_metadata_sha256": "9e6c422638bf6df41dfbd7cb31710086a97ec1c6bb971f5382d8cdd741a0afc4"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "1adaa71ea9bff3a0ca0b37eabbb7f89225b595cb",
+      "url": "https://github.com/torvalds/linux/commit/1adaa71ea9bff3a0ca0b37eabbb7f89225b595cb",
+      "subject": "f2fs: don't bother wait_ms by foreground gc",
+      "role": "foreground GC must not overwrite background sleep interval",
+      "fetched_metadata_sha256": "ce4e1e8e668b764d3cff7c7b6bd5b5d810caad18d7446f3441bddd756bc8fa86"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "c836d3b8d94e3dd381e7d4bb918875084f85715e",
+      "url": "https://github.com/torvalds/linux/commit/c836d3b8d94e3dd381e7d4bb918875084f85715e",
+      "subject": "f2fs: fix to skip f2fs_balance_fs() if checkpoint is disabled",
+      "role": "reviewed dependency; local checkpoint-disabled readiness check retained, no prerequisite transplant",
+      "fetched_metadata_sha256": "dd3777e764584e049b5522e7943bc68e73b4b12771b7dbad7556810bf14cdfcc"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "261eeb9c1585de4515a770b48a3c89672c08ae7f",
+      "url": "https://github.com/torvalds/linux/commit/261eeb9c1585de4515a770b48a3c89672c08ae7f",
+      "subject": "f2fs: introduce checkpoint_merge mount option",
+      "role": "checkpoint merge intent; adapted request lifetime, publication, ownership, errors and stop",
+      "fetched_metadata_sha256": "f5e3b29240db3ce39ac8a607e3df4991be94fd3ee45ead0251eccb853bb62dc0"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "7b02b2201893a71b881026cf574902019ab00db5",
+      "url": "https://github.com/torvalds/linux/commit/7b02b2201893a71b881026cf574902019ab00db5",
+      "subject": "f2fs: fix to destroy sbi->post_read_wq in error path of f2fs_fill_super()",
+      "role": "checkpoint startup failure must retain post_read_wq cleanup",
+      "fetched_metadata_sha256": "737714ff0d9a52a4873b3096908c31f8b456154f647353a53a5a193942b97c6b"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "f6f8f34480c78eade6542faea6386c47c9b4c6b3",
+      "url": "https://github.com/torvalds/linux/commit/f6f8f34480c78eade6542faea6386c47c9b4c6b3",
+      "subject": "f2fs: quota: fix quota flush failure during filesystem freeze",
+      "role": "reviewed freeze/quota cross-task issue; local worker trylock/ownership and caller fallback instead of holder-tracking transplant",
+      "fetched_metadata_sha256": "fff6658c6e58e2d1802eafa27881135f8db349cd25524477e6b64ced376708cb"
+    },
+    {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "5cb33b00c8fbb6e8f1fa3d281c3036d5f7c7c41f",
+      "url": "https://github.com/torvalds/linux/commit/5cb33b00c8fbb6e8f1fa3d281c3036d5f7c7c41f",
+      "subject": "f2fs: avoid NULL checkpoint thread access in sysfs",
+      "role": "excluded writable checkpoint-priority knob; fixed BE/3 only, handle priority setup failure",
+      "fetched_metadata_sha256": "36f70ce438d9f6f432ccc54f0c0ce2fa4840a8a31534916aba06b079e4f9d6d7"
+    }
+  ],
+  "local_adaptations": [
+    "original-page WBC and writeback accounting before any IPU BIO publication, once across retries",
+    "embedded GC request lifetime, serialized worker pointer and admission generation",
+    "closed freezer admission window and existing kthread_freezable_should_stop helper; no shared freezer changes",
+    "checkpoint admission rwsem held through each queued completion; prepublication accounting and saved-next completion iteration",
+    "independent nonblocking internal-write and s_umount worker protections; caller-context synchronous fallback without borrowed quota locks",
+    "no CP/GC worker delegation cycle; cached OPU/IPU drain before both kinds of wait",
+    "new CP worker allocated before remount quota activation changes; all post-start error exits undo it; old worker stop deferred until success"
+  ],
+  "options": {
+    "gc_merge": {
+      "default": false,
+      "disable": "nogc_merge",
+      "no_gc_worker": "direct GC fallback"
+    },
+    "checkpoint_merge": {
+      "default": false,
+      "disable": "nocheckpoint_merge",
+      "queued_reason": "exact CP_SYNC only",
+      "priority": "fixed IOPRIO_CLASS_BE/3",
+      "freeze_or_umount_contention": "caller-context synchronous fallback"
+    }
+  },
+  "production_defconfig": {
+    "path": "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig",
+    "sha256_before_and_after": "7d049399dbd01e9f517db96c152a86148d1fdf1a307be95745ba2fa29a456a75",
+    "changed": false,
+    "compression_enabled": false,
+    "adbroot_enabled": false
+  },
+  "mount_policy_changed": false,
+  "on_disk_format_changed": false,
+  "features_activated_on_data": false,
+  "compiler": {
+    "local_version": "Clang/LLD 19.1.7, Zig Python distribution 0.14.1",
+    "kernel_driver": "zig clang (raw Clang driver), aarch64-linux-gnu target",
+    "host_driver": "zig cc, x86_64-linux-gnu target",
+    "assembler": "Clang integrated assembler",
+    "linker": "LLD",
+    "archiver": "Zig LLVM ar",
+    "gcc_used": false,
+    "vdso_symbol_reader": "Python/pyelftools 0.32, not GNU nm",
+    "bc": "gavinhoward/bc 7.0.3, built with Clang",
+    "production_required": "AOSP r614150 / 3b86e40facfff1eab4065614255d573293c10373",
+    "production_compiler_tested": false,
+    "workspace_build_script": "/home/user/f2fs-validation/build.sh",
+    "workspace_build_script_sha256": "63917806bca7c58e1a1622bb482a34b42257b784e6b44b08e9d01bf0d1806c14",
+    "workspace_compiler_wrapper_sha256": "d85ae3f06aa301e3cd7c531cc09feb8bea44693bdd4213eda1439a7e90602587",
+    "test_only_output_config_changes": "Polly and certificate/signature host dependencies off; LTO, verity, quota, compression, stats and debug variations as listed; repository defconfig unchanged"
+  },
+  "compile_matrix": [
+    {
+      "name": "base",
+      "config_sha256": "df77b0e61650d07a4ac44175b3a4947d083028380a037f802e726f741f88ab66",
+      "configuration_values": {
+        "CONFIG_F2FS_FS": "y",
+        "CONFIG_F2FS_STAT_FS": "y",
+        "CONFIG_F2FS_CHECK_FS": "n",
+        "CONFIG_F2FS_FAULT_INJECTION": "n",
+        "CONFIG_F2FS_FS_ENCRYPTION": "y",
+        "CONFIG_F2FS_FS_COMPRESSION": "n",
+        "CONFIG_F2FS_FS_LZO": "n",
+        "CONFIG_F2FS_FS_LZ4": "n",
+        "CONFIG_F2FS_FS_ZSTD": "n",
+        "CONFIG_FS_ENCRYPTION": "y",
+        "CONFIG_FS_ENCRYPTION_INLINE_CRYPT": "y",
+        "CONFIG_FS_VERITY": "n",
+        "CONFIG_FS_VERITY_BUILTIN_SIGNATURES": "n",
+        "CONFIG_QUOTA": "y",
+        "CONFIG_QFMT_V2": "y",
+        "CONFIG_MEMCG": "n",
+        "CONFIG_BLK_CGROUP": "y",
+        "CONFIG_CGROUP_WRITEBACK": "n",
+        "CONFIG_LTO_NONE": "y",
+        "CONFIG_LTO_CLANG": "n",
+        "CONFIG_THINLTO": "n",
+        "CONFIG_CFI_CLANG": "n",
+        "CONFIG_SHADOW_CALL_STACK": "y",
+        "CONFIG_LLVM_POLLY": "n",
+        "CONFIG_CC_STACKPROTECTOR_NONE": "y",
+        "CONFIG_PROVE_LOCKING": "n",
+        "CONFIG_LOCKDEP": "n",
+        "CONFIG_DEBUG_ATOMIC_SLEEP": "n",
+        "CONFIG_SYSTEM_TRUSTED_KEYRING": "n",
+        "CONFIG_MODULE_SIG": "n",
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_FEATURE_ADBROOT": "n"
+      },
+      "whole_fs_f2fs_objects": "PASS",
+      "relocatable_partial_link": "PASS",
+      "logs": {
+        "config": {
+          "workspace_path": "/home/user/f2fs-validation/final-base-config.log",
+          "sha256": "72e76ac6b15073e0c53d9e44a85aeef22185e403a914aeb334781f52dc621244"
+        },
+        "build": {
+          "workspace_path": "/home/user/f2fs-validation/final-base-build.log",
+          "sha256": "28bb85321f0d91398f0152b19304904f3bdcbff2cc7a6a91c8503b700c742b85"
+        },
+        "link": {
+          "workspace_path": "/home/user/f2fs-validation/final-base-link.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "name": "thinlto",
+      "config_sha256": "a82a5c536ac453837afc0350aaa0deab06e1b9990a4e090edfd4f27cb7496f8f",
+      "configuration_values": {
+        "CONFIG_F2FS_FS": "y",
+        "CONFIG_F2FS_STAT_FS": "y",
+        "CONFIG_F2FS_CHECK_FS": "n",
+        "CONFIG_F2FS_FAULT_INJECTION": "n",
+        "CONFIG_F2FS_FS_ENCRYPTION": "y",
+        "CONFIG_F2FS_FS_COMPRESSION": "n",
+        "CONFIG_F2FS_FS_LZO": "n",
+        "CONFIG_F2FS_FS_LZ4": "n",
+        "CONFIG_F2FS_FS_ZSTD": "n",
+        "CONFIG_FS_ENCRYPTION": "y",
+        "CONFIG_FS_ENCRYPTION_INLINE_CRYPT": "y",
+        "CONFIG_FS_VERITY": "y",
+        "CONFIG_FS_VERITY_BUILTIN_SIGNATURES": "n",
+        "CONFIG_QUOTA": "y",
+        "CONFIG_QFMT_V2": "y",
+        "CONFIG_MEMCG": "n",
+        "CONFIG_BLK_CGROUP": "y",
+        "CONFIG_CGROUP_WRITEBACK": "n",
+        "CONFIG_LTO_NONE": "n",
+        "CONFIG_LTO_CLANG": "y",
+        "CONFIG_THINLTO": "y",
+        "CONFIG_CFI_CLANG": "n",
+        "CONFIG_SHADOW_CALL_STACK": "y",
+        "CONFIG_LLVM_POLLY": "n",
+        "CONFIG_CC_STACKPROTECTOR_NONE": "y",
+        "CONFIG_PROVE_LOCKING": "n",
+        "CONFIG_LOCKDEP": "n",
+        "CONFIG_DEBUG_ATOMIC_SLEEP": "n",
+        "CONFIG_SYSTEM_TRUSTED_KEYRING": "n",
+        "CONFIG_MODULE_SIG": "n",
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_FEATURE_ADBROOT": "n"
+      },
+      "whole_fs_f2fs_objects": "PASS",
+      "relocatable_partial_link": "PASS",
+      "logs": {
+        "config": {
+          "workspace_path": "/home/user/f2fs-validation/final-thinlto-config.log",
+          "sha256": "72e76ac6b15073e0c53d9e44a85aeef22185e403a914aeb334781f52dc621244"
+        },
+        "build": {
+          "workspace_path": "/home/user/f2fs-validation/final-thinlto-build.log",
+          "sha256": "545bb19055ef0ce54b151181c893df86e41dd90a990b84610e99a549a13b9bd9"
+        },
+        "link": {
+          "workspace_path": "/home/user/f2fs-validation/final-thinlto-link.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "name": "debug",
+      "config_sha256": "4ea4f0cf622b79e4055615ae60433bc9aa588277f28db3ae3179742e6c32b6f8",
+      "configuration_values": {
+        "CONFIG_F2FS_FS": "y",
+        "CONFIG_F2FS_STAT_FS": "y",
+        "CONFIG_F2FS_CHECK_FS": "y",
+        "CONFIG_F2FS_FAULT_INJECTION": "y",
+        "CONFIG_F2FS_FS_ENCRYPTION": "y",
+        "CONFIG_F2FS_FS_COMPRESSION": "y",
+        "CONFIG_F2FS_FS_LZO": "y",
+        "CONFIG_F2FS_FS_LZ4": "y",
+        "CONFIG_F2FS_FS_ZSTD": "y",
+        "CONFIG_FS_ENCRYPTION": "y",
+        "CONFIG_FS_ENCRYPTION_INLINE_CRYPT": "y",
+        "CONFIG_FS_VERITY": "y",
+        "CONFIG_FS_VERITY_BUILTIN_SIGNATURES": "n",
+        "CONFIG_QUOTA": "y",
+        "CONFIG_QFMT_V2": "y",
+        "CONFIG_MEMCG": "y",
+        "CONFIG_BLK_CGROUP": "y",
+        "CONFIG_CGROUP_WRITEBACK": "y",
+        "CONFIG_LTO_NONE": "n",
+        "CONFIG_LTO_CLANG": "y",
+        "CONFIG_THINLTO": "y",
+        "CONFIG_CFI_CLANG": "n",
+        "CONFIG_SHADOW_CALL_STACK": "y",
+        "CONFIG_LLVM_POLLY": "n",
+        "CONFIG_CC_STACKPROTECTOR_NONE": "y",
+        "CONFIG_PROVE_LOCKING": "y",
+        "CONFIG_LOCKDEP": "y",
+        "CONFIG_DEBUG_ATOMIC_SLEEP": "y",
+        "CONFIG_SYSTEM_TRUSTED_KEYRING": "n",
+        "CONFIG_MODULE_SIG": "n",
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_FEATURE_ADBROOT": "n"
+      },
+      "whole_fs_f2fs_objects": "PASS",
+      "relocatable_partial_link": "PASS",
+      "logs": {
+        "config": {
+          "workspace_path": "/home/user/f2fs-validation/final-debug-config.log",
+          "sha256": "72e76ac6b15073e0c53d9e44a85aeef22185e403a914aeb334781f52dc621244"
+        },
+        "build": {
+          "workspace_path": "/home/user/f2fs-validation/final-debug-build.log",
+          "sha256": "ec61754cf31cf0ae571133bdb6633e3a451c01d9aca98cf40a668ec024f82c32"
+        },
+        "link": {
+          "workspace_path": "/home/user/f2fs-validation/final-debug-link.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "name": "minimal",
+      "config_sha256": "ed6dc68ba7654a3cc9f878d106be4af32348ff8265513cc0c3433cb11b7ba7f2",
+      "configuration_values": {
+        "CONFIG_F2FS_FS": "y",
+        "CONFIG_F2FS_STAT_FS": "n",
+        "CONFIG_F2FS_CHECK_FS": "n",
+        "CONFIG_F2FS_FAULT_INJECTION": "n",
+        "CONFIG_F2FS_FS_ENCRYPTION": "n",
+        "CONFIG_F2FS_FS_COMPRESSION": "n",
+        "CONFIG_F2FS_FS_LZO": "n",
+        "CONFIG_F2FS_FS_LZ4": "n",
+        "CONFIG_F2FS_FS_ZSTD": "n",
+        "CONFIG_FS_ENCRYPTION": "n",
+        "CONFIG_FS_ENCRYPTION_INLINE_CRYPT": "n",
+        "CONFIG_FS_VERITY": "n",
+        "CONFIG_FS_VERITY_BUILTIN_SIGNATURES": "n",
+        "CONFIG_QUOTA": "n",
+        "CONFIG_QFMT_V2": "n",
+        "CONFIG_MEMCG": "n",
+        "CONFIG_BLK_CGROUP": "y",
+        "CONFIG_CGROUP_WRITEBACK": "n",
+        "CONFIG_LTO_NONE": "y",
+        "CONFIG_LTO_CLANG": "n",
+        "CONFIG_THINLTO": "n",
+        "CONFIG_CFI_CLANG": "n",
+        "CONFIG_SHADOW_CALL_STACK": "y",
+        "CONFIG_LLVM_POLLY": "n",
+        "CONFIG_CC_STACKPROTECTOR_NONE": "y",
+        "CONFIG_PROVE_LOCKING": "n",
+        "CONFIG_LOCKDEP": "n",
+        "CONFIG_DEBUG_ATOMIC_SLEEP": "n",
+        "CONFIG_SYSTEM_TRUSTED_KEYRING": "n",
+        "CONFIG_MODULE_SIG": "n",
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_FEATURE_ADBROOT": "n"
+      },
+      "whole_fs_f2fs_objects": "PASS",
+      "relocatable_partial_link": "PASS",
+      "logs": {
+        "config": {
+          "workspace_path": "/home/user/f2fs-validation/final-minimal-config.log",
+          "sha256": "72e76ac6b15073e0c53d9e44a85aeef22185e403a914aeb334781f52dc621244"
+        },
+        "build": {
+          "workspace_path": "/home/user/f2fs-validation/final-minimal-build.log",
+          "sha256": "30feab11ded4145e1f948ebd42a0614a1bf744bbf8687c4acd70d5ea5517ae05"
+        },
+        "link": {
+          "workspace_path": "/home/user/f2fs-validation/final-minimal-link.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    }
+  ],
+  "tests": {
+    "script": "tools/testing/selftests/fs_backport/test_f2fs_merge.py",
+    "script_sha256": "0f3612a8fb81618e0c357a6328a9d6a50cb8e039c7818ab2416a2aea49782f0c",
+    "host_flags": [
+      "-O2",
+      "-UNDEBUG",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pthread",
+      "-fsanitize=undefined",
+      "-fsanitize-trap=all"
+    ],
+    "gc_requests_per_full_run": 800,
+    "cp_batched_requests_per_full_run": 1200,
+    "cp_contention_or_freeze_fallback_cases": 4,
+    "negative_mutants_rejected": 9,
+    "patch_replay": "all three stage boundaries exact; cumulative final source matches working tree",
+    "gc_worker_loop": "source-checked, not executed in a kernel",
+    "limits": "extracted functions and pthread mocks are not filesystem IO, SMP/lockdep or durability proof",
+    "logs": {
+      "stage-a-test.log": {
+        "workspace_path": "/home/user/f2fs-validation/stage-a-test.log",
+        "sha256": "d617f282fa0bb8d72597702c6e62d3cdb8b36bfd39ad75908503b30177a62a55"
+      },
+      "stage-b1-test.log": {
+        "workspace_path": "/home/user/f2fs-validation/stage-b1-test.log",
+        "sha256": "0e479743cbf23740daa8284470890ce56d779eed5d9c7b5676e24fa618cd502e"
+      },
+      "stage-b2-test.log": {
+        "workspace_path": "/home/user/f2fs-validation/stage-b2-test.log",
+        "sha256": "dbb9d9812fa7fbdea066029c3e9a7661c95f6a231cae99c614466108a11ea73a"
+      },
+      "negative-tests.log": {
+        "workspace_path": "/home/user/f2fs-validation/negative-tests.log",
+        "sha256": "20c46df95608dc761df7848bc1c643262d3d8931dff03c2cafb9520f07c0fb7a"
+      },
+      "replay-tests.log": {
+        "workspace_path": "/home/user/f2fs-validation/replay-tests.log",
+        "sha256": "9c3ed2345dce732558c11577a3c33c20ecd97e2bbec9076225db6abb65f972d1"
+      },
+      "checkpatch.log": {
+        "workspace_path": "/home/user/f2fs-validation/checkpatch.log",
+        "sha256": "cf3a6a019d2b1e59464c097bfb084179f5cb01af925d488391aa2f58d582a48e"
+      },
+      "prior-fs-tests.log": {
+        "workspace_path": "/home/user/f2fs-validation/prior-fs-tests.log",
+        "sha256": "429d8a7a925c3b3c511fb920dab7ac79c3d0cfdd0f6f0d2cb84a339574750a7c"
+      },
+      "ksu-tests.log": {
+        "workspace_path": "/home/user/f2fs-validation/ksu-tests.log",
+        "sha256": "0de96958759db4c47e8d0de0ce565ec4aff8b5017504fed75dcfb1fd724838dd"
+      },
+      "fina-tests.log": {
+        "workspace_path": "/home/user/f2fs-validation/fina-tests.log",
+        "sha256": "3fd967e014ab2e1656a33986d3461f015ccdd0642cfadbf0a5bfaf4697d7c164"
+      },
+      "susfs-tests.log": {
+        "workspace_path": "/home/user/f2fs-validation/susfs-tests.log",
+        "sha256": "43b31cecb8c46132a063ee8a7aa5c13c1a3cccf5a8d7af94656a8405be491757"
+      },
+      "nomount-tests.log": {
+        "workspace_path": "/home/user/f2fs-validation/nomount-tests.log",
+        "sha256": "9495472f7b95cbaa8a5067c0c5225824d30eab056fce9280f2308e6ec9d6e218"
+      }
+    }
+  },
+  "preservation": {
+    "existing_files_hashed": 72934,
+    "unchanged_existing_files": 72923,
+    "changed_existing_files": [
+      "Documentation/filesystems/f2fs-staged-review.json",
+      "Documentation/filesystems/f2fs-staged-review.md",
+      "Documentation/filesystems/f2fs.txt",
+      "fs/f2fs/checkpoint.c",
+      "fs/f2fs/data.c",
+      "fs/f2fs/debug.c",
+      "fs/f2fs/f2fs.h",
+      "fs/f2fs/gc.c",
+      "fs/f2fs/segment.c",
+      "fs/f2fs/super.c",
+      "tools/testing/selftests/fs_backport/README"
+    ],
+    "new_files_before_manifest": [
+      "Documentation/filesystems/f2fs-staged/implementation.md",
+      "Documentation/filesystems/f2fs-staged/stage-a.diff",
+      "Documentation/filesystems/f2fs-staged/stage-b1.diff",
+      "Documentation/filesystems/f2fs-staged/stage-b2.diff",
+      "tools/testing/selftests/fs_backport/test_f2fs_merge.py"
+    ],
+    "missing_files": [],
+    "branch": "arena/e63a046d-kernel-electro",
+    "head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183",
+    "unrelated_existing_changes": []
+  },
+  "final_source_sha256": {
+    "fs/f2fs/Kconfig": "8a45659ca8272babee586c727c5189062472e0d855128ca6f459e95032b8d655",
+    "fs/f2fs/Makefile": "790db4b437e06018d677b9b90ab349ff97a9372179e093f89e3cc6ba8f2c770b",
+    "fs/f2fs/acl.c": "2c43e7dd95bd5b8824dc793c97658f18ca952dcf81af29a36acb209033d2f2fb",
+    "fs/f2fs/acl.h": "eda72f765c48e5c8bcaf60cab7e52e60825d239def3617a64ef9283d4f5a4f5d",
+    "fs/f2fs/checkpoint.c": "afefd47317fc246202e0309e7f8222cb2155fef9f8ddc3b6d7bef993083803cd",
+    "fs/f2fs/compress.c": "78b690315048784453028c59a15c391875f5414b72e9ef2ae416277d993dbe82",
+    "fs/f2fs/data.c": "6df7ee26c75c451657f3e9f23dbdc53929c6f646e238152a76fe3f0f51e0576b",
+    "fs/f2fs/debug.c": "321a1177482ed9d3f4186c4a2e4f6f0038ec3f6292cf75224fdcec9cfc1c1d8b",
+    "fs/f2fs/dir.c": "e4373844ba376bb8b29f9fd4b374051477ddd7ed7fa37b14183075395f6ac3e5",
+    "fs/f2fs/extent_cache.c": "dad57fb261b77f7ae32e76d38de403473bc8a83a1065e9bf63cf31797dee1c70",
+    "fs/f2fs/f2fs.h": "fa5f9207ceedba21aa07093436af5b63ce34d164775042022dcb87222b9c3a62",
+    "fs/f2fs/file.c": "fe635367b8101414264605a1ea03a09778890a66b45c83828a12f11bd67e6f79",
+    "fs/f2fs/gc.c": "140d8b55f7eeb555eb666b459e84f40dd6f941114bd7d2feb506f08f563cfedb",
+    "fs/f2fs/gc.h": "909fcac5ed5277b2f71f4f500f1f481eb44dda03c2d24eeb1a79fafe1d495016",
+    "fs/f2fs/hash.c": "24800e8894e0a68cb2b7bc1c8b4934f3a29ec3fdcc90f9c3fc554b13521ad541",
+    "fs/f2fs/inline.c": "ed5d738069e85efec13cc61893f482746d7183bca84340b9b4d1e1b86933998b",
+    "fs/f2fs/inode.c": "4e9e0afceb589d883697745631604cd83a15c203033a3949e46d684e7f136aa7",
+    "fs/f2fs/namei.c": "f69fcb95fa8282da64f6652b5ae2c06828597fb9d11188c54dd669bd99678652",
+    "fs/f2fs/node.c": "b7743a618b2466aa0b5a15ad64c27803cf37e3f1714f2ad4f6690ca909ddf070",
+    "fs/f2fs/node.h": "3295d4f62768f36fa1fff2bc89ad9348a279cde59ce46043433e03ee397a08ee",
+    "fs/f2fs/recovery.c": "47abfe438d7ac39cdeb07a9af671682ab6e259e0cefe3d9d858aa5d717dbd5a3",
+    "fs/f2fs/segment.c": "eddd590c7a917ddd9e4afed534c2e4352095a8e8c3946f8541020a52ce77ccd1",
+    "fs/f2fs/segment.h": "c43cc6d38b7c26caebaf0d101fabaeea6c3f370f54bb8e23f06e36b3987f269a",
+    "fs/f2fs/shrinker.c": "c483f512a22debb2f189f8d729872ca519c50598d326bfa442865f22ecbf59db",
+    "fs/f2fs/super.c": "6ca154d85fcca7a20cd1fece4121c029e2257cf7d75633da3e62b0c9592097ed",
+    "fs/f2fs/sysfs.c": "2d906b0341ef3216d7cc616b755d2785d175a0e5e4551290b006fd1d3bb0682f",
+    "fs/f2fs/trace.c": "8d9c4067727580e8262f38e5a9ecc0c3b3db3b264ae01d930652d9f97cea60b8",
+    "fs/f2fs/trace.h": "de33ccc600c616adf974f3c0836154e346f6f37ddd00f31589bf51cb221a86f7",
+    "fs/f2fs/verity.c": "277d018dbbecf47c6bf3a1b2643dcee0b192e72e3d1c564795d2081e0b976ae7",
+    "fs/f2fs/xattr.c": "e655b04f28e5ad66d27e5e73568175c12874c511e7b14f22f0cc8ca6f8785034",
+    "fs/f2fs/xattr.h": "3bed8a9370a6fe726c503f62ea316ac192e10eae97c0dc733bc71b4775d88449"
+  },
+  "documentation_and_test_sha256": {
+    "Documentation/filesystems/f2fs.txt": "3ded105e3ad213a3b6fc29f75e41148a920a37502f84ed6b29767754dd0fd810",
+    "Documentation/filesystems/f2fs-staged-review.md": "23600e0c4a62a5717afd92530bb86a01300a85e53f664e1f120ab1b2cd72bc45",
+    "Documentation/filesystems/f2fs-staged-review.json": "acef9a190e71e18a1548fe2dac38df2276c7c05266b9b4c9da008f74eb5f9d43",
+    "Documentation/filesystems/f2fs-staged/implementation.md": "c9c7234e7c85c30f7dbde239af6b5230ef82bb1fa7048f2843826dcd4a5096de",
+    "tools/testing/selftests/fs_backport/README": "dcce455f4b4a6b427fc768a88426832a9c2a27104763018cf7323107fc843e6a",
+    "tools/testing/selftests/fs_backport/test_f2fs_merge.py": "0f3612a8fb81618e0c357a6328a9d6a50cb8e039c7818ab2416a2aea49782f0c"
+  },
+  "not_performed": [
+    "full production-toolchain image/modpost/packaging build",
+    "new device boot",
+    "mounted-filesystem stress, quota/freeze/remount and recovery testing",
+    "power-loss durability testing",
+    "performance or battery benchmarks",
+    "feature activation on /data",
+    "commit, push or CI dispatch"
+  ]
+}

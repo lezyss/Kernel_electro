@@ -1,0 +1,359 @@
+--- a/fs/f2fs/data.c
++++ b/fs/f2fs/data.c
+@@ -880,6 +880,29 @@
+ 	}
+ 
+ 	return ret;
++}
++
++/* Detach under the list lock; retain each bio's submit reference until IO. */
++void f2fs_submit_merged_ipu_write_all(struct f2fs_sb_info *sbi)
++{
++	enum temp_type temp;
++
++	for (temp = HOT; temp < NR_TEMP_TYPE; temp++) {
++		struct f2fs_bio_info *io = sbi->write_io[DATA] + temp;
++		struct bio_entry *be, *tmp;
++		LIST_HEAD(list);
++
++		down_write(&io->bio_list_lock);
++		list_splice_init(&io->bio_list, &list);
++		up_write(&io->bio_list_lock);
++
++		list_for_each_entry_safe(be, tmp, &list, list) {
++			struct bio *bio = be->bio;
++
++			del_bio_entry(be);
++			__submit_bio(sbi, bio, DATA);
++		}
++	}
+ }
+ 
+ void f2fs_submit_merged_ipu_write(struct f2fs_sb_info *sbi,
+--- a/fs/f2fs/f2fs.h
++++ b/fs/f2fs/f2fs.h
+@@ -98,6 +98,7 @@
+ #define F2FS_MOUNT_RESERVE_ROOT		0x01000000
+ #define F2FS_MOUNT_DISABLE_CHECKPOINT	0x02000000
+ #define F2FS_MOUNT_NORECOVERY		0x04000000
++#define F2FS_MOUNT_GC_MERGE		0x08000000
+ 
+ #define F2FS_OPTION(sbi)	((sbi)->mount_opt)
+ #define clear_opt(sbi, option)	(F2FS_OPTION(sbi).opt &= ~F2FS_MOUNT_##option)
+@@ -1397,6 +1398,17 @@
+ #define MAX_COMPRESS_LOG_SIZE		8
+ #define MAX_COMPRESS_WINDOW_SIZE	((PAGE_SIZE) << MAX_COMPRESS_LOG_SIZE)
+ 
++/* Embedded lifetime: foreground waiters must never retain a freed gc_thread. */
++struct f2fs_gc_merge {
++	spinlock_t lock; /* admission, generation and worker pointer */
++	wait_queue_head_t wait;
++	struct task_struct *task;
++	unsigned long seq;
++	bool online;
++	bool pending;
++	bool paused;
++};
++
+ struct f2fs_sb_info {
+ 	struct super_block *sb;			/* pointer to VFS super block */
+ 	struct proc_dir_entry *s_proc;		/* proc entry */
+@@ -1512,6 +1524,7 @@
+ 						 * race between GC and GC or CP
+ 						 */
+ 	struct f2fs_gc_kthread	*gc_thread;	/* GC thread */
++	struct f2fs_gc_merge gc_merge;
+ 	unsigned int cur_victim_sec;		/* current victim section num */
+ 	unsigned int gc_mode;			/* current GC state */
+ 	unsigned int next_victim_seg[2];	/* next segment in victim section */
+@@ -3429,6 +3442,7 @@
+ void f2fs_submit_merged_write_cond(struct f2fs_sb_info *sbi,
+ 				struct inode *inode, struct page *page,
+ 				nid_t ino, enum page_type type);
++void f2fs_submit_merged_ipu_write_all(struct f2fs_sb_info *sbi);
+ void f2fs_submit_merged_ipu_write(struct f2fs_sb_info *sbi,
+ 					struct bio **bio, struct page *page);
+ void f2fs_flush_merged_writes(struct f2fs_sb_info *sbi);
+@@ -3487,6 +3501,8 @@
+  * gc.c
+  */
+ int f2fs_start_gc_thread(struct f2fs_sb_info *sbi);
++bool f2fs_gc_merge_request(struct f2fs_sb_info *sbi);
++bool f2fs_is_gc_thread(struct f2fs_sb_info *sbi);
+ void f2fs_stop_gc_thread(struct f2fs_sb_info *sbi);
+ block_t f2fs_start_bidx_of_node(unsigned int node_ofs, struct inode *inode);
+ int f2fs_gc(struct f2fs_sb_info *sbi, bool sync, bool background,
+--- a/fs/f2fs/gc.c
++++ b/fs/f2fs/gc.c
+@@ -21,6 +21,89 @@
+ #include "gc.h"
+ #include <trace/events/f2fs.h>
+ 
++static void finish_gc_merge(struct f2fs_sb_info *sbi)
++{
++	struct f2fs_gc_merge *merge = &sbi->gc_merge;
++
++	spin_lock(&merge->lock);
++	if (merge->pending) {
++		merge->pending = false;
++		merge->seq++;
++	}
++	spin_unlock(&merge->lock);
++	wake_up_all(&merge->wait);
++}
++
++bool f2fs_is_gc_thread(struct f2fs_sb_info *sbi)
++{
++	struct f2fs_gc_merge *merge = &sbi->gc_merge;
++	bool is_gc;
++
++	spin_lock(&merge->lock);
++	is_gc = current == merge->task;
++	spin_unlock(&merge->lock);
++	return is_gc;
++}
++
++bool f2fs_gc_merge_request(struct f2fs_sb_info *sbi)
++{
++	struct f2fs_gc_merge *merge = &sbi->gc_merge;
++	unsigned long seq;
++
++	spin_lock(&merge->lock);
++	if (!merge->online || merge->paused || current == merge->task) {
++		spin_unlock(&merge->lock);
++		return false;
++	}
++	spin_unlock(&merge->lock);
++
++	/* GC can wait for cached writeback owned by this very caller. */
++	f2fs_submit_merged_write(sbi, DATA);
++	f2fs_submit_merged_ipu_write_all(sbi);
++
++	spin_lock(&merge->lock);
++	if (!merge->online || merge->paused ||
++	    sbi->sb->s_writers.frozen >= SB_FREEZE_WRITE) {
++		spin_unlock(&merge->lock);
++		return false;
++	}
++	seq = merge->seq;
++	merge->pending = true;
++	/* stop clears online under this lock before freeing gc_thread. */
++	wake_up(&sbi->gc_thread->gc_wait_queue_head);
++	spin_unlock(&merge->lock);
++
++	wait_event(merge->wait, READ_ONCE(merge->seq) != seq ||
++		   !READ_ONCE(merge->online));
++	return true;
++}
++
++/* Close admission across the freezer check, including a late freeze request. */
++static bool gc_merge_freezable_should_stop(struct f2fs_sb_info *sbi,
++					   bool *was_frozen)
++{
++	struct f2fs_gc_merge *merge = &sbi->gc_merge;
++	bool pending, stop;
++
++	spin_lock(&merge->lock);
++	merge->paused = true;
++	pending = merge->pending;
++	spin_unlock(&merge->lock);
++
++	if (pending && !freezing(current)) {
++		/* Service accepted writers before attempting to freeze next time. */
++		stop = kthread_should_stop();
++	} else {
++		finish_gc_merge(sbi);
++		stop = kthread_freezable_should_stop(was_frozen);
++	}
++
++	spin_lock(&merge->lock);
++	merge->paused = false;
++	spin_unlock(&merge->lock);
++	return stop;
++}
++
+ static int gc_thread_func(void *data)
+ {
+ 	struct f2fs_sb_info *sbi = data;
+@@ -32,26 +115,29 @@
+ 
+ 	set_freezable();
+ 	do {
+-		bool sync_mode;
++		bool sync_mode, foreground, was_frozen = false;
+ 
+ 		wait_event_interruptible_timeout(*wq,
+ 				kthread_should_stop() || freezing(current) ||
+-				gc_th->gc_wake,
++				gc_th->gc_wake || READ_ONCE(sbi->gc_merge.pending),
+ 				msecs_to_jiffies(wait_ms));
+ 
+ 		/* give it a try one time */
+ 		if (gc_th->gc_wake)
+ 			gc_th->gc_wake = 0;
+ 
+-		if (try_to_freeze()) {
++		foreground = READ_ONCE(sbi->gc_merge.pending);
++		if (gc_merge_freezable_should_stop(sbi, &was_frozen))
++			break;
++		if (was_frozen) {
+ 			stat_other_skip_bggc_count(sbi);
+ 			continue;
+ 		}
+-		if (kthread_should_stop())
+-			break;
+ 
+ 		if (sbi->sb->s_writers.frozen >= SB_FREEZE_WRITE) {
+-			increase_sleep_time(gc_th, &wait_ms);
++			finish_gc_merge(sbi);
++			if (!foreground)
++				increase_sleep_time(gc_th, &wait_ms);
+ 			stat_other_skip_bggc_count(sbi);
+ 			continue;
+ 		}
+@@ -62,9 +148,17 @@
+ 		}
+ 
+ 		if (!sb_start_write_trylock(sbi->sb)) {
++			finish_gc_merge(sbi);
+ 			stat_other_skip_bggc_count(sbi);
+ 			continue;
+ 		}
++
++		if (READ_ONCE(sbi->gc_merge.pending)) {
++			foreground = true;
++			down_write(&sbi->gc_lock);
++			goto do_gc;
++		}
++		foreground = false;
+ 
+ 		/*
+ 		 * [GC triggering condition]
+@@ -102,16 +196,20 @@
+ 		else
+ 			increase_sleep_time(gc_th, &wait_ms);
+ do_gc:
+-		stat_inc_bggc_count(sbi->stat_info);
+-
+-		sync_mode = F2FS_OPTION(sbi).bggc_mode == BGGC_MODE_SYNC;
+-
+-		/* if return value is not zero, no victim was selected */
+-		if (f2fs_gc(sbi, sync_mode, true, NULL_SEGNO))
++		if (!foreground)
++			stat_inc_bggc_count(sbi->stat_info);
++
++		sync_mode = !foreground &&
++			F2FS_OPTION(sbi).bggc_mode == BGGC_MODE_SYNC;
++
++		/* Foreground requests must not change the background interval. */
++		if (f2fs_gc(sbi, sync_mode, !foreground, NULL_SEGNO) && !foreground)
+ 			wait_ms = gc_th->no_gc_sleep_time;
+-
+-		trace_f2fs_background_gc(sbi->sb, wait_ms,
+-				prefree_segments(sbi), free_segments(sbi));
++		if (foreground)
++			finish_gc_merge(sbi);
++		else
++			trace_f2fs_background_gc(sbi->sb, wait_ms,
++						 prefree_segments(sbi), free_segments(sbi));
+ 
+ 		/* balancing f2fs's metadata periodically */
+ 		f2fs_balance_fs_bg(sbi, true);
+@@ -119,6 +217,7 @@
+ 		sb_end_write(sbi->sb);
+ 
+ 	} while (!kthread_should_stop());
++	finish_gc_merge(sbi);
+ 	return 0;
+ }
+ 
+@@ -149,6 +248,11 @@
+ 		err = PTR_ERR(gc_th->f2fs_gc_task);
+ 		kvfree(gc_th);
+ 		sbi->gc_thread = NULL;
++	} else {
++		spin_lock(&sbi->gc_merge.lock);
++		sbi->gc_merge.task = gc_th->f2fs_gc_task;
++		sbi->gc_merge.online = true;
++		spin_unlock(&sbi->gc_merge.lock);
+ 	}
+ out:
+ 	return err;
+@@ -159,6 +263,13 @@
+ 	struct f2fs_gc_kthread *gc_th = sbi->gc_thread;
+ 	if (!gc_th)
+ 		return;
++	spin_lock(&sbi->gc_merge.lock);
++	sbi->gc_merge.online = false;
++	sbi->gc_merge.task = NULL;
++	sbi->gc_merge.pending = false;
++	sbi->gc_merge.seq++;
++	spin_unlock(&sbi->gc_merge.lock);
++	wake_up_all(&sbi->gc_merge.wait);
+ 	kthread_stop(gc_th->f2fs_gc_task);
+ 	kvfree(gc_th);
+ 	sbi->gc_thread = NULL;
+--- a/fs/f2fs/segment.c
++++ b/fs/f2fs/segment.c
+@@ -504,6 +504,8 @@
+ 	 * dir/node pages without enough free segments.
+ 	 */
+ 	if (has_not_enough_free_secs(sbi, 0, 0)) {
++		if (test_opt(sbi, GC_MERGE) && f2fs_gc_merge_request(sbi))
++			return;
+ 		down_write(&sbi->gc_lock);
+ 		f2fs_gc(sbi, false, false, NULL_SEGNO);
+ 	}
+--- a/fs/f2fs/super.c
++++ b/fs/f2fs/super.c
+@@ -102,6 +102,8 @@
+ 	Opt_inline_data,
+ 	Opt_inline_dentry,
+ 	Opt_noinline_dentry,
++	Opt_gc_merge,
++	Opt_nogc_merge,
+ 	Opt_flush_merge,
+ 	Opt_noflush_merge,
+ 	Opt_nobarrier,
+@@ -168,6 +170,8 @@
+ 	{Opt_inline_data, "inline_data"},
+ 	{Opt_inline_dentry, "inline_dentry"},
+ 	{Opt_noinline_dentry, "noinline_dentry"},
++	{Opt_gc_merge, "gc_merge"},
++	{Opt_nogc_merge, "nogc_merge"},
+ 	{Opt_flush_merge, "flush_merge"},
+ 	{Opt_noflush_merge, "noflush_merge"},
+ 	{Opt_nobarrier, "nobarrier"},
+@@ -592,6 +596,12 @@
+ 		case Opt_noinline_dentry:
+ 			clear_opt(sbi, INLINE_DENTRY);
+ 			break;
++		case Opt_gc_merge:
++			set_opt(sbi, GC_MERGE);
++			break;
++		case Opt_nogc_merge:
++			clear_opt(sbi, GC_MERGE);
++			break;
+ 		case Opt_flush_merge:
+ 			set_opt(sbi, FLUSH_MERGE);
+ 			break;
+@@ -1546,6 +1556,10 @@
+ 		seq_puts(seq, ",inline_dentry");
+ 	else
+ 		seq_puts(seq, ",noinline_dentry");
++	if (test_opt(sbi, GC_MERGE))
++		seq_puts(seq, ",gc_merge");
++	else
++		seq_puts(seq, ",nogc_merge");
+ 	if (!f2fs_readonly(sbi->sb) && test_opt(sbi, FLUSH_MERGE))
+ 		seq_puts(seq, ",flush_merge");
+ 	if (test_opt(sbi, NOBARRIER))
+@@ -3526,6 +3540,8 @@
+ 	/* init f2fs-specific super block info */
+ 	sbi->valid_super_block = valid_super_block;
+ 	init_rwsem(&sbi->gc_lock);
++	spin_lock_init(&sbi->gc_merge.lock);
++	init_waitqueue_head(&sbi->gc_merge.wait);
+ 	mutex_init(&sbi->writepages);
+ 	mutex_init(&sbi->cp_mutex);
+ 	init_rwsem(&sbi->node_write);

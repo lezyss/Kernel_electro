@@ -1,0 +1,120 @@
+Selected filesystem backport regression models
+==============================================
+
+test_backport.py provides single-threaded, extracted-source host tests, NOT
+kernel runtime selftests. The additional test_f2fs_merge.py uses pthread mock
+workers as described below. Run from the source tree with a host Clang compiler:
+
+    python3 tools/testing/selftests/fs_backport/test_backport.py --cc clang
+    python3 tools/testing/selftests/fs_backport/test_backport.py \
+        --cc 'clang -fsanitize=undefined -fno-sanitize-recover=all'
+
+HOSTCC also sets the compiler. A multiword compiler/wrapper command is accepted.
+No source or configuration is modified; generated C and binaries use a temporary
+directory. No external Python modules are required. Run manually; this directory
+is intentionally not connected to the kernel's in-kernel test infrastructure.
+
+Scope and provenance
+--------------------
+
+* F2FS compression reserve/release dnode operations hold the checkpoint operation
+  read lock across lookup, mutation and dnode release, with balanced error exits.
+  Donor: 45c506bd3b8de8e79e09b4350354b211ab498aeb.
+  Upstream: 0a4ed2d97cb6d044196cc3e726b6699222b41019.
+* F2FS GC rejects an inline-data inode found with an external data block, marks
+  NEED_FSCK and logs BEFORE releasing its inode reference. This is a corrected
+  local adaptation, not a verbatim donor import, and does not repair corruption.
+  Donor: d287de5bde53a9777d9bf68a166102fa03f7b92a.
+  Upstream: fc01008c92f40015aeeced94750855a7111b6929.
+* F2FS move-range and pin-file ioctls reject atomic files after inode locking and
+  use existing cleanup labels. The existing defragmentation exclusion remains.
+  Donor: 00ad9f9442869ff7cb38f5329f9e1f6a3ce684d6.
+  Upstream: bfe5c02654261bfb8bd9cb174a67f3279ea99e58.
+* Epoll takes only a positive-count temporary file reference before polling and
+  balances fput. The local missing vfs_poll helper has DEFAULT_POLLMASK fallback.
+  This does NOT resurrect a file whose reference count has reached zero.
+  Donor: 655ae9dbb75a0c11932f8a8a728fdb7c8b9f323d.
+  Upstream: 4efaa5acf0a1d2b5947f98abb3acf8bfd966422b.
+* Writeback leaves freeing-inode lists untouched. The completion path removes
+  only clean, non-I_FREEING inodes. The late __mark_inode_dirty check precedes
+  list movement after the inode-lock/list-lock handoff; it never deletes a
+  freeing inode's list entry. Existing early guards/dirtytime behavior remain.
+  This deliberately does NOT copy the donor's forced-deletion predicate.
+  Donor: 7209a1acc23b95bbee4bfee238e2fac417d2709a.
+  Upstream intent: 4e3c51f4e805291b057d12f5dda5aeb50a538dc4.
+  The newer upstream dirtytime requeue path is absent here; this adaptation is
+  defensive hardening, not a claim to reproduce that exact upstream regression.
+
+Not included: F2FS checkpoint tuning (10c2478e), optional epoll RCU-delayed
+storage freeing (e041ee9c), the bulk F2FS refresh, or device configuration changes.
+
+Coverage and limits
+-------------------
+
+test_backport.py extracts current production functions/branches into model.c:
+
+* Complete writeback_single_inode and __mark_inode_dirty functions plus both
+  cgroup and non-cgroup inode/list-lock helpers: 16,384 completion cases and
+  46,080 dirty-state/handoff cases PER helper variant. Checks freeing-list
+  exclusion, lock/reference balance, redirty/clean handling and legacy dirtytime.
+* Complete epi_fget, ep_item_poll and vfs_poll: 4,096 combinations per variant,
+  including zero/live references, masks, missing poll operation and a simulated
+  close during polling. Checks the temporary pin and balanced release.
+* Both compression dnode loops: 2,592 cases per variant across success, ENOENT,
+  lookup failure and mutation failure; checks lock/dnode balance and accounting.
+* The GC inline-data guard: owned-reference logging/release and skip behavior.
+* The move-range lock/atomic guard and cleanup, and pin-file atomic guard and
+  cleanup: 18 cases per variant, including trylock failure and same inode.
+
+For GC/ioctls/compression these are extracted BRANCH/LOOP models, not complete
+ioctl or filesystem executions. Mock operations do not access a filesystem.
+The cgroup tests exercise both real handoff helper implementations with a
+simulated state change during unlock, not concurrent wb association migration.
+
+--negative accepts no-file-pin, missing-fput, donor-freeing, late-freeing,
+no-cp-lock, gc-after-iput or atomic-bypass. Each deliberately mutates extracted
+code in memory; expect a runtime assertion failure (nonzero exit), not a passing
+test. They validate sensitivity to the named missing/broken protection.
+
+Local validation also compiled the five affected/dependent ARM64 objects with
+ThinLTO in the device-derived configuration, and six objects (including
+fs/f2fs/compress.o) in a separate compression+cgroup-writeback+debug/lockdep
+configuration. Both relocatable partial links passed using Clang 19.1.7/LLD.
+The device defconfig is unchanged; compression remains disabled there.
+
+These results do not establish SMP ordering, runtime lockdep, actual concurrent
+file teardown, mount/recovery correctness, compression IO correctness, or a
+full vmlinux/image build or boot. They do not measure phone performance/battery
+life. The production AOSP compiler was not used for these local checks.
+
+Selective F2FS merge tests
+--------------------------
+
+    python3 tools/testing/selftests/fs_backport/test_f2fs_merge.py --cc clang
+
+--stage A, B1 or B2 selects cumulative checks (default B2). The IPU functions,
+GC admission/freezer helpers, and CP worker/request/start/stop functions are
+extracted from current production sources. Source guards also cover default-off
+options, remount cleanup, error paths and retained prior protections. The GC
+worker loop itself is source-checked, not executed as a kernel worker.
+
+The harness uses mock kernel primitives, pthreads, assertions and nonrecovering
+undefined-behavior traps: 800 GC requests, 1,200 CP requests and targeted IPU,
+late-freezer and quota/freeze fallback cases per full run. Assertions are
+explicitly enabled even with compilers that define NDEBUG for optimized builds.
+No mounted filesystem, block device or user data is accessed. Compiler products
+are temporary. These are not kernel concurrency, lockdep or durability tests.
+
+--negative accepts null-selector, missing-accounting, bounce-accounting,
+no-ipu-drain, gc-freezer-window, cp-late-counter, cp-no-umount-protection,
+cp-no-lifetime-gate or cp-drop-error. Unlike the older script's --negative,
+this script compiles the chosen broken variant and EXPECTS an assertion/trap;
+it succeeds only when that mutation is rejected at runtime. For example:
+
+    python3 tools/testing/selftests/fs_backport/test_f2fs_merge.py \
+        --cc clang --negative cp-no-lifetime-gate
+
+See Documentation/filesystems/f2fs-staged/implementation.md and UPSTREAM.json
+for exact boundaries, local ARM64 build configurations, provenance and limits.
+The donor's full filesystem refresh and default mount-policy changes remain
+excluded; the GC/checkpoint merge options are implemented but default off.

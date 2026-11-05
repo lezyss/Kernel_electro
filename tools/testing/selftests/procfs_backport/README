@@ -1,0 +1,31 @@
+Procfs backport host checks
+==========================
+Run from any directory, using a C compiler and Python 3:
+
+  python3 tools/testing/selftests/procfs_backport/test_backport.py --cc clang
+
+HOSTCC is also supported; the default is cc. No kernel module or device-side
+interface is installed. The runner builds and executes a temporary program,
+extracting the production decimal conversion/sequence helpers, maps header,
+task_mem(), page PSS accounting, smap_gather_stats(), common smaps printer and
+show_smaps_rollup(). The decimal implementation extracted is the 64-bit one;
+this host model is intended for a 64-bit host.
+
+Checks cover 58,806 formatting/buffer cases, single-digit space padding,
+large addresses/offsets/device numbers, VmExe/VmLib KiB units, private/shared
+and compound-page PSS, page-type splits, locked PSS, repeated rollup reads,
+short-buffer retries, empty live mm and dead task/mm reference cleanup.
+Assertions are explicitly enabled even if NDEBUG is supplied.
+
+Negative controls (both commands MUST fail with a C assertion):
+
+  python3 tools/testing/selftests/procfs_backport/test_backport.py --cc clang --donor-padding
+  python3 tools/testing/selftests/procfs_backport/test_backport.py --cc clang --donor-locked-pss
+
+The model uses fake tasks, locks, reference counts, pages and page walking.
+CONFIG_SHMEM/hugetlb-specific page walks are not exercised by the host model.
+It does not test real kernel concurrency, seq_read/single_open allocation,
+procfs permission races, page-table walks, shmem swap, THP splitting or live
+Android mapping names. Source guards supplement, not replace, runtime tests.
+The C file is a template for the Python runner, not a standalone selftest.
+See Documentation/filesystems/procfs-backport.rst for scope and build results.

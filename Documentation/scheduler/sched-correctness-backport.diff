@@ -1,0 +1,122 @@
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1973,9 +1973,9 @@
+ static inline unsigned int task_cpu(const struct task_struct *p)
+ {
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+-	return p->cpu;
++	return READ_ONCE(p->cpu);
+ #else
+-	return task_thread_info(p)->cpu;
++	return READ_ONCE(task_thread_info(p)->cpu);
+ #endif
+ }
+ 
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -144,11 +144,12 @@
+ 		 *					[L] ->on_rq
+ 		 *	RELEASE (rq->lock)
+ 		 *
+-		 * If we observe the old cpu in task_rq_lock, the acquire of
++		 * If we observe the old CPU in task_rq_lock(), the acquire of
+ 		 * the old rq->lock will fully serialize against the stores.
+ 		 *
+-		 * If we observe the new CPU in task_rq_lock, the acquire will
+-		 * pair with the WMB to ensure we must then also see migrating.
++		 * If we observe the new CPU in task_rq_lock(), the address
++		 * dependency headed by '[L] rq = task_rq()' and the acquire
++		 * will pair with the WMB to ensure we then also see migrating.
+ 		 */
+ 		if (likely(rq == task_rq(p) && !task_on_rq_migrating(p))) {
+ 			rq_pin_lock(rq, rf);
+@@ -975,7 +976,7 @@
+ {
+ 	lockdep_assert_held(&rq->lock);
+ 
+-	p->on_rq = TASK_ON_RQ_MIGRATING;
++	WRITE_ONCE(p->on_rq, TASK_ON_RQ_MIGRATING);
+ 	dequeue_task(rq, p, DEQUEUE_NOCLOCK);
+ #ifdef CONFIG_SCHED_WALT
+ 	double_lock_balance(rq, cpu_rq(new_cpu));
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -1454,9 +1454,9 @@
+ 	 */
+ 	smp_wmb();
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+-	p->cpu = cpu;
++	WRITE_ONCE(p->cpu, cpu);
+ #else
+-	task_thread_info(p)->cpu = cpu;
++	WRITE_ONCE(task_thread_info(p)->cpu, cpu);
+ #endif
+ 	p->wake_cpu = cpu;
+ #endif
+@@ -1549,7 +1549,7 @@
+ 
+ static inline int task_on_rq_migrating(struct task_struct *p)
+ {
+-	return p->on_rq == TASK_ON_RQ_MIGRATING;
++	return READ_ONCE(p->on_rq) == TASK_ON_RQ_MIGRATING;
+ }
+ 
+ #ifndef prepare_arch_switch
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -10275,9 +10275,7 @@
+ static inline bool
+ group_smaller_min_cpu_capacity(struct sched_group *sg, struct sched_group *ref)
+ {
+-	return sg->sgc->min_capacity *
+-				sched_capacity_margin_up[group_first_cpu(sg)] <
+-						ref->sgc->min_capacity * 1024;
++	return sg->sgc->min_capacity < ref->sgc->min_capacity;
+ }
+ 
+ /*
+@@ -10287,9 +10285,7 @@
+ static inline bool
+ group_smaller_max_cpu_capacity(struct sched_group *sg, struct sched_group *ref)
+ {
+-	return sg->sgc->max_capacity *
+-				sched_capacity_margin_up[group_first_cpu(sg)] <
+-						ref->sgc->max_capacity * 1024;
++	return sg->sgc->max_capacity < ref->sgc->max_capacity;
+ }
+ 
+ /*
+@@ -11135,6 +11131,9 @@
+ 		 * Both cases only affect the total convergence complexity.
+ 		 */
+ 		if (rt > env->fbq_type)
++			continue;
++
++		if (!rq->cfs.h_nr_running)
+ 			continue;
+ 
+ 		/*
+diff --git a/kernel/sched/idle.c b/kernel/sched/idle.c
+--- a/kernel/sched/idle.c
++++ b/kernel/sched/idle.c
+@@ -247,13 +247,14 @@
+ 	while (!need_resched()) {
+ 		check_pgt_cache();
+ 
++		local_irq_disable();
++
+ 		if (cpu_is_offline(cpu)) {
+-			tick_nohz_idle_stop_tick_protected();
++			tick_nohz_idle_stop_tick();
+ 			cpuhp_report_idle_dead();
+ 			arch_cpu_idle_dead();
+ 		}
+ 
+-		local_irq_disable();
+ 		arch_cpu_idle_enter();
+ 
+ 		/*

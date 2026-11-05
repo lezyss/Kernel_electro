@@ -1,0 +1,31 @@
+{
+  "branch": "dev",
+  "commit": "04af0552bb29c7cee1b78c3eea69d7ed98b80bf2",
+  "local_sha256": {
+    "Kconfig": "e3d7e6fd160d704918b69a90b909c10ec629bffec53b975b0a62144e2adbfeef",
+    "Makefile": "2275cdfdb09348974b2f85805ee8268ce6ccf1bf51efdeb275677c8bca4f4981"
+  },
+  "repository": "https://github.com/maxsteeel/nomount",
+  "upstream_files": {
+    "Kconfig": {
+      "git_blob": "638b9427ef638f786d288d0a93f731676cf32c62",
+      "path": "kernel/src/Kconfig"
+    },
+    "LICENSE": {
+      "git_blob": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+      "path": "kernel/LICENSE"
+    },
+    "Makefile": {
+      "git_blob": "cb4d3eef3ae93645591c1dcf8afaf4efef90c20a",
+      "path": "kernel/src/Makefile"
+    },
+    "nomount.c": {
+      "git_blob": "a80810ca88b188478b8b563728a170c51ae3635e",
+      "path": "kernel/src/nomount.c"
+    },
+    "nomount.h": {
+      "git_blob": "48cf84e8407d62a1dc263f2f0511b01ef5e9f2ca",
+      "path": "kernel/src/nomount.h"
+    }
+  }
+}

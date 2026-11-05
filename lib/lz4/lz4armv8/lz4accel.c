@@ -1,48 +1,29 @@
+// SPDX-License-Identifier: GPL-2.0
+#include <linux/linkage.h>
 #include "lz4accel.h"
 #include <asm/cputype.h>
+#include <asm/neon.h>
 
-#ifdef CONFIG_CFI_CLANG
-static inline int
-__cfi_lz4_decompress_asm(uint8_t **dst_ptr, uint8_t *dst_begin,
-			 uint8_t *dst_end, const uint8_t **src_ptr,
-			 const uint8_t *src_end, bool dip)
+asmlinkage int _lz4_decompress_asm(u8 **dst_ptr, u8 *dst_begin, u8 *dst_end,
+				   const u8 **src_ptr, const u8 *src_end);
+asmlinkage int _lz4_decompress_asm_noprfm(u8 **dst_ptr, u8 *dst_begin,
+					  u8 *dst_end, const u8 **src_ptr,
+					  const u8 *src_end);
+
+int lz4_decompress_asm(u8 **dst_ptr, u8 *dst_begin, u8 *dst_end,
+		       const u8 **src_ptr, const u8 *src_end)
 {
-	return _lz4_decompress_asm(dst_ptr, dst_begin, dst_end,
-				   src_ptr, src_end, dip);
+	int ret;
+
+	/* Pins the CPU and protects the SIMD register file until neon_end. */
+	kernel_neon_begin();
+	/* Direct calls avoid an assembly function-pointer target under CFI. */
+	if (read_cpuid_part_number() == ARM_CPU_PART_CORTEX_A53)
+		ret = _lz4_decompress_asm_noprfm(dst_ptr, dst_begin, dst_end,
+						 src_ptr, src_end);
+	else
+		ret = _lz4_decompress_asm(dst_ptr, dst_begin, dst_end,
+					  src_ptr, src_end);
+	kernel_neon_end();
+	return ret;
 }
-
-static inline int
-__cfi_lz4_decompress_asm_noprfm(uint8_t **dst_ptr, uint8_t *dst_begin,
-				uint8_t *dst_end, const uint8_t **src_ptr,
-				const uint8_t *src_end, bool dip)
-{
-	return _lz4_decompress_asm_noprfm(dst_ptr, dst_begin, dst_end,
-					  src_ptr, src_end, dip);
-}
-
-#define _lz4_decompress_asm		__cfi_lz4_decompress_asm
-#define _lz4_decompress_asm_noprfm	__cfi_lz4_decompress_asm_noprfm
-#endif
-
-int lz4_decompress_asm_select(uint8_t **dst_ptr, uint8_t *dst_begin,
-			      uint8_t *dst_end, const uint8_t **src_ptr,
-			      const uint8_t *src_end, bool dip) {
-	const unsigned i = smp_processor_id();
-
-	switch(read_cpuid_part_number()) {
-	case ARM_CPU_PART_CORTEX_A53:
-		lz4_decompress_asm_fn[i] = _lz4_decompress_asm_noprfm;
-		return _lz4_decompress_asm_noprfm(dst_ptr, dst_begin, dst_end,
-						  src_ptr, src_end, dip);
-	}
-	lz4_decompress_asm_fn[i] = _lz4_decompress_asm;
-	return _lz4_decompress_asm(dst_ptr, dst_begin, dst_end,
-				   src_ptr, src_end, dip);
-}
-
-int (*lz4_decompress_asm_fn[NR_CPUS])(uint8_t **dst_ptr, uint8_t *dst_begin,
-	uint8_t *dst_end, const uint8_t **src_ptr,
-	const uint8_t *src_end, bool dip)
-__read_mostly = {
-	[0 ... NR_CPUS-1]  = lz4_decompress_asm_select,
-};

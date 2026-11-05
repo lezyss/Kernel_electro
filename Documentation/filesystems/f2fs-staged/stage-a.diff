@@ -1,0 +1,61 @@
+--- a/fs/f2fs/data.c
++++ b/fs/f2fs/data.c
+@@ -889,6 +889,10 @@
+ 	bool found = false;
+ 	struct bio *target = bio ? *bio : NULL;
+ 
++	/* No selector is not a request to flush an arbitrary cached bio. */
++	if (!target && !page)
++		return;
++
+ 	for (temp = HOT; temp < NR_TEMP_TYPE && !found; temp++) {
+ 		struct f2fs_bio_info *io = sbi->write_io[DATA] + temp;
+ 		struct list_head *head = &io->bio_list;
+@@ -951,6 +955,15 @@
+ 	trace_f2fs_submit_page_bio(page, fio);
+ 	f2fs_trace_ios(fio, 0);
+ 
++	/*
++	 * Account the original page before publishing the bio. Another task may
++	 * submit it immediately, completing and freeing the encrypted bounce page.
++	 * Retrying a full/detached bio below must not account this page twice.
++	 */
++	if (fio->io_wbc)
++		wbc_account_io(fio->io_wbc, fio->page, PAGE_SIZE);
++	inc_page_count(fio->sbi, WB_DATA_TYPE(fio->page));
++
+ alloc_new:
+ 	if (!bio) {
+ 		bio = __bio_alloc(fio, BIO_MAX_PAGES);
+@@ -964,11 +977,6 @@
+ 		if (add_ipu_page(fio, &bio, page))
+ 			goto alloc_new;
+ 	}
+-
+-	if (fio->io_wbc)
+-		wbc_account_io(fio->io_wbc, page, PAGE_SIZE);
+-
+-	inc_page_count(fio->sbi, WB_DATA_TYPE(page));
+ 
+ 	*fio->last_block = fio->new_blkaddr;
+ 	*fio->bio = bio;
+@@ -2886,7 +2894,8 @@
+ 
+ 	if (unlikely(f2fs_cp_error(sbi))) {
+ 		f2fs_submit_merged_write(sbi, DATA);
+-		f2fs_submit_merged_ipu_write(sbi, bio, NULL);
++		if (bio && *bio)
++			f2fs_submit_merged_ipu_write(sbi, bio, NULL);
+ 		submitted = NULL;
+ 	}
+ 
+--- a/fs/f2fs/segment.c
++++ b/fs/f2fs/segment.c
+@@ -3312,6 +3312,7 @@
+ 	else
+ 		err = f2fs_submit_page_bio(fio);
+ 	if (!err) {
++		fio->submitted = 1;
+ 		update_device_state(fio);
+ 		f2fs_update_iostat(fio->sbi, fio->io_type, F2FS_BLKSIZE);
+ 	}

@@ -1,0 +1,1768 @@
+{
+  "status": "Implementation complete for the approved Android-focused scope; final ARM64 build and local regressions PASS; device runtime unvalidated",
+  "date": "2026-11-05",
+  "branch": "arena/e63a046d-kernel-electro",
+  "head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183",
+  "baseline": "Original dirty pre-application tree, not HEAD; prior integrations retained",
+  "scope": "5.15-era BPF functionality on 4.14.357-electro; not a wholesale donor merge, global version spoof, full 5.15 ABI or all architecture parity",
+  "timer_scope_approval": "proper_softirq_timers; local only; no push or CI",
+  "applied": [
+    {
+      "repository": "NothingNormal/Kernel",
+      "sha": "d22fb4cf8eedba08edff893f49c284299095715b",
+      "url": "https://github.com/NothingNormal/Kernel/commit/d22fb4cf8eedba08edff893f49c284299095715b",
+      "mode": "Exact at the initial JMP32 checkpoint; current file additionally contains reviewed atomic corrections",
+      "path": "arch/arm64/net/bpf_jit_comp.c",
+      "before_sha256": "e95426db6a7443d36e58ada7f6c5204e46a203265e62c9b384018ed12fec5952",
+      "after_sha256": "8569f619ed9fccae178205c8b7f67b1ef57fd7734e770c76d517dd3517c7b87b",
+      "historical_checkpoint": true,
+      "current_after_sha256": "2157347f24fb9216c7bf2e25b19bf3fc59a0ec4f15e8c6f1285d8f97415ab88f"
+    },
+    {
+      "repository": "torvalds/linux",
+      "mode": "adapted; not an exact upstream replay",
+      "reference_base": "63e2ed3659752a4850e0ef3a07f809988fcd74a4",
+      "reference_end": "5da70160462e80b0ab8a6960cdd0cdd476907523",
+      "essential_followups_or_prerequisites": [
+        {
+          "sha": "63e2ed3659752a4850e0ef3a07f809988fcd74a4",
+          "purpose": "start tracepoint mode argument"
+        },
+        {
+          "sha": "42f42da41b54c191ae6a775e84a86c100d66c5e8",
+          "purpose": "actual SOFT/HARD clock-base selection and timer->is_soft initialization"
+        }
+      ],
+      "later_reference": "Linux v5.15 exclusion-aware dual-base queries and clock-change soft-expiry updates",
+      "paths": [
+        {
+          "path": "include/linux/hrtimer.h",
+          "before_sha256": "06a1432d878202f629239024feb9d16f479368229eec2d4ec30c88bd1b1e6a26",
+          "after_sha256": "558f31532879fd9030f8186a96a0b47791b1b53aaa6f7612c47610f5f89e5085"
+        },
+        {
+          "path": "include/trace/events/timer.h",
+          "before_sha256": "616730ca9653a62f642b1aa1251690fc4bcaf4cbed9e6f6e443b76efc3d8bcc8",
+          "after_sha256": "c67cccf52126d976b6271b5e3a593fbf4dab0e3f5e0b90cfe1ec4f4ca7a162d0"
+        },
+        {
+          "path": "kernel/time/hrtimer.c",
+          "before_sha256": "9895febbc1eac573c35ef71d3d96b5afc26195898ccfc807a9213c06e0e85ffa",
+          "after_sha256": "ee7085561ada7649b3f14ecf80c892ed3ff9e616c388ba07b27bac1d5cd3e28d"
+        }
+      ],
+      "preserved": [
+        "per-CPU migration/nohz control flags and counter widths",
+        "pinned state",
+        "WRITE_ONCE publication",
+        "callback validity check",
+        "ndelay lock loops",
+        "CPU reset",
+        "online hrtimer_quiesce_cpu and offline hotplug API"
+      ],
+      "extra_reconciliation": [
+        "do not enable BHs from IRQ/IPI/BH-disabled migration context",
+        "keep rearmed callback-running soft timers on online source CPU during quiesce",
+        "clear stale soft expiry when a queue empties/migrates"
+      ],
+      "unchanged_shared_paths": [
+        "kernel/time/tick-internal.h",
+        "kernel/time/timer.c"
+      ]
+    },
+    {
+      "repository": "NothingNormal/Kernel",
+      "reference_commit": "2a58cdc0636e8eedba246338dd565bbfffc84837",
+      "reviewed_snapshot": "72493ea4a19555ca1caaa0b848399b78825747b4",
+      "original_iput_review_base": "9700db640bbb5b27dca74ea06450d4c59550ebcc",
+      "mode": "Selective integration with real pidfd, fork/run-context, softirq timer, bounded build-ID, dynamic lockdep, atomic, IMA, BTF-ID and UAPI consistency corrections",
+      "excluded_paths": [
+        "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig",
+        "drivers/gpu/msm/kgsl.c",
+        "drivers/gpu/msm/kgsl_device.h",
+        "init/version.c",
+        "kernel/sys.c",
+        "mm/filemap.c",
+        "mm/readahead.c"
+      ],
+      "verifier_bytes": 415151,
+      "verifier_sha256": "342711282786a9a8a48885b831d9164843efbada3011ba7a68d2a798fa90c5ad",
+      "additional_references": {
+        "dynamic_lockdep": "108c14858b9ea224686e476c8f5ec345a0df9e27",
+        "stream_parser_SK_PASS": "636633e1d9b1617842eff0ff3f5c9511b2d7a4d2",
+        "cached_ima_inode_hash": "torvalds/linux v5.15"
+      }
+    }
+  ],
+  "compatibility": {
+    "pidfd": "Real fdget/f_op/get_pid/flags/fdput implementation and task lifecycle; no unsupported stub",
+    "timers": "Real soft bases and HRTIMER_MODE_REL_SOFT; no hard-IRQ substitution",
+    "timer_accounting": "Upfront legacy memlock reservation for (max_entries + num_possible_cpus()) * sizeof(bpf_hrtimer); overflow checks and normal map uncharge; not a full memcg backport or exact 5.15 per-allocation accounting",
+    "lockdep": "Actual dynamic key registry; RCU + sched grace periods before full-key-range retirement; old allocator slot reclamation unchanged",
+    "build_id": "Bounds-checked GNU notes and unaligned ELF32/64 headers/phdrs within first mapped page",
+    "BTF": "Full linked vmlinux BTF only when enabled; no fabricated partial blob",
+    "api_guard": {
+      "kernel_tools_headers_byte_identical": true,
+      "sha256": "37a2721e78e258fa3bd56c649cb67af437d6a24ff9c0fa53dc4ce4d0258aa16c",
+      "helper_ids": 176,
+      "test": "test_core.py; catches stale tools timer/helper IDs"
+    },
+    "lz4": "Only __attribute__((noinline)) -> __attribute__((__noinline__)); adaptation refreshed/replayed; 74 native ASan+UBSan tests PASS, seed 1; see Documentation/dev-tools/lz4-1.11.json"
+  },
+  "production_build": {
+    "result": "PASS; final source build and later confirmation both exit 0",
+    "release": "4.14.357-electro",
+    "compiler": {
+      "toolchain_mirror": "msft-mirror-aosp/platform.prebuilts.clang.host.linux-x86",
+      "toolchain_commit": "3b86e40facfff1eab4065614255d573293c10373",
+      "revision": "r614150",
+      "clang_version": "Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)",
+      "lld_version": "LLD 23.0.1 (/mnt/disks/build-disk/src/googleplex-android/llvm-r614150-release/out/llvm-project/llvm 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e) (compatible with GNU linkers)",
+      "host_compilers": "gcc/g++ for host utilities only",
+      "host_openssl": {
+        "repository": "openssl/openssl",
+        "version": "3.0.18",
+        "commit": "c10e643222ce5a185f2980d7352d545afacb0fed",
+        "build": "external host-only static development headers/libraries; linux-x86_64 no-shared no-tests; GCC; build_libs and install_dev"
+      }
+    },
+    "targets": [
+      "dtbs",
+      "vmlinux",
+      "Image.gz",
+      "Image.gz-dtb",
+      "dtb.img",
+      "dtbo.img",
+      "modules"
+    ],
+    "all_target_tools": "LLVM; host utilities use GCC/G++; real OpenSSL crypto, no signing/keyring bypass",
+    "config_selection": "Unchanged vendor/xiaomi/miatoll_defconfig; only required dependency selections such as BINARY_PRINTF are new",
+    "defconfig_sha256": "7d049399dbd01e9f517db96c152a86148d1fdf1a307be95745ba2fa29a456a75",
+    "resolved_config_sha256": "d6e60accd67de20399752fbbc97f04638e4536e56dc87fbb2667d945fa36ceb3",
+    "important_config": {
+      "BPF": "y",
+      "BPF_SYSCALL": "y",
+      "BPF_JIT": "y",
+      "BPF_JIT_ALWAYS_ON": "y",
+      "BPF_JIT_DEFAULT_ON": "y",
+      "BPF_EVENTS": "n",
+      "BPF_LSM": "n",
+      "BPF_STREAM_PARSER": "n",
+      "NET_SOCK_MSG": "n",
+      "DEBUG_INFO_BTF": "n",
+      "BINARY_PRINTF": "y",
+      "HIGH_RES_TIMERS": "y",
+      "LTO": "y",
+      "THINLTO": "y",
+      "LTO_CLANG": "y"
+    },
+    "artifact_directory": "/home/user/bpf-upgrade-validation/kbuild",
+    "artifacts": [
+      {
+        "path": "vmlinux",
+        "bytes": 52925504,
+        "sha256": "15d83d76a2b0e9f78a3969aa52024228e3fa09753d124e4e9a7888320a639d10"
+      },
+      {
+        "path": "arch/arm64/boot/Image",
+        "bytes": 43135000,
+        "sha256": "e71bf6ecc5f35c4dff2df803b74530dc5669896b1c13a56551b8b37c3c793958"
+      },
+      {
+        "path": "arch/arm64/boot/Image.gz",
+        "bytes": 17931538,
+        "sha256": "88d0c077c10d28673e39ca2f4534e2f5d6539e467447faf174fa2e44c61ddf16"
+      },
+      {
+        "path": "arch/arm64/boot/Image.gz-dtb",
+        "bytes": 18261996,
+        "sha256": "30b1647d07215e0e329b15ba3d11469b178d7663a00320fc6d74b76ed0cc7db1"
+      },
+      {
+        "path": "arch/arm64/boot/dtb.img",
+        "bytes": 330458,
+        "sha256": "6ae7105b5ad512e40af1f14e53a8c27010b2d7caf0934d53c58cfcc24cc3f239"
+      },
+      {
+        "path": "arch/arm64/boot/dtbo.img",
+        "bytes": 1050481,
+        "sha256": "39074126d4404b72ab59a8c17110badc814ff62b0042635bf2bf127b9f6becb7"
+      },
+      {
+        "path": "net/ipv4/tcp_bic.ko",
+        "bytes": 15104,
+        "sha256": "19083e9871d2f8804cb09a9836d504af01fb4341c4e71d87d9f6108b385609ca"
+      },
+      {
+        "path": "net/ipv4/tcp_htcp.ko",
+        "bytes": 14136,
+        "sha256": "f3093492a8120e354ce31c3bedec2d9ce0b13727abf6a0b3256b95eb3a61293b"
+      }
+    ],
+    "format_validation": [
+      "Native AArch64 kernel and both module ELF headers",
+      "Image.gz-dtb gzip payload byte-identical to Image; ARM64 image magic",
+      "Appended DTB byte-identical to dtb.img; FDT magic",
+      "DTBO magic/total size, four entry bounds and FDT magic"
+    ],
+    "dtbo_entries": 4,
+    "not_a_runtime_or_release_package_test": true
+  },
+  "configuration_validation": {
+    "groups": [
+      {
+        "name": "debug",
+        "required_enabled": [
+          "DEBUG_LOCK_ALLOC",
+          "PROVE_LOCKING",
+          "BPF_SYSCALL"
+        ],
+        "disabled_assertion": null,
+        "config_sha256": "b82d98e2a91276985b867ccffd690b15de3030391bbfcd907eedea6f8867db27",
+        "status": "PASS: targeted ARM64 compilation and native relocatable link",
+        "native_link": {
+          "configuration": "debug",
+          "input_objects": 36,
+          "bytes": 1895048,
+          "sha256": "25efab4c645550fe7b3a438f939e05a043c8ce1030ada2bec793bf4d71c2ce84",
+          "result": "PASS: native AArch64 relocatable ELF; unresolved external symbols allowed"
+        }
+      },
+      {
+        "name": "features",
+        "required_enabled": [
+          "DEBUG_INFO_BTF",
+          "BPF_EVENTS",
+          "BPF_LSM",
+          "BPF_STREAM_PARSER",
+          "STREAM_PARSER",
+          "NET_SOCK_MSG"
+        ],
+        "disabled_assertion": null,
+        "config_sha256": "d8d6837c558b5c57abee995bb36e06ea89ae4e66df89acd7be0a7ba51b46a81c",
+        "status": "PASS: targeted ARM64 compilation and native relocatable link",
+        "native_link": {
+          "configuration": "features",
+          "input_objects": 41,
+          "bytes": 21638856,
+          "sha256": "c0676b896f33f545a5ef5e58deceee92ea681f02981718a890697610d8027cc7",
+          "result": "PASS: native AArch64 relocatable ELF; unresolved external symbols allowed"
+        }
+      },
+      {
+        "name": "ima",
+        "required_enabled": [
+          "INTEGRITY",
+          "IMA",
+          "BPF_LSM"
+        ],
+        "disabled_assertion": null,
+        "config_sha256": "997f9ff8dcc526b909e698082d892aef88d8856e92b226c7b1b92e69fd8101a6",
+        "status": "PASS: targeted ARM64 compilation and native relocatable link",
+        "native_link": {
+          "configuration": "ima",
+          "input_objects": 2,
+          "bytes": 640456,
+          "sha256": "4a068cc70a9c1b5ee1b2191548b0a0e79c2e5828306e59080935dd597e2ee318",
+          "result": "PASS: native AArch64 relocatable ELF; unresolved external symbols allowed"
+        }
+      },
+      {
+        "name": "lowres",
+        "required_enabled": [
+          "BPF_SYSCALL"
+        ],
+        "disabled_assertion": "HIGH_RES_TIMERS",
+        "config_sha256": "bf055a22c65d2fa718d6c65125954e066a90dd63584776226ca5db973a1c1f34",
+        "status": "PASS: targeted ARM64 compilation and native relocatable link",
+        "native_link": {
+          "configuration": "lowres",
+          "input_objects": 34,
+          "bytes": 1359752,
+          "sha256": "924e03ea9bd25c481a4737040fc080ee5d1bbefae83bda989f1abb17740fe5bd",
+          "result": "PASS: native AArch64 relocatable ELF; unresolved external symbols allowed"
+        }
+      },
+      {
+        "name": "nobpfsys",
+        "required_enabled": [],
+        "disabled_assertion": "BPF_SYSCALL",
+        "config_sha256": "950e3e2c703cb457f5c6794de8bbe314838c9a421ef31c972ed8ac8eae02814d",
+        "status": "PASS: targeted ARM64 compilation and native relocatable link",
+        "native_link": {
+          "configuration": "nobpfsys",
+          "input_objects": 5,
+          "bytes": 657304,
+          "sha256": "93e648e8124aee47574e75a285321e5b59d11b3650713edf4e7e0fc56f725a18",
+          "result": "PASS: native AArch64 relocatable ELF; unresolved external symbols allowed"
+        }
+      }
+    ],
+    "native_codegen_input_objects": 118,
+    "relocatable_link_limit": "External symbols may remain unresolved; only production full vmlinux/module link resolves its whole enabled configuration. No full optional BTF/IMA/debug image was linked."
+  },
+  "host_validation": {
+    "compiler": "Host GCC 12.2.0, not the target production compiler",
+    "modes": {
+      "asan": "ASan + UBSan",
+      "ubsan": "UBSan-only"
+    },
+    "reported_checks_per_mode": 6003804,
+    "runtime_negative_controls_per_mode": 37,
+    "sanitizer_exclusions": [],
+    "results": [
+      {
+        "suite": "jmp32",
+        "mode": "asan",
+        "checks": 923120,
+        "negative_controls_rejected": 8
+      },
+      {
+        "suite": "softirq",
+        "mode": "asan",
+        "checks": 1200895,
+        "negative_controls_rejected": 12
+      },
+      {
+        "suite": "atomics",
+        "mode": "asan",
+        "checks": 200000,
+        "negative_controls_rejected": 3
+      },
+      {
+        "suite": "core",
+        "mode": "asan",
+        "checks": 3369783,
+        "negative_controls_rejected": 6
+      },
+      {
+        "suite": "timer_lifetime",
+        "mode": "asan",
+        "checks": 230005,
+        "negative_controls_rejected": 5
+      },
+      {
+        "suite": "lockdep",
+        "mode": "asan",
+        "checks": 80001,
+        "negative_controls_rejected": 3
+      },
+      {
+        "suite": "jmp32",
+        "mode": "ubsan",
+        "checks": 923120,
+        "negative_controls_rejected": 8
+      },
+      {
+        "suite": "softirq",
+        "mode": "ubsan",
+        "checks": 1200895,
+        "negative_controls_rejected": 12
+      },
+      {
+        "suite": "atomics",
+        "mode": "ubsan",
+        "checks": 200000,
+        "negative_controls_rejected": 3
+      },
+      {
+        "suite": "core",
+        "mode": "ubsan",
+        "checks": 3369783,
+        "negative_controls_rejected": 6
+      },
+      {
+        "suite": "timer_lifetime",
+        "mode": "ubsan",
+        "checks": 230005,
+        "negative_controls_rejected": 5
+      },
+      {
+        "suite": "lockdep",
+        "mode": "ubsan",
+        "checks": 80001,
+        "negative_controls_rejected": 3
+      }
+    ],
+    "platform_limit": "Sequential bounded current-source models with mocked locks, clocks, queues, FD/map/prog/RCU/hrtimer services; not full verifier safety, real ARM64 execution, SMP or hardware memory-order proof",
+    "build_id_guard_pages_tested": false,
+    "device_smoke": "test_runtime.c compiles natively with -Wall -Wextra -Werror; correctly exits 4 on unrelated sandbox kernel; actual BPF syscalls on Electro NOT run"
+  },
+  "historical_timer_foundation": {
+    "reference_series": [
+      {
+        "sha": "c272ca58c3ec5631f4ab507489d9477f74efe645",
+        "title": "hrtimer: Switch 'for' loop to _ffs() evaluation",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 31,
+          "additions": 21,
+          "deletions": 10
+        }
+      },
+      {
+        "sha": "3f0b9e8eec7262648ab9c8321bf931624ee5c10a",
+        "title": "hrtimer: Store running timer in hrtimer_clock_base",
+        "files": [
+          "include/linux/hrtimer.h",
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 48,
+          "additions": 22,
+          "deletions": 26
+        }
+      },
+      {
+        "sha": "da21c5a58a7f30db69e04e06dfb6777ccbb1113c",
+        "title": "hrtimer: Make room in 'struct hrtimer_cpu_base'",
+        "files": [
+          "include/linux/hrtimer.h"
+        ],
+        "stats": {
+          "total": 4,
+          "additions": 2,
+          "deletions": 2
+        }
+      },
+      {
+        "sha": "28bfd18bf3daa5db8bb3422ea7138c8b7d2444ac",
+        "title": "hrtimer: Make the hrtimer_cpu_base::hres_active field unconditional, to simplify the code",
+        "files": [
+          "include/linux/hrtimer.h",
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 51,
+          "additions": 23,
+          "deletions": 28
+        }
+      },
+      {
+        "sha": "851cff8caf4d638d001aac6e57a3511abd94f100",
+        "title": "hrtimer: Use accesor functions instead of direct access",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 4,
+          "additions": 2,
+          "deletions": 2
+        }
+      },
+      {
+        "sha": "07a9a7eae86abb796468b225586086d7c4cb59fc",
+        "title": "hrtimer: Make the remote enqueue check unconditional",
+        "files": [
+          "include/linux/hrtimer.h",
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 32,
+          "additions": 9,
+          "deletions": 23
+        }
+      },
+      {
+        "sha": "eb27926ba05233dc4f2052cc9d4f19359ec3cd2c",
+        "title": "hrtimer: Make hrtimer_cpu_base.next_timer handling unconditional",
+        "files": [
+          "include/linux/hrtimer.h",
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 16,
+          "additions": 4,
+          "deletions": 12
+        }
+      },
+      {
+        "sha": "11a9fe069e341ac53bddb8fe1a85ea986cff1a42",
+        "title": "hrtimer: Make hrtimer_reprogramm() unconditional",
+        "files": [
+          "include/linux/hrtimer.h",
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 135,
+          "additions": 65,
+          "deletions": 70
+        }
+      },
+      {
+        "sha": "ebba2c723f38a766546b2eaf828c522576c791d4",
+        "title": "hrtimer: Make hrtimer_force_reprogramm() unconditionally available",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 60,
+          "additions": 28,
+          "deletions": 32
+        }
+      },
+      {
+        "sha": "61bb4bcb79c7afcd0bf0d20aef4704977172fd60",
+        "title": "hrtimer: Unify hrtimer removal handling",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 10,
+          "additions": 4,
+          "deletions": 6
+        }
+      },
+      {
+        "sha": "14c803419de6acba08e143d51813ac5e0f3443b8",
+        "title": "hrtimer: Unify remote enqueue handling",
+        "files": [
+          "kernel/time/hrtimer.c",
+          "kernel/time/tick-internal.h",
+          "kernel/time/timer.c"
+        ],
+        "stats": {
+          "total": 33,
+          "additions": 14,
+          "deletions": 19
+        }
+      },
+      {
+        "sha": "2ac2dccce9d16a7b1a8fddf69a955d249375bce4",
+        "title": "hrtimer: Make remote enqueue decision less restrictive",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 2,
+          "additions": 1,
+          "deletions": 1
+        }
+      },
+      {
+        "sha": "3ec7a3ee9f15f6dcac1591902d85b94c2a4b520d",
+        "title": "hrtimer: Remove the 'base' parameter from hrtimer_reprogram()",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 6,
+          "additions": 3,
+          "deletions": 3
+        }
+      },
+      {
+        "sha": "138a6b7ae4dedde5513678f57b275eee19c41b6a",
+        "title": "hrtimer: Factor out __hrtimer_start_range_ns()",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 44,
+          "additions": 24,
+          "deletions": 20
+        }
+      },
+      {
+        "sha": "ad38f596d8e4babc19be8b21a7a49debffb4a7f5",
+        "title": "hrtimer: Factor out __hrtimer_next_event_base()",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 20,
+          "additions": 16,
+          "deletions": 4
+        }
+      },
+      {
+        "sha": "dd934aa8ad1fbaab3d916125c7fe42fff75aa7ff",
+        "title": "hrtimer: Use irqsave/irqrestore around __run_hrtimer()",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 31,
+          "additions": 18,
+          "deletions": 13
+        }
+      },
+      {
+        "sha": "98ecadd4305d8677ba77162152485798d47dcc85",
+        "title": "hrtimer: Add clock bases and hrtimer mode for softirq context",
+        "files": [
+          "include/linux/hrtimer.h",
+          "include/trace/events/timer.h",
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 40,
+          "additions": 39,
+          "deletions": 1
+        }
+      },
+      {
+        "sha": "c458b1d102036eaa2c70e03000c959bd491c2037",
+        "title": "hrtimer: Prepare handling of hard and softirq based hrtimers",
+        "files": [
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 38,
+          "additions": 29,
+          "deletions": 9
+        }
+      },
+      {
+        "sha": "5da70160462e80b0ab8a6960cdd0cdd476907523",
+        "title": "hrtimer: Implement support for softirq based hrtimers",
+        "files": [
+          "include/linux/hrtimer.h",
+          "kernel/time/hrtimer.c"
+        ],
+        "stats": {
+          "total": 217,
+          "additions": 188,
+          "deletions": 29
+        }
+      }
+    ],
+    "host_validation": {
+      "modes": [
+        "ASan+UBSan",
+        "UBSan-only"
+      ],
+      "checks_per_mode": 1200895,
+      "negative_controls_per_mode": 12,
+      "sanitizer_exclusions": [],
+      "real_source": [
+        "current initialization/CPU reset",
+        "dual-base expiry and exclusion queries",
+        "offset/deadline updates and reprogramming",
+        "enqueue/remove/active",
+        "hard/soft callback dispatch, restart and callback-time free",
+        "migration list and process/IPI migration wrapper"
+      ],
+      "mocks": [
+        "sorted-list queue instead of rbtree",
+        "single-threaded lock/IRQ/BH/CPU/clock primitives",
+        "clockevent hardware"
+      ],
+      "limits": [
+        "not SMP memory-model validation",
+        "not hardware timer/hotplug/nohz execution",
+        "not actual runtime lockdep",
+        "not BPF map/program lifetime validation"
+      ]
+    },
+    "target_validation": {
+      "toolchain_mirror": "msft-mirror-aosp/platform.prebuilts.clang.host.linux-x86",
+      "toolchain_commit": "3b86e40facfff1eab4065614255d573293c10373",
+      "revision": "r614150",
+      "clang_version": "Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)",
+      "lld_version": "LLD 23.0.1 (/mnt/disks/build-disk/src/googleplex-android/llvm-r614150-release/out/llvm-project/llvm 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e) (compatible with GNU linkers)",
+      "target": "aarch64-linux-gnu; LLVM integrated assembler; full LLVM target tools",
+      "host_compilers": "gcc/g++ for host utilities only",
+      "object_config_combinations": 31,
+      "machine_codegen": "31 ld.lld -r -m aarch64elf links; ELF64 AArch64 headers verified",
+      "certificate_bypass": false,
+      "host_openssl": {
+        "repository": "openssl/openssl",
+        "version": "3.0.18",
+        "commit": "c10e643222ce5a185f2980d7352d545afacb0fed",
+        "build": "external host-only static development headers/libraries; linux-x86_64 no-shared no-tests; GCC; build_libs and install_dev"
+      },
+      "full_build_status": "Superseded: the final integrated production image/modules build below passes",
+      "variants": [
+        {
+          "variant": "kbuild",
+          "purpose": "unchanged resolved miatoll production config",
+          "config_sha256": "e134338c50eabfef97512bbfae514d94249405da86494ef3be72a8f5b6db2717",
+          "objects": [
+            "arch/arm64/net/bpf_jit_comp.o",
+            "kernel/time/hrtimer.o",
+            "kernel/time/timer.o",
+            "kernel/time/tick-sched.o",
+            "kernel/time/timer_list.o",
+            "kernel/time/alarmtimer.o",
+            "kernel/time/posix-timers.o",
+            "kernel/sched/core.o"
+          ]
+        },
+        {
+          "variant": "kbuild-lowres",
+          "purpose": "HIGH_RES_TIMERS=n, nohz retained",
+          "config_sha256": "ffa347cbb08588c22af00e191d514e78b16339760c8ea5510cdeef3a797b6ea7",
+          "objects": [
+            "arch/arm64/net/bpf_jit_comp.o",
+            "kernel/time/hrtimer.o",
+            "kernel/time/timer.o",
+            "kernel/time/tick-sched.o",
+            "kernel/time/timer_list.o",
+            "kernel/time/alarmtimer.o",
+            "kernel/time/posix-timers.o",
+            "kernel/sched/core.o"
+          ]
+        },
+        {
+          "variant": "kbuild-debug",
+          "purpose": "timer debug objects and LOCKDEP enabled",
+          "config_sha256": "3365a0f377ca6c7cbf7c32cb6c39c77692ee88345acdbc7cfa693f41eb6fc456",
+          "objects": [
+            "arch/arm64/net/bpf_jit_comp.o",
+            "kernel/time/hrtimer.o",
+            "kernel/time/timer.o",
+            "kernel/time/tick-sched.o",
+            "kernel/time/timer_list.o",
+            "kernel/time/alarmtimer.o",
+            "kernel/time/posix-timers.o",
+            "kernel/sched/core.o"
+          ]
+        },
+        {
+          "variant": "kbuild-periodic",
+          "purpose": "HIGH_RES_TIMERS=n, nohz off, periodic ticks",
+          "config_sha256": "4ae19ced1bacbc0ab77da9af20c0a00a8c2d8465a881a6054341376d559dd72e",
+          "objects": [
+            "arch/arm64/net/bpf_jit_comp.o",
+            "kernel/time/hrtimer.o",
+            "kernel/time/timer.o",
+            "kernel/time/tick-common.o",
+            "kernel/time/timer_list.o",
+            "kernel/time/alarmtimer.o",
+            "kernel/time/posix-timers.o"
+          ]
+        }
+      ],
+      "periodic_limit": "unchanged vendor sched/core.c fails with NO_HZ_COMMON=n: unguarded NOHZ_BALANCE_KICK/nohz_flags; excluded only from this test variant; not fixed or hidden as a full-kernel PASS",
+      "historical_checkpoint": true
+    },
+    "current_draft_replay": "PASS: all three production timer files remain byte-identical to the reconciled draft"
+  },
+  "preservation_and_replay": {
+    "baseline_paths": 73011,
+    "unchanged_preexisting_paths": 72884,
+    "changed_preexisting_paths": [
+      "Documentation/ABI/testing/sysfs-kernel-btf",
+      "Documentation/dev-tools/lz4-1.11-adaptation.diff",
+      "Documentation/dev-tools/lz4-1.11.json",
+      "Documentation/dev-tools/lz4-backport.rst",
+      "Documentation/networking/filter.txt",
+      "arch/arm64/net/bpf_jit.h",
+      "arch/arm64/net/bpf_jit_comp.c",
+      "arch/x86/net/bpf_jit_comp.c",
+      "drivers/media/rc/bpf-lirc.c",
+      "drivers/net/ppp/ppp_generic.c",
+      "drivers/net/team/team_mode_loadbalance.c",
+      "fs/seq_file.c",
+      "include/linux/bpf-cgroup.h",
+      "include/linux/bpf.h",
+      "include/linux/bpf_local_storage.h",
+      "include/linux/bpf_lsm.h",
+      "include/linux/bpf_types.h",
+      "include/linux/bpf_verifier.h",
+      "include/linux/btf.h",
+      "include/linux/btf_ids.h",
+      "include/linux/filter.h",
+      "include/linux/hrtimer.h",
+      "include/linux/ima.h",
+      "include/linux/lockdep.h",
+      "include/linux/module.h",
+      "include/linux/netdevice.h",
+      "include/linux/perf_event.h",
+      "include/linux/pid.h",
+      "include/linux/rcupdate.h",
+      "include/linux/sched.h",
+      "include/linux/security.h",
+      "include/linux/seq_file.h",
+      "include/linux/skmsg.h",
+      "include/linux/slab.h",
+      "include/linux/sockptr.h",
+      "include/linux/string.h",
+      "include/linux/timekeeping.h",
+      "include/linux/trace_events.h",
+      "include/linux/uaccess.h",
+      "include/net/bpf_sk_storage.h",
+      "include/net/inet_common.h",
+      "include/net/sock.h",
+      "include/net/tcp.h",
+      "include/net/xdp.h",
+      "include/net/xdp_sock.h",
+      "include/trace/events/timer.h",
+      "include/trace/events/xdp.h",
+      "include/uapi/linux/bpf.h",
+      "include/uapi/linux/btf.h",
+      "init/Kconfig",
+      "kernel/bpf/Makefile",
+      "kernel/bpf/arraymap.c",
+      "kernel/bpf/bpf_inode_storage.c",
+      "kernel/bpf/bpf_iter.c",
+      "kernel/bpf/bpf_local_storage.c",
+      "kernel/bpf/bpf_lsm.c",
+      "kernel/bpf/bpf_struct_ops.c",
+      "kernel/bpf/btf.c",
+      "kernel/bpf/cgroup.c",
+      "kernel/bpf/core.c",
+      "kernel/bpf/cpumap.c",
+      "kernel/bpf/devmap.c",
+      "kernel/bpf/disasm.c",
+      "kernel/bpf/disasm.h",
+      "kernel/bpf/hashtab.c",
+      "kernel/bpf/helpers.c",
+      "kernel/bpf/inode.c",
+      "kernel/bpf/local_storage.c",
+      "kernel/bpf/lpm_trie.c",
+      "kernel/bpf/map_in_map.c",
+      "kernel/bpf/preload/iterators/iterators.bpf.c",
+      "kernel/bpf/preload/iterators/iterators.c",
+      "kernel/bpf/reuseport_array.c",
+      "kernel/bpf/stackmap.c",
+      "kernel/bpf/syscall.c",
+      "kernel/bpf/sysfs_btf.c",
+      "kernel/bpf/task_iter.c",
+      "kernel/bpf/tnum.c",
+      "kernel/bpf/trampoline.c",
+      "kernel/bpf/verifier.c",
+      "kernel/events/core.c",
+      "kernel/fork.c",
+      "kernel/locking/lockdep.c",
+      "kernel/module.c",
+      "kernel/pid.c",
+      "kernel/time/hrtimer.c",
+      "kernel/trace/Makefile",
+      "kernel/trace/bpf_trace.c",
+      "lib/Makefile",
+      "lib/lz4/lz4.c",
+      "lib/test_bpf.c",
+      "mm/maccess.c",
+      "mm/slub.c",
+      "mm/util.c",
+      "net/Kconfig",
+      "net/bpf/test_run.c",
+      "net/core/bpf_sk_storage.c",
+      "net/core/dev.c",
+      "net/core/filter.c",
+      "net/core/ptp_classifier.c",
+      "net/core/skmsg.c",
+      "net/core/sock_map.c",
+      "net/core/xdp.c",
+      "net/ipv4/af_inet.c",
+      "net/ipv4/bpf_tcp_ca.c",
+      "net/ipv4/tcp.c",
+      "net/ipv4/tcp_ipv4.c",
+      "net/ipv4/udp.c",
+      "net/ipv6/af_inet6.c",
+      "net/ipv6/udp.c",
+      "net/netfilter/xt_bpf.c",
+      "net/sched/act_bpf.c",
+      "net/sched/cls_bpf.c",
+      "net/xdp/xsk.c",
+      "net/xdp/xskmap.c",
+      "samples/bpf/cookie_uid_helper_example.c",
+      "samples/bpf/sock_example.c",
+      "samples/bpf/test_cgrp2_attach.c",
+      "scripts/bpf_helpers_doc.py",
+      "security/bpf/hooks.c",
+      "security/integrity/ima/ima_main.c",
+      "tools/include/linux/filter.h",
+      "tools/include/uapi/linux/bpf.h",
+      "tools/testing/selftests/bpf/sendmsg4_prog.c",
+      "tools/testing/selftests/bpf/sendmsg6_prog.c",
+      "tools/testing/selftests/bpf/test_cgroup_storage.c",
+      "tools/testing/selftests/bpf/test_maps.c"
+    ],
+    "new_paths": [
+      "Documentation/bpf/bpf-5.15-upgrade.diff",
+      "Documentation/bpf/bpf-5.15-upgrade.json",
+      "Documentation/bpf/bpf-5.15-upgrade.rst",
+      "include/linux/bpfptr.h",
+      "include/linux/buildid.h",
+      "include/linux/mmap_lock.h",
+      "kernel/bpf/bpf_task_storage.c",
+      "kernel/trace/bpf_trace.h",
+      "lib/buildid.c",
+      "tools/testing/selftests/bpf/bpf_sockopt_helpers.h",
+      "tools/testing/selftests/bpf/prog_tests/atomic_bounds.c",
+      "tools/testing/selftests/bpf/prog_tests/hash_large_key.c",
+      "tools/testing/selftests/bpf/prog_tests/kfunc_call.c",
+      "tools/testing/selftests/bpf/progs/atomic_bounds.c",
+      "tools/testing/selftests/bpf/progs/kfunc_call_test.c",
+      "tools/testing/selftests/bpf/progs/kfunc_call_test_subprog.c",
+      "tools/testing/selftests/bpf/progs/test_hash_large_key.c",
+      "tools/testing/selftests/bpf/verifier/atomic_bounds.c",
+      "tools/testing/selftests/bpf_upgrade/README.md",
+      "tools/testing/selftests/bpf_upgrade/atomic_model.c",
+      "tools/testing/selftests/bpf_upgrade/core_model.c",
+      "tools/testing/selftests/bpf_upgrade/jmp32_model.c",
+      "tools/testing/selftests/bpf_upgrade/lockdep_model.c",
+      "tools/testing/selftests/bpf_upgrade/softirq_model.c",
+      "tools/testing/selftests/bpf_upgrade/test_atomics.py",
+      "tools/testing/selftests/bpf_upgrade/test_core.py",
+      "tools/testing/selftests/bpf_upgrade/test_jmp32.py",
+      "tools/testing/selftests/bpf_upgrade/test_lockdep.py",
+      "tools/testing/selftests/bpf_upgrade/test_runtime.c",
+      "tools/testing/selftests/bpf_upgrade/test_softirq.py",
+      "tools/testing/selftests/bpf_upgrade/test_timer_lifetime.py",
+      "tools/testing/selftests/bpf_upgrade/timer_lifetime_model.c"
+    ],
+    "deleted_paths": [],
+    "source_patch_paths": 139,
+    "source_patch_sha256": "c115ac46d6c75f94978e3245debf5033602c6e6ba13d1816b9d64ba18f0c96ea"
+  },
+  "source_delta_records": [
+    {
+      "path": "Documentation/ABI/testing/sysfs-kernel-btf",
+      "before_sha256": "ac14992971a4f4fdaf4d84606fc1eb3fe8fc6357fda7ad2bb548ff242f6f89d6",
+      "after_sha256": "d6c128d1c1ca386ead6212467da38ac598f0088a1ab6d10e58ffe75f404733c2"
+    },
+    {
+      "path": "Documentation/networking/filter.txt",
+      "before_sha256": "cfd5dfc3d76ad3864cf75f2e6046b70e0fbde4d3be3584be304bddc2dcb2a16a",
+      "after_sha256": "483edb07ab50bd8aeb16bcc9f699859a78a4f567bc6e2edd3894af2a1c8b2551"
+    },
+    {
+      "path": "arch/arm64/net/bpf_jit.h",
+      "before_sha256": "970af93da7abaa73298997f67b988503e2922fdcd206c1939762bffbd115e899",
+      "after_sha256": "c8abe1a3d5eeef1db9c9802b9b499c46d6f8650d6444774919dec0fa69c06923"
+    },
+    {
+      "path": "arch/arm64/net/bpf_jit_comp.c",
+      "before_sha256": "e95426db6a7443d36e58ada7f6c5204e46a203265e62c9b384018ed12fec5952",
+      "after_sha256": "2157347f24fb9216c7bf2e25b19bf3fc59a0ec4f15e8c6f1285d8f97415ab88f"
+    },
+    {
+      "path": "arch/x86/net/bpf_jit_comp.c",
+      "before_sha256": "b1e0330d32c3ba3375e149f6279f3abeebe1b190b499c950ead42302ee0d79db",
+      "after_sha256": "2f7b8b5e875d1d303858420a9e8b5c385626e1daee9d9088290ba24393c0a74c"
+    },
+    {
+      "path": "drivers/media/rc/bpf-lirc.c",
+      "before_sha256": "899435e8d14a5cf79b0e74a5e9893752d5674a7e1b8f07fe8d53b528208c80c3",
+      "after_sha256": "62a5a1b478d31ce8de3929ca86bcca55ed48d43b456cc557649e087c920762fd"
+    },
+    {
+      "path": "drivers/net/ppp/ppp_generic.c",
+      "before_sha256": "73e35822d1fb438772fcc31edda1f0054b8f382d13afe7b9cc19f2379dcd3be3",
+      "after_sha256": "f14d4ce74beafe814b653ca41f28e7b64d1c672968cec2b71f7c6baba2de5461"
+    },
+    {
+      "path": "drivers/net/team/team_mode_loadbalance.c",
+      "before_sha256": "501ae34dba3de9dda4d1a5d5104d405ee20a28e9c1c580f92447b39a3e9ea4cd",
+      "after_sha256": "f8506f7d909d58cac70ca35f048255485cc656bb594c02f0425f15e076cd3d3f"
+    },
+    {
+      "path": "fs/seq_file.c",
+      "before_sha256": "160abf9ef2ce99468b191d6af30a366f972af4405d585bd5be5d97436b78bc49",
+      "after_sha256": "433e6160efca61fa466a7c3596ad56652679d6f2baa78447a7e685be4f40b7f3"
+    },
+    {
+      "path": "include/linux/bpf-cgroup.h",
+      "before_sha256": "7dfa9dc431a6c444fc928cae467a07e011972e82ca8a409ecf233213a89f0082",
+      "after_sha256": "ca813c6810730d735716a5df7a902cc94101835d868a89d58a65db8439f3bd7b"
+    },
+    {
+      "path": "include/linux/bpf.h",
+      "before_sha256": "c350a2a74cc002679044d0f6e379d2ea70a186830892ea22c968cbf570850c03",
+      "after_sha256": "a0aee4fc9ca8352730290fdaceb1473904ef1c93eaf6653b8ec94d9316b06246"
+    },
+    {
+      "path": "include/linux/bpf_local_storage.h",
+      "before_sha256": "e1f3c920973e02c514ac5c928dc7d79b86a86760265cba77f7a34823177d0f6a",
+      "after_sha256": "a69708f602ab53cf4db3c93e346bee44b1e795a18eb79e71f878b5c6938d6bd1"
+    },
+    {
+      "path": "include/linux/bpf_lsm.h",
+      "before_sha256": "d88b37329d4ccc780babd092016b1390fc28d3926248ced2f2c4a6a8a50af596",
+      "after_sha256": "39ee195bee4f8c7f8a5a898bc43fe5681b68ce371b7a6f60c6b91c3072b4dca1"
+    },
+    {
+      "path": "include/linux/bpf_types.h",
+      "before_sha256": "0a85182bc61eaa735d069feac56d36bb4adf698be09491660cec61c9667cd045",
+      "after_sha256": "44e3c5b6f9a4eaf0f7244a3b9e4d73a541841d7363ffde78a759207e138a77f4"
+    },
+    {
+      "path": "include/linux/bpf_verifier.h",
+      "before_sha256": "90d081366bd8772185cefd29780abb43ceeedc67f8153231a2810301e1be9de1",
+      "after_sha256": "70133b5c8a28093c58a5c0da90bc67327154fe2a253a89a91ec1adbf2b7fe49b"
+    },
+    {
+      "path": "include/linux/bpfptr.h",
+      "before_sha256": null,
+      "after_sha256": "1440a389b0ba050a68d4e2695ba719a10a96e16cc25816b44ff228ccd3c721af"
+    },
+    {
+      "path": "include/linux/btf.h",
+      "before_sha256": "2deda09a575a96db64f35cff8255184912534682681c54eabb34464b770270ad",
+      "after_sha256": "9199e92eb6225fe9359e49347c2926380181784397d0a97dddf1776e088ca34e"
+    },
+    {
+      "path": "include/linux/btf_ids.h",
+      "before_sha256": "1b946f6488788fc17bd587a05c4cf0194f3d1f698cd8be1811b243ded0ba6be1",
+      "after_sha256": "3f830199e4a665f50276fee2b05bcb32f38315a1339beb4f72d89db9753a73a3"
+    },
+    {
+      "path": "include/linux/buildid.h",
+      "before_sha256": null,
+      "after_sha256": "c409bf37c5937ed8bad3132b7907084fc3001e51ac88519d89b94dbe0cd9e71e"
+    },
+    {
+      "path": "include/linux/filter.h",
+      "before_sha256": "7631a713ae09be7197d35c44667ecc8f99550e8a7137e505ad522ac5946583da",
+      "after_sha256": "411834b674040beb7b869b76b7b636bffc62883059e60c7e2338be5009d1bfac"
+    },
+    {
+      "path": "include/linux/hrtimer.h",
+      "before_sha256": "06a1432d878202f629239024feb9d16f479368229eec2d4ec30c88bd1b1e6a26",
+      "after_sha256": "558f31532879fd9030f8186a96a0b47791b1b53aaa6f7612c47610f5f89e5085"
+    },
+    {
+      "path": "include/linux/ima.h",
+      "before_sha256": "eacd9b4b1c9cce01bcb2722b06b5a1125cbb12f49e63c87c121c787eae48ce21",
+      "after_sha256": "0474053c11051b55283d81ed1014c6190f9c272bf10233eadcddb2b914190506"
+    },
+    {
+      "path": "include/linux/lockdep.h",
+      "before_sha256": "b180e6f29e2afc12683ede7ef1e3a38946271e39174cd4d328a6cacbceb6e6dc",
+      "after_sha256": "1ea67d9f0d344da2092c21ea744b2f8020f8d4462f750dd2a8fb58609a185228"
+    },
+    {
+      "path": "include/linux/mmap_lock.h",
+      "before_sha256": null,
+      "after_sha256": "c2cfe1950552a6cab682ccea1258fd586c9249e1f452a3f5606ce17afa46f028"
+    },
+    {
+      "path": "include/linux/module.h",
+      "before_sha256": "7d3b063c51d3b1a80dac12fa4c5ce37e7c935e2c1a54cbca534bf1e1e83f97bd",
+      "after_sha256": "ec0ca86df2dc12a6370809ec76e7a9cbe716fb8f48d5e4d87858316a43892433"
+    },
+    {
+      "path": "include/linux/netdevice.h",
+      "before_sha256": "7411b3b0d6af3d6343b569fbdc2b3f537c00a2b9fb950d4ed9096acba63cc01e",
+      "after_sha256": "1ff510f0638fc3a78f82a168255f1b32f3d508ede7c7962f2b157e994b72e171"
+    },
+    {
+      "path": "include/linux/perf_event.h",
+      "before_sha256": "524ebbdf6c6c855695741de28ff385febd5ee9f73259b843a8aab127f83a136b",
+      "after_sha256": "474eefe4968ac7ba9c040f7b70f1ea6c2f78e2c69c123f5f356e964e3581d1de"
+    },
+    {
+      "path": "include/linux/pid.h",
+      "before_sha256": "b686f59fdf30ebf743da34b55a9a45b601a3fecb21427e706e76747a1cc7739a",
+      "after_sha256": "e8592b0542bc2b77ac2ccbf7c3f2db12b7a2d6396c9119a41fe04bfe5cc24059"
+    },
+    {
+      "path": "include/linux/rcupdate.h",
+      "before_sha256": "6a2034300213b9dbb3155c7b2e12df68ead8a594cb8aa847aad9c2a768d940c5",
+      "after_sha256": "ab3b9749c3343cfcc7bbb3c5f989adc69765f9c8c6da60e82dfb5a1b5e7d0ae8"
+    },
+    {
+      "path": "include/linux/sched.h",
+      "before_sha256": "338831b16d4578208753fe7902d1d3d06ef024dc63e6b6de49ba5a8dc3a68e3a",
+      "after_sha256": "037bfe8263750b972717b966cfeb00c0f41489fbca6aa1d76a1c3c105dfe1707"
+    },
+    {
+      "path": "include/linux/security.h",
+      "before_sha256": "59e992d9bbf9c88d545f2dc2cdac9eb06395f1684cde25ca146506045b69b84a",
+      "after_sha256": "9b4d5224feb0dd55a631c3edfb3e3dd24b3837968c3afca2da3b2d628b946864"
+    },
+    {
+      "path": "include/linux/seq_file.h",
+      "before_sha256": "455bea6a024a06eecfd2bc0ff214a038c2660a48d59f139c93a3404fc0fc2531",
+      "after_sha256": "1fbbfd9269a34c094d00ddab0ec13833c7e721b76ae30f67273b0d4d17838104"
+    },
+    {
+      "path": "include/linux/skmsg.h",
+      "before_sha256": "9290f24b1ff6945fc40ef5680b03861855febaf2d8f012a391b95d33ce2689b2",
+      "after_sha256": "222ff618b4e6d0412b9538dc29645cb6993c2ed3e6143abd9b7d28dcfca59630"
+    },
+    {
+      "path": "include/linux/slab.h",
+      "before_sha256": "c342b36c4010e53a1229767eed6c803640ee1f3738ef32614a47bb9c0632e447",
+      "after_sha256": "e3f12f570d1a5f14dd8e47dd9f6971f0cf7e7760e45f3ddb6d418dcd40f3ec7f"
+    },
+    {
+      "path": "include/linux/sockptr.h",
+      "before_sha256": "1404e7e692c517efda195fa0aeb75358f4d11476b621b588f35ff18a91c84102",
+      "after_sha256": "bd7915d1fbb0aba72f7553bd24033b30645f478d23c5a167e270ed21aa72e12f"
+    },
+    {
+      "path": "include/linux/string.h",
+      "before_sha256": "8eda59ec426445827ffa0e40fe1b4f56db1dc1cec9c1f796c0dabeb94cfe6868",
+      "after_sha256": "3223d232a5f05a5aabce1e74a6423e4554e18643b03d72e9929fc7af722a3080"
+    },
+    {
+      "path": "include/linux/timekeeping.h",
+      "before_sha256": "bff4ac0bcbffca568dda65446f5a4b2e4b140774c1439d01733e9f640ccd6098",
+      "after_sha256": "39842faef32d9ea23c0162cb6a2b41170da9cc2b2718bb6f6dc457f952abfa91"
+    },
+    {
+      "path": "include/linux/trace_events.h",
+      "before_sha256": "1aa700413628951ce1015eb3ccb7596c6859c5748527fc8acf007f30ee3afb2e",
+      "after_sha256": "8b816a66a4b4be1c1d02007f998e959c2434b6fb120497daf11ec092cca25c98"
+    },
+    {
+      "path": "include/linux/uaccess.h",
+      "before_sha256": "aead8a3ec52844db76dd3d5332afa82e870faa653544807ceffad3d004c42421",
+      "after_sha256": "5d7a53f0d5d2fde95ab8c0b572c33f22fbedf8ff40105f2dc2d23111e9b01ac3"
+    },
+    {
+      "path": "include/net/bpf_sk_storage.h",
+      "before_sha256": "2768b8c239667067e667e6180236a76343f320bf146393129d70880fdb30cd3e",
+      "after_sha256": "a03be3d0628f2b3018f1777de0dbd0217d24302e2e74d199abe4d93bbdf7a656"
+    },
+    {
+      "path": "include/net/inet_common.h",
+      "before_sha256": "cdce2316f3811ce6e494e8dc04b665e4f371a4e64347706798ccb08fb0951960",
+      "after_sha256": "d9562da7e26b99f5bb9cdb40eee76e07e5b1cfc2f951222a55465ce9d16b6fb6"
+    },
+    {
+      "path": "include/net/sock.h",
+      "before_sha256": "421f18e25f8d5d39058aed809636efb785a9d3ff307b835ff8700527449d3667",
+      "after_sha256": "9fcd062cfab0b107b600ba8eea55381569096f28266a315152427d32e10a4778"
+    },
+    {
+      "path": "include/net/tcp.h",
+      "before_sha256": "532601d20b561dcf780266831cf4b41b39e0feaac5831d42d91e5e0202466d50",
+      "after_sha256": "5208e244f708997a1d748bf45ae84563e5354b43521ac5b8491091c6cd7174fc"
+    },
+    {
+      "path": "include/net/xdp.h",
+      "before_sha256": "fc839d6e64e0f67d4f06e2d18c53e69f2373df4941a17981808d82a17cb36f76",
+      "after_sha256": "8f1da4606580ab0b67831f84faec3b9b5a59de5b0bf02eaf5f22079bf8c85db9"
+    },
+    {
+      "path": "include/net/xdp_sock.h",
+      "before_sha256": "e3cbfa75a6ed57b3c85d885437c5cf2e3ee1a44b2b7477be52842dc146986fb8",
+      "after_sha256": "e41fae95c6c40c93f9c61abf5cbe125fdf9e65384abecb022341aaef4f2f06bb"
+    },
+    {
+      "path": "include/trace/events/timer.h",
+      "before_sha256": "616730ca9653a62f642b1aa1251690fc4bcaf4cbed9e6f6e443b76efc3d8bcc8",
+      "after_sha256": "c67cccf52126d976b6271b5e3a593fbf4dab0e3f5e0b90cfe1ec4f4ca7a162d0"
+    },
+    {
+      "path": "include/trace/events/xdp.h",
+      "before_sha256": "18747b67bf44c0f8fff28c1997cbe13714cdeedd0475c639f56d5fe827284c2a",
+      "after_sha256": "14cf06db6f9b9b21767b5dbf8ac91f53f2375e08b8b0f00c8544c5ec06955056"
+    },
+    {
+      "path": "include/uapi/linux/bpf.h",
+      "before_sha256": "e8527b1f20346927804b1b262bde86e91d41c1e3df317ab2c4a7374bbb1fac49",
+      "after_sha256": "37a2721e78e258fa3bd56c649cb67af437d6a24ff9c0fa53dc4ce4d0258aa16c"
+    },
+    {
+      "path": "include/uapi/linux/btf.h",
+      "before_sha256": "433db0e65058a2725ae2a45e69e192ccde620cbfb62ac3fa02f27060f812eb67",
+      "after_sha256": "d28c75b186ab74d4966c8cca4181f4736b04b757bb4f7547ad91e149d0cb3b87"
+    },
+    {
+      "path": "init/Kconfig",
+      "before_sha256": "09c6875b4f22152aaa611b55d4d6927c60701474320948343c01c223fddd5b83",
+      "after_sha256": "7b5cf0779ec293cb09a425a1021ca8bfe02cc8534c2d5eb0300f64b4d4385e76"
+    },
+    {
+      "path": "kernel/bpf/Makefile",
+      "before_sha256": "12655574a217ae07d600820f9262f749001e86d079926bdda9d914076de0e176",
+      "after_sha256": "6cc9d2ca5211bbd5c9139343783b3546fb6788a3e742e928dbe737e8311ae80e"
+    },
+    {
+      "path": "kernel/bpf/arraymap.c",
+      "before_sha256": "0a296ea7dfe9ce57c6ae7264ff71bda03767c8a3c33928ee40a3ddaed08a38b8",
+      "after_sha256": "b512aabbda93df7dfc9ea4d748b4914fb3079f366f17e6c804db9b79b495279e"
+    },
+    {
+      "path": "kernel/bpf/bpf_inode_storage.c",
+      "before_sha256": "734632cf0e1d49da027272d91e663414e1c37237167b252065c64e5c93dd4c7b",
+      "after_sha256": "526e30ca217c7edcb9559409f7e63483db922b63612631a275ce731bc63372c1"
+    },
+    {
+      "path": "kernel/bpf/bpf_iter.c",
+      "before_sha256": "59b76952d711f36ac8d23e3863594d8bb57bf24bddf0b345fd0d0a0f50993e4a",
+      "after_sha256": "0144e96b11442e6720e0fb5528e5cb597dc9c6bf8fbf9f1df2bc9a6dfe69e37b"
+    },
+    {
+      "path": "kernel/bpf/bpf_local_storage.c",
+      "before_sha256": "da06a7642589384250545158b92ae9ea5a2213fcc79f6563851de332ad2604f2",
+      "after_sha256": "21b0590b131f2b031e6ca5e4173b4efb2b218698bfd3b33875fba796afbac167"
+    },
+    {
+      "path": "kernel/bpf/bpf_lsm.c",
+      "before_sha256": "9f88a03c3a27f1a9cbd97070f23c1697f7e7a592cb938a84e15d9929606f92d7",
+      "after_sha256": "3fd1ef1c2f06b28bd333c148c9d9861b0dbf9da8653e0699f32170d31f10f9c6"
+    },
+    {
+      "path": "kernel/bpf/bpf_struct_ops.c",
+      "before_sha256": "8e2cc1ceb372df3cbe925d5d861a6379191346465dd326b25f67a79547b83f3b",
+      "after_sha256": "44aa416fadf67495b3c417deb92def53b421e3c2d1037ef339920ba2ffce9940"
+    },
+    {
+      "path": "kernel/bpf/bpf_task_storage.c",
+      "before_sha256": null,
+      "after_sha256": "e6043564419f0cc200a9ff94b1f9f3277ae0413e28e7c03ff737331f6161c9e6"
+    },
+    {
+      "path": "kernel/bpf/btf.c",
+      "before_sha256": "af90efb4605b8b634d3d227a87a1d5e614148a5d086bc8256d6972409e2b1d09",
+      "after_sha256": "e776f6f8a422467fbff4816e65278ff5561eb69dae6a363a05d4468bcb49f030"
+    },
+    {
+      "path": "kernel/bpf/cgroup.c",
+      "before_sha256": "db63319141e2fa79e24d4bb97444e6a1e6b2002c834dfc9ddd0d1908c2ed38f8",
+      "after_sha256": "1223a9796b702f50d06c869d52ba9bbe7dfee1b7475332f053d06709c442dd0d"
+    },
+    {
+      "path": "kernel/bpf/core.c",
+      "before_sha256": "fcf5eac5848f6632d5fc5ce95dae35f6783539637ec88436da8fbbc925b3f66d",
+      "after_sha256": "d7c7885676f5a2c59a7b0cd04e69e3454d2bd7b8f4a7450d4333234559957005"
+    },
+    {
+      "path": "kernel/bpf/cpumap.c",
+      "before_sha256": "ac0b870feb2c72d11bbfdbd59419637b1edad1466548eca551e6bc885a5b8e92",
+      "after_sha256": "c24800a6b5041da6f27e0680e3c2b43b8e53f4a03d538d16bb7f243a0cb97566"
+    },
+    {
+      "path": "kernel/bpf/devmap.c",
+      "before_sha256": "7ff1c14df4816fc639eb69bdbdae58a6da532f47ab656085341330e26160f8fe",
+      "after_sha256": "c2ab742edd5ab1e29d61607e3447a585743f977b6c26e8adb2d16a3a7d3dd746"
+    },
+    {
+      "path": "kernel/bpf/disasm.c",
+      "before_sha256": "9d708f441620bb540785b18033ad00b34df329015b40c7fa53e3dc2bf98e4f60",
+      "after_sha256": "f2b2f948ccf2bd6d2c15adac258a0890bc2f3a9044515d0c52b428b4657f9e88"
+    },
+    {
+      "path": "kernel/bpf/disasm.h",
+      "before_sha256": "89f1106a8f6fdc6ead153fea115075ef0432b30049fdc38fef16635d5e6e97c3",
+      "after_sha256": "a0b0b75898c8c7f17b08e646345605bfc088f7e93061ad31a4ea3e978e17e105"
+    },
+    {
+      "path": "kernel/bpf/hashtab.c",
+      "before_sha256": "7103b17dd273f275301ea967f125a6556f17a58d4c9ed0cdb17ba9031b7e1e69",
+      "after_sha256": "6ab1251b64d914f68b782b6902d9f1bba19f84a1793b3af03bffa9487363bafd"
+    },
+    {
+      "path": "kernel/bpf/helpers.c",
+      "before_sha256": "0035657211e0492dc6f528b76bb462ff62cd8fc503fa69dcf923f36d2d83dbbb",
+      "after_sha256": "7094d80ff01dfde5d62621ea8e27b05a377b8cd7916b2b709fd741a18153dae1"
+    },
+    {
+      "path": "kernel/bpf/inode.c",
+      "before_sha256": "695e9a7b2340106f9253b2553a7b5df4dc4b28d2fe331c371e14d6153d65c700",
+      "after_sha256": "caab591503340fc02f58b66b239a5a6c4be6095f749a3a3fbc2dd42ac960526b"
+    },
+    {
+      "path": "kernel/bpf/local_storage.c",
+      "before_sha256": "982e89ed237a3dd05b8ea434198cddaefe077f09276d7b870dbfaa8a83554df2",
+      "after_sha256": "3d501bf012c6f12cf02016e0a5694ee15dc7a3d7e81dfc1c40f49065d12bd165"
+    },
+    {
+      "path": "kernel/bpf/lpm_trie.c",
+      "before_sha256": "2d0b854140c172016b91a1d43dbdf03693f8b78976a2a24d61c6181fce717c1b",
+      "after_sha256": "1afc2c6658d5cb482f91d27378803ec29d7c879f12e221bed17a16da2e4a0276"
+    },
+    {
+      "path": "kernel/bpf/map_in_map.c",
+      "before_sha256": "aed593818626201180891007e728bbd0cd35e3a02ba1522122dbab6766ac2bdd",
+      "after_sha256": "c7bc1c62799f68dd48f08d8b850acb29a0cb1f1e64542218b7818a3d9f1554df"
+    },
+    {
+      "path": "kernel/bpf/preload/iterators/iterators.bpf.c",
+      "before_sha256": "0e0b787d1883cfd886b58f5303b1d3722d4ff9bea76b7aa9dae2beb38d2999b0",
+      "after_sha256": "4ed32b62dec100ab80f0703aa7efbc7781aee5645e9c4a0e4d36b8901e3d9b79"
+    },
+    {
+      "path": "kernel/bpf/preload/iterators/iterators.c",
+      "before_sha256": "85dca5e56d93e45370f4c0c9351a6718e5885b6636efcb637b9d441ae3797007",
+      "after_sha256": "1d09df158c61896cc33dbba3b2efedec80be5428c7b63a2726dfb1e5121d6a69"
+    },
+    {
+      "path": "kernel/bpf/reuseport_array.c",
+      "before_sha256": "72a629817aa4efe46fec6bb11598e7a74749878297bbd58ea7794727abfb13a8",
+      "after_sha256": "aefcb739145ed126985d9d7fdfebc7b61d7c4525a5e9e9c85cc9ebbbe33c081a"
+    },
+    {
+      "path": "kernel/bpf/stackmap.c",
+      "before_sha256": "30f979b2c2e164cdbdc51c76e2026a057d351a576213f0de1c9c8c35d824ac67",
+      "after_sha256": "5e6b832010185a5884540346e8ce5ffb1aafaeeeb6d60496afd9dc25f8a64958"
+    },
+    {
+      "path": "kernel/bpf/syscall.c",
+      "before_sha256": "ddee4019a8e19929dbad9e3ce985ae2532a87d389e03237dd473b367ef1753cc",
+      "after_sha256": "931a47f3be926b81f7351d7668aad0fe8013dc399018babfc144ff735ddaae1d"
+    },
+    {
+      "path": "kernel/bpf/sysfs_btf.c",
+      "before_sha256": "07ed20c0c8d46a0d28240a2db620cbe2b17ccb729cfed220ba3278d194d12562",
+      "after_sha256": "1c4fe25c5101971474e9993df1fd2a67102650655ec78e1df370d2c88ab3e06b"
+    },
+    {
+      "path": "kernel/bpf/task_iter.c",
+      "before_sha256": "1115112442f8200ff4a165e924314e13715e1b47fbd0df6d64a5e124d5813892",
+      "after_sha256": "234c4e4089a1e8384350f177303fb57fcee4e8a05ce524a9688b2f85cbd385ec"
+    },
+    {
+      "path": "kernel/bpf/tnum.c",
+      "before_sha256": "38f46112cfc9c8a5f5121eb80703f40d5fd97ed10730e99359ca6bec9c946f4e",
+      "after_sha256": "f90cb69a3169459b25ffbe24678c1ade73aba0cb2e513ac15760e013cd7469d8"
+    },
+    {
+      "path": "kernel/bpf/trampoline.c",
+      "before_sha256": "2708c61c2ab69c3e9f48ca8126d58509875cbce92a568b6491feceae337308f0",
+      "after_sha256": "db70772ba24df364fdf22ef714d69301fb214895196883aa333221c4528f54e5"
+    },
+    {
+      "path": "kernel/bpf/verifier.c",
+      "before_sha256": "2640ac8858d43ee30799dbff1ced14a00b7709a7683b88aafc49da17eedb6049",
+      "after_sha256": "342711282786a9a8a48885b831d9164843efbada3011ba7a68d2a798fa90c5ad"
+    },
+    {
+      "path": "kernel/events/core.c",
+      "before_sha256": "08bacb380dcf421ff0b56f53e2d8df01418a5e0ffc8c89b47f9ec591b61ec9e5",
+      "after_sha256": "e1346ad33a21e87bb32ca9b0aaecd6fa774d57ba5f167c4b2489291e503e041f"
+    },
+    {
+      "path": "kernel/fork.c",
+      "before_sha256": "872cc3feffac6b5acb6f7a1f5c27417fdc0d8d75aafe0ea9968d90f0e702ec74",
+      "after_sha256": "eb72ec173b2be08338d1db7174bfaa3d408cb8f836adadd8f9090d755ce2ad26"
+    },
+    {
+      "path": "kernel/locking/lockdep.c",
+      "before_sha256": "9f9bdf0c96937f2dda87360bc63bb5cce7ec4e3d99b0caee006469acaaede603",
+      "after_sha256": "1524b6ac8838b5d3afe47d968424cd5c2340d9341546be8c488746a2fdd41447"
+    },
+    {
+      "path": "kernel/module.c",
+      "before_sha256": "18ea43993429b8b66cab78f328fd303a1d8bdf68b71ef3e18645d9f76244b3c7",
+      "after_sha256": "b07d980df6edf8f9ee41f9fc20a43ae182161ef5c36028c66aec081b9a431eca"
+    },
+    {
+      "path": "kernel/pid.c",
+      "before_sha256": "8eaf068889b1492341d7a4b9e7ba0741746532326e4c97da002555b7f1ccd78c",
+      "after_sha256": "8c548c9a4893d593d7fa3512e5de87913fff7065a4f1e8a23c41969986c4485c"
+    },
+    {
+      "path": "kernel/time/hrtimer.c",
+      "before_sha256": "9895febbc1eac573c35ef71d3d96b5afc26195898ccfc807a9213c06e0e85ffa",
+      "after_sha256": "ee7085561ada7649b3f14ecf80c892ed3ff9e616c388ba07b27bac1d5cd3e28d"
+    },
+    {
+      "path": "kernel/trace/Makefile",
+      "before_sha256": "f93d1d76b455206f21d1fad36213eaf2e67daa2b868983ce1fa7f25af31e9b19",
+      "after_sha256": "0e97ffd398e4ff0af44047663843eae428b7b295f1b06a24198872efd4f38ead"
+    },
+    {
+      "path": "kernel/trace/bpf_trace.c",
+      "before_sha256": "5c93e54bdbe55767e462b148ceb01ade42ce666e6a05427e83a943b346abdc16",
+      "after_sha256": "34c453f1265e52748e12bda2c59b06ae7a67f12682cb07c65266f34f23022c29"
+    },
+    {
+      "path": "kernel/trace/bpf_trace.h",
+      "before_sha256": null,
+      "after_sha256": "428d097b18088d1a596e784fb4a3c4418daaf15660f2f0f5e48f655b9807c8c2"
+    },
+    {
+      "path": "lib/Makefile",
+      "before_sha256": "33813acdbbbd3c6c55d7170f4677ac6efc7c07dd4b42eb33fffaa16235f081c2",
+      "after_sha256": "022671e0e10692456639be9511483fa33bb69f2d177e2843e44def83f961e37e"
+    },
+    {
+      "path": "lib/buildid.c",
+      "before_sha256": null,
+      "after_sha256": "741a0fd862e3dc62eb84e88fa8cba7be605bd4e2ea08debb44876d53f6881079"
+    },
+    {
+      "path": "lib/lz4/lz4.c",
+      "before_sha256": "8f9195beee62d811fe09bc453de1165a1eb23a33744789f6f037aed2ff5b7de2",
+      "after_sha256": "ce908074bbf10d145faadbe733dd10ac4ecbeb5c745b6e0e7245a391b961f51c"
+    },
+    {
+      "path": "lib/test_bpf.c",
+      "before_sha256": "26a7694d67579178258a002ef77b81b7705a68452f3a156e447218bdc2c67643",
+      "after_sha256": "2b5f953bdf016cba2bbed4be985dd536e4c4983dc2686dbca49c297d0bfaae12"
+    },
+    {
+      "path": "mm/maccess.c",
+      "before_sha256": "6311f926eb312da8d0fed8ed3fcd1490178ce98f63cd171fc07494323d136941",
+      "after_sha256": "a4be4930b0023f34526e622de3823b6e428198059bb9c2a9f8d9b2e8755eaeac"
+    },
+    {
+      "path": "mm/slub.c",
+      "before_sha256": "40623671a3aa1934db1e272b3ec5867b0711dd65ca24043e63a6852e0b3733b7",
+      "after_sha256": "459bfc8afdf70bb35dc41a30989d9828b0929995b7c38a1f43ffb4fbed89c958"
+    },
+    {
+      "path": "mm/util.c",
+      "before_sha256": "12dcf6b0991641447e6df3f025fbde360f5752ed882e2cdc921014f9bc32508b",
+      "after_sha256": "3491a90520604b65a626977324f079a78988cc21b78dc47b1b1cfaf304faca03"
+    },
+    {
+      "path": "net/Kconfig",
+      "before_sha256": "49ad94c2226d88b51cde5e4cae779169935be59c01fa1ef44b3ef900c2445f72",
+      "after_sha256": "528aacf091daf3a330e7fd2752b32215992e0eff3d0cae6e09a81c27b18fd028"
+    },
+    {
+      "path": "net/bpf/test_run.c",
+      "before_sha256": "1007ed93aa1d3b771de6a5144817bc28d16f65bf47961c756882cc1ce10cf0d8",
+      "after_sha256": "3929ba3f9010620fc572a2a1b78dadfe9274c2d67535146b83d68a2ab6c6ed02"
+    },
+    {
+      "path": "net/core/bpf_sk_storage.c",
+      "before_sha256": "6e5da7954baa45fbaee302f5d228bf01403b3916c1aa17b72ac05d70fb8f413d",
+      "after_sha256": "6e87cba713089d63eb67664b5e1cf3ac654b9608df556fd6361e0e9b6deda8e8"
+    },
+    {
+      "path": "net/core/dev.c",
+      "before_sha256": "43fe4380cc4cf8df1279fa353952606e29eab6b8b7f299fd0e985e725661fcbf",
+      "after_sha256": "8b6265fc119d33ae29f7b2e09a5921598667ecc7372f2640a3388a4dcff36afb"
+    },
+    {
+      "path": "net/core/filter.c",
+      "before_sha256": "95817587c873af3a647d64b5c33f99521606f196d6dc19bc06ce217490fe5662",
+      "after_sha256": "35c48334d28b660a58e1a833f6a62dd35995510190601edf923114600d911df9"
+    },
+    {
+      "path": "net/core/ptp_classifier.c",
+      "before_sha256": "66a4e7301fc3d37a9124a80f3d9c46702a7c29fda6dcc3b5af030ffd8ba6b91f",
+      "after_sha256": "3910ed2121b61d79770240937fff431c05de0d59edc66b9f228ac29ed9daa446"
+    },
+    {
+      "path": "net/core/skmsg.c",
+      "before_sha256": "a7923501424baf94fff55bf0b0d5331bef3087623abae68acbc6530f47fcf3e9",
+      "after_sha256": "829a7f6a70a0deea26581fed9f6d18ea0b946b93d5ff5572020d6283ed68c920"
+    },
+    {
+      "path": "net/core/sock_map.c",
+      "before_sha256": "3f7d2f9060963afae14cebcab5fa6bceb04939c6f1f011ea90635c1afe03baa5",
+      "after_sha256": "e12897c139b4443bb1645a3c83d978d07da7e310ad4be9216becf07b99d192b0"
+    },
+    {
+      "path": "net/core/xdp.c",
+      "before_sha256": "2444ac3d495b5ec9920038e8f13e62cd72118265c9b6ead673484b959986bea4",
+      "after_sha256": "f0bb2bd780c6bbaa5d25fde783c7daa6c468d933c6edebd5854871f4287a1f7e"
+    },
+    {
+      "path": "net/ipv4/af_inet.c",
+      "before_sha256": "a4822a7a0cc5512869114203a221562a2151b3d7acbe08d010de5f6596d57121",
+      "after_sha256": "4a7fdab0149045c8ac54e297f49da76516fabb39181ad85a3f3b6adc71379ea6"
+    },
+    {
+      "path": "net/ipv4/bpf_tcp_ca.c",
+      "before_sha256": "2495c9499034e939ce3b0d066b73ef32164fc7c69559fb334dec05fbc7a39727",
+      "after_sha256": "279cb7a2413d3a401fcc92ea1e38530c7e12a71ff0070c59484f2c732a49880e"
+    },
+    {
+      "path": "net/ipv4/tcp.c",
+      "before_sha256": "afef8b84440beab21c84567d130d2206ebc83ba7c1889c97067a04ffa12a77d7",
+      "after_sha256": "446047081cf4ba6fbb83d08a4adb6fb33f5124fa8eafa6875824f1329fd242e6"
+    },
+    {
+      "path": "net/ipv4/tcp_ipv4.c",
+      "before_sha256": "f8fae58b2ab5c6dd20f410d5845cee5def786fd14d0a226d75643835bdc019a4",
+      "after_sha256": "8de2cdcc05ef713adce6003040a0437cd39b55cca193dbba1c75275c8fe159e8"
+    },
+    {
+      "path": "net/ipv4/udp.c",
+      "before_sha256": "88785b61e9efc9ba7406d26e5af7de2a382910f7c43be41fb3224e9522926b0e",
+      "after_sha256": "85be713a7e3bafb76f3dc88317905406375bef388acdd9b114d6e32b8f3f61fd"
+    },
+    {
+      "path": "net/ipv6/af_inet6.c",
+      "before_sha256": "dd334da5fb9e68ed2d79a78ebcdeee4a22f5af1d7998efeb262cc197602f764e",
+      "after_sha256": "cc3e67d120e2512a79bba98242b8820aed33bfb33b6901d4e11144301b89233a"
+    },
+    {
+      "path": "net/ipv6/udp.c",
+      "before_sha256": "97f70cd52ad7fbbd81922127cd57fbcd61e66cd688cc1ca297acc2e9f7d535ae",
+      "after_sha256": "abae2f9072f08bda5b3d684055605e77656da95c1deb9fbe22a010610cfa0c09"
+    },
+    {
+      "path": "net/netfilter/xt_bpf.c",
+      "before_sha256": "c055a66228af0b57fe1e0bc4e9410cfba08c1dba4c6c5f18db6f79833a1facce",
+      "after_sha256": "bebf89aaa03c680109d76499f9a7825c873ba018676c6dbc4b90cd2e4709aa60"
+    },
+    {
+      "path": "net/sched/act_bpf.c",
+      "before_sha256": "fa6c9afdf5b927db15d73bb4ff02dd190461609c805d9cfe1e666b7f56c635cb",
+      "after_sha256": "59c330ce282de61cf2b047465376bb9b3bee9ab89eaca44aad01ead660f1c597"
+    },
+    {
+      "path": "net/sched/cls_bpf.c",
+      "before_sha256": "ef47b59a237e39d17e099523c1f310be762e4157020d350fe23c91f8e5d76e27",
+      "after_sha256": "d6e71adbbad4295c9b6e78313b97643bff20bacf9b98de083b79c8f6f053a947"
+    },
+    {
+      "path": "net/xdp/xsk.c",
+      "before_sha256": "397a35d41b3a6136b815531717589f9a9567aff04cd197f3b842396a3ea50ad4",
+      "after_sha256": "f5d6a2c4c6a3af27746454e2e446f1b967f935e31317179641c3592d496aa550"
+    },
+    {
+      "path": "net/xdp/xskmap.c",
+      "before_sha256": "747d8a6cfcad0cd5474153d0908d5581bf0c100f6261dc10d3f0d8f793756736",
+      "after_sha256": "47690a5a47042b4591f045fcee5f1eff29957dc1cff8dd0908aad12873bacca7"
+    },
+    {
+      "path": "samples/bpf/cookie_uid_helper_example.c",
+      "before_sha256": "60d66ae35d06d9b448e9ea076df7e3a327197b873d5a2dfbc743f4f09f5648d0",
+      "after_sha256": "19839bfd19a14c4443eb017ef18aab396d5b2f037dcd26fcce4b88cae5565396"
+    },
+    {
+      "path": "samples/bpf/sock_example.c",
+      "before_sha256": "58837e3e899df962371f8efb2092c9893e67d861f5485110262fd19de921a70a",
+      "after_sha256": "fe1632b2e843553c3ba7c7d9bfeac7bdf5be88348c6a00bd769892c7de0a7d5e"
+    },
+    {
+      "path": "samples/bpf/test_cgrp2_attach.c",
+      "before_sha256": "7fe4c8657aa3e6e487e7c2b795cbf8475caa4a1024d497149f9d7251b8cee576",
+      "after_sha256": "6ad0c9ede82821d4126fbb152d3690b50a59ec3286b51426e91ee781f1cbaed4"
+    },
+    {
+      "path": "scripts/bpf_helpers_doc.py",
+      "before_sha256": "632a3ff6c41525f46a09a7be6cf40e1795128185064adcbcc5da43d723bf1ab5",
+      "after_sha256": "31f042d5b3df2e0bb9f9b15174dc132dd75d7763f3883bd80a92a613f23c886f"
+    },
+    {
+      "path": "security/bpf/hooks.c",
+      "before_sha256": "daa9a46c4e4154a7f44ed94f686834e1642f81a6f984462f1ebb9b00e07bd72a",
+      "after_sha256": "7225825b5af4c9c45f81ee7dab1c33d0e359c5d6281a279b8d371ee11d2a828f"
+    },
+    {
+      "path": "security/integrity/ima/ima_main.c",
+      "before_sha256": "302fc284e4b814948111647ceb57c62f3c92aed39016d6124ebb3fd91e95d23f",
+      "after_sha256": "931d39461ed4ba470d4354ce4927e31299af5454485283d275ffea1c6c8872db"
+    },
+    {
+      "path": "tools/include/linux/filter.h",
+      "before_sha256": "e73ee8ac1992f0b9b5d5e7b150548dde089274b58946074f4a19e7bccb89e789",
+      "after_sha256": "146ac5473b7fcd7c8d32890346c5f6a7951c912391ce3003074d0588f1286a8c"
+    },
+    {
+      "path": "tools/include/uapi/linux/bpf.h",
+      "before_sha256": "5cc37ca946c4a901443c7d40289f3016fbeda2207e7635446d1ef312eecfcb13",
+      "after_sha256": "37a2721e78e258fa3bd56c649cb67af437d6a24ff9c0fa53dc4ce4d0258aa16c"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/bpf_sockopt_helpers.h",
+      "before_sha256": null,
+      "after_sha256": "e60f53ee6d06e0642d9805fcddf41d35500c96799f442f03de46e2e0c50b0c4b"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/prog_tests/atomic_bounds.c",
+      "before_sha256": null,
+      "after_sha256": "f4ab5b0aed97b578c13d201c4fee509273cd8302ddbc0c915421df53be2c62f4"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/prog_tests/hash_large_key.c",
+      "before_sha256": null,
+      "after_sha256": "3d8eb7d8d599799ad2d774e48dc37e782c0331b562d717c2072383df2666f2d2"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/prog_tests/kfunc_call.c",
+      "before_sha256": null,
+      "after_sha256": "d815e0b995ac3b879de59790890d099cb99072406a499d6a56e1e8a11bd58c5f"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/progs/atomic_bounds.c",
+      "before_sha256": null,
+      "after_sha256": "b75981a8271a944556d6235a8b86bdf74b518576c0ae7af69323d2d9822444fa"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/progs/kfunc_call_test.c",
+      "before_sha256": null,
+      "after_sha256": "4b3a85ee0da7096abf1048703a81fa30d1dfd47d61cc335e382f24a5aef9c98e"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/progs/kfunc_call_test_subprog.c",
+      "before_sha256": null,
+      "after_sha256": "d78ed0897ea5c848a5b485541001e7173d12659078276d01f06cbd302c62a0b0"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/progs/test_hash_large_key.c",
+      "before_sha256": null,
+      "after_sha256": "00e52b6776b50cb349b89483c7a8dbbdfcfb2dfb39fe8c55a7248e2571682596"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/sendmsg4_prog.c",
+      "before_sha256": "cdf593994ffe5c6f91187782558a6033c8d73050d4c57e18269b61f8dc8b0897",
+      "after_sha256": "d390df01ae48a7dea77026d0760f77c49e26b74ee447a6b90369334f67e33d26"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/sendmsg6_prog.c",
+      "before_sha256": "9152d6da3ec8f960a9fa56866243c2efe7f0437c83d9b5c98af11fb07a57cada",
+      "after_sha256": "654eb769fbd945e4510cb11271b18201484adaa55513c699a608b1b3a9c87a9e"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/test_cgroup_storage.c",
+      "before_sha256": "ee12b65d0b8cd65125343823601c366d8117dda9686c2cade5a78a98c6e1bba9",
+      "after_sha256": "ab5ddfc72d3d54729f0e68d027e237b239be1c8aa27618bc4c32d063869bf341"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/test_maps.c",
+      "before_sha256": "3894627e76409584c70940c04e02f6469572653ca651fd393f87d6edc128c8f6",
+      "after_sha256": "1d11f0007bd8227daadc15e12fb86aa6b4ae171b0397e738e42de2c874305f0f"
+    },
+    {
+      "path": "tools/testing/selftests/bpf/verifier/atomic_bounds.c",
+      "before_sha256": null,
+      "after_sha256": "3de7a5616c0c2875562f9336a2f2fd5078cf06523da0528149ed6cf0465c4bac"
+    }
+  ],
+  "style_and_whitespace": {
+    "git_diff_check": "PASS",
+    "source_patch_replay_whitespace_error_all": "PASS",
+    "raw_checkpatch": {
+      "errors": 25,
+      "warnings": 192,
+      "lines_checked": 24225,
+      "exit_code": 1,
+      "types": {
+        "SUSPECT_CODE_INDENT": 2,
+        "NEW_TYPEDEFS": 2,
+        "ENOTSUPP": 13,
+        "FILE_PATH_CHANGES": 1,
+        "POINTER_LOCATION": 3,
+        "COMPLEX_MACRO": 3,
+        "TRAILING_SEMICOLON": 2,
+        "LONG_LINE_COMMENT": 3,
+        "FUNCTION_ARGUMENTS": 2,
+        "SPACING": 11,
+        "SPACE_BEFORE_TAB": 137,
+        "OPEN_BRACE": 3,
+        "AVOID_EXTERNS": 2,
+        "LONG_LINE": 4,
+        "LONG_LINE_STRING": 14,
+        "CODE_INDENT": 1,
+        "INDENTED_LABEL": 2,
+        "PREFER_DEFINED_ATTRIBUTE_MACRO": 2,
+        "TRAILING_STATEMENTS": 1,
+        "PREFER_FALLTHROUGH": 1,
+        "DEPRECATED_API": 3,
+        "LINE_SPACING": 1,
+        "INLINE_LOCATION": 3,
+        "SPDX_LICENSE_TAG": 1
+      }
+    },
+    "checkpatch_clean": false,
+    "assessment": "Raw checkpatch retains imported formatting diagnostics and intentional-macro false positives. They are style diagnostics, not compilation failures; no broad ignore mask or false zero-error claim."
+  },
+  "remaining_validation": [
+    "Device boot of the newly built image",
+    "Device BPF load/JIT/test-run smoke, verifier positive/negative cases",
+    "Asynchronous BPF timer rearm/cancel/map/task teardown races",
+    "Android network/cgroup/sockmap/stream traffic",
+    "BTF-dependent program loads after separate activation/full BTF-enabled build",
+    "SMP, memory-pressure, suspend/nohz/CPU-hotplug and lockdep stress",
+    "Runtime/performance measurements"
+  ],
+  "deliberate_limits": [
+    "ARM64 BPF_PROBE_MEM exception-table emission absent: unsupported JIT instructions fail closed; production JIT_ALWAYS_ON rejects load. Optional BTF pointer tracing may therefore be rejected.",
+    "Optional activation separate; no full BTF-enabled image build claimed",
+    "Legacy lockdep class-slot retention and memlock accounting, not modern allocator/memcg parity",
+    "x86 reference backend changes not target-built in this ARM64 task"
+  ],
+  "local_evidence": {
+    "directory": "/home/user/bpf-upgrade-validation",
+    "logs": [
+      {
+        "name": "core-final-build.log",
+        "sha256": "5a262f9eec12701d8c8ac816b281c127c527105a125d35cbbfe72fe24f08f87d"
+      },
+      {
+        "name": "core-confirm-build.log",
+        "sha256": "135b473ae2a7c168faa081ad63e422830b292e90332b92fc027cf8c630b29b7b"
+      },
+      {
+        "name": "core-debug-build.log",
+        "sha256": "9dcd4b4c74dba9cc8c1f9a8aef5e5f094568e2b831cd1ba53ecbe247f9ba3f61"
+      },
+      {
+        "name": "lockdep-final-build.log",
+        "sha256": "3a7d38a1280733c4a5a0fb509ed6b689eb2f4c3e1f0059cc0b063e3c1b36c95a"
+      },
+      {
+        "name": "features-build.log",
+        "sha256": "b396f0098692a437d0fa593f3a0aa6788c31c6e3f4daa6e58b4f94f5acb846c7"
+      },
+      {
+        "name": "ima-build.log",
+        "sha256": "cd585347ba60d8975fd9cd95162c43871a4880a465442abcd2fb3ffc615a1d30"
+      },
+      {
+        "name": "ima-final-build.log",
+        "sha256": "5a4e01964f0ea52d7a54924b944e8fe700c05b97fc393eb897f581c6f25654b7"
+      },
+      {
+        "name": "lowres-build.log",
+        "sha256": "6ca921dba785ab835790d3f5864c0e993c8479a272af9e8dc9d70591b3684aff"
+      },
+      {
+        "name": "nobpfsys-build.log",
+        "sha256": "131aa46b8ca52e36b08b5fb8d19c40b0c716961186efd383aed874fd52ca1ce0"
+      },
+      {
+        "name": "complete-checks.log",
+        "sha256": "9a15349fdbfe763e1d74d8b3551faccf9836ddf011c38c669275d32f857f940c"
+      },
+      {
+        "name": "integrated-audit.log",
+        "sha256": "a1364b94252524732e5910518f916100c1a87f8f59ecf7f4c16ca1e9b557ab58"
+      },
+      {
+        "name": "integrated-checkpatch.log",
+        "sha256": "0885834312997d8225a55bc3dd9603294ece7b65f1ea341992c288fdf63b3035"
+      },
+      {
+        "name": "lz4-regression.log",
+        "sha256": "a7ee03f364d86195b0af5ba1f1c1fc2b2c32d28c601cffa6c6671575f92063f0"
+      },
+      {
+        "name": "debug-native-link.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "features-native-link.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "ima-native-link.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "lowres-native-link.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "nobpfsys-native-link.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "standalone_fixture_sha256": {
+    "tools/testing/selftests/bpf_upgrade/README.md": "255039fe04f6b212e67284a0034b97e6467af40dcdb28322cf608270274cc66d",
+    "tools/testing/selftests/bpf_upgrade/atomic_model.c": "02506026576ca79884739b25cc625f8f519a43d8bc0ce7d348d9c660b2ee9b96",
+    "tools/testing/selftests/bpf_upgrade/core_model.c": "9d41c6a5ef7d7115efca691367a8c24f14124e23618a8d599488df5812d4f4d3",
+    "tools/testing/selftests/bpf_upgrade/jmp32_model.c": "2f6b205ef23138e759ea4b146c45a7ce07840a0412459b3f0e3a29a7092f021e",
+    "tools/testing/selftests/bpf_upgrade/lockdep_model.c": "41589dac4254fb15bb5a00a0e4b025da1f428d6e86075879592b1af0574bbb41",
+    "tools/testing/selftests/bpf_upgrade/softirq_model.c": "4f1e91b5450d2d02260c2f9e14fa3d74c08ce819a0f4d1574060ae820d9ced0f",
+    "tools/testing/selftests/bpf_upgrade/test_atomics.py": "d1a33a36741c03d4ce2e79a6c6e96b6e16b4e01cdf391795299f4a39b90237d0",
+    "tools/testing/selftests/bpf_upgrade/test_core.py": "43936fef244a54f0ecd75e4c13a055728ed5651e95d4bf66160ed913346cf33f",
+    "tools/testing/selftests/bpf_upgrade/test_jmp32.py": "fb1b8a9d4b1ec5e85d6fd8c1cbeb532134db4a509d627f85383a973eb97e794f",
+    "tools/testing/selftests/bpf_upgrade/test_lockdep.py": "12bc8ab3226089772666fa2deb0ef24720f34b3a4dbfbf3c2bc6867f3a4e47be",
+    "tools/testing/selftests/bpf_upgrade/test_runtime.c": "f255ff6dba4a126809e422feab789d83d49d272083092975822dc8d7cf3860a8",
+    "tools/testing/selftests/bpf_upgrade/test_softirq.py": "665890f283711f3821ec0f9edba35545f98744bbf1252924cc75c5e6da4387cb",
+    "tools/testing/selftests/bpf_upgrade/test_timer_lifetime.py": "8adc5ec9c5bfa61999440cbe99e57195dd7c47e6ee5aba3db4adddd3fec282fc",
+    "tools/testing/selftests/bpf_upgrade/timer_lifetime_model.c": "407c01a9dafabef67515cfbec6a6943006cd47f31ae8afa05547d8e44819a22c"
+  },
+  "local_validation_publication_state": {
+    "commit_created": false,
+    "pushed": false,
+    "ci_started": false
+  },
+  "publication_authorization": {
+    "authorized": true,
+    "branch": "arena/e63a046d-kernel-electro",
+    "scope": "Commit integrated working tree, push this branch only, and run build CI",
+    "ci_result": "Recorded separately in GitHub Actions; not inferred from local validation"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "base_repository": "https://github.com/backslashxx/KernelSU",
+  "base_commit": "cbc0b49908066e9c7f778737f65a216f50b203ba",
+  "references": [
+    "8640f74f7d5fabd7ba5a07e7652e0fd1084c2173",
+    "da63482157550d46b2d6a5b3ba4c855ddd1d103a",
+    "0cfa13c758b7f8b68a3ed1ef11bc64186231f8f9"
+  ],
+  "manager_repository": "https://github.com/LyraVoid/FinaSU",
+  "manager_review_commit": "2d5786b9129a254a87ac358c8bec0203ccd53351",
+  "package": "me.yuki.fina",
+  "certificate_size": 716,
+  "certificate_sha256": "2d89b50aaf1db013c2b6738f973f48b62ea21a3a8d7216bfec3521065d448458",
+  "certificate_source": "manipvlator reference 8640f74f7d5fabd7ba5a07e7652e0fd1084c2173; release APK download blocked by sandbox network policy, not independently fingerprinted",
+  "base_sha256": {
+    "drivers/kernelsu/manager/apk_sign.c": "8b8e87b0bfa6d6c59cc7b0fab1f36a1b5aad4e7c1c3d7746c24db012c3127876",
+    "drivers/kernelsu/manager/apk_sign.h": "05c39a61cd9931e25121996986a44cd3430bc1742178410d0bce8eb9addf92eb",
+    "drivers/kernelsu/manager/throne_tracker.c": "80f786d87b3d260f5bbe9f23a0534b3603b2305e9e1fdccb6e3eac947341b97b",
+    "drivers/kernelsu/manager/manager_identity.h": "f4edb23b89d85f7bfea701c6d1d08e501405084d217b41a785c075fd9072d597",
+    "drivers/kernelsu/include/uapi/supercall.h": "8f7a952a9fdddfdbed638d1d4bdf6c77e73a72c5fa6f0ecb4d16931fb3c4cab7",
+    "drivers/kernelsu/supercall/dispatch.c": "1c7a0714240b14850f9b2d427f21be391621ec0c53e4c54d23a6a3c7c15fd2be"
+  },
+  "postimage_sha256": {
+    "drivers/kernelsu/manager/apk_sign.c": "d5be2e510a9c6c5c60c399405165937cb5de3095390777013448a709c2d9e079",
+    "drivers/kernelsu/manager/apk_sign.h": "cf49fd18adb0d930f564779447c70ff139d7f417d993f255c1382d6a1d24ac2f",
+    "drivers/kernelsu/manager/throne_tracker.c": "40ca05253a7a7f8f65ab36ef5a52885600efddc9815b76ee5a249d8ec1c3ff02",
+    "drivers/kernelsu/manager/manager_identity.h": "d5fa9fa2dada1320842d4b78ce086d89c3d5efcc5ee780fa18414e125b036a99",
+    "drivers/kernelsu/include/uapi/supercall.h": "0c1d251336ed26d70f1c58fa0e1759b67b9072230d7ec2fd5ab545323dd1aaab",
+    "drivers/kernelsu/supercall/dispatch.c": "181db4a8ab027257c7b955aa65f5386bf3cff5ab40fc7e9f14920356d35df721"
+  },
+  "manager_release_tag": "v1.4.3",
+  "manager_release_commit": "2d5786b9129a254a87ac358c8bec0203ccd53351"
+}

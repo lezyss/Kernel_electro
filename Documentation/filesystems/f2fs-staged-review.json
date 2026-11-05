@@ -1,0 +1,686 @@
+{
+  "status": "historical pre-implementation review; approved A/B1/B2 subsequently implemented locally with default-off merge options",
+  "donor_repository": "https://github.com/manipvlator/los_kernel_xiaomi_sm6150",
+  "donor_commit": "81605352aac4c8995b6346939cb3931e14c0d7b6",
+  "donor_parents": [
+    "64fd748b0d919e244bc24d404974373d30ef1770"
+  ],
+  "donor_delta": {
+    "total": 16422,
+    "additions": 11266,
+    "deletions": 5156
+  },
+  "source_scope": [
+    "fs/f2fs/checkpoint.c",
+    "fs/f2fs/data.c",
+    "fs/f2fs/debug.c",
+    "fs/f2fs/f2fs.h",
+    "fs/f2fs/gc.c",
+    "fs/f2fs/gc.h",
+    "fs/f2fs/segment.c",
+    "fs/f2fs/super.c"
+  ],
+  "defaults": "GC/checkpoint merge must remain opt-in; no mount policy, on-disk feature or fstab changes",
+  "stages": {
+    "A": {
+      "description": "IPU correctness before feature additions",
+      "upstream_references": [
+        "5cdb422c839134273866208dad5360835ddb9794",
+        "edf7e9040fc52c922db947f9c6c36f07377c52ea",
+        "6d1f622b9c069378cdb83088be2b15a9b480b8a3"
+      ],
+      "paths": [
+        "fs/f2fs/data.c",
+        "fs/f2fs/segment.c"
+      ],
+      "state": "recommended for first implementation; not applied or compile-tested"
+    },
+    "B1": {
+      "description": "opt-in GC merge plus safe OPU/IPU drain and worker lifecycle",
+      "upstream_references": [
+        "5911d2d1d1a38b26585383478bd71d9254e48bdf",
+        "8b4468ec023d0d1b4669dfb867588997cc03a06b",
+        "1adaa71ea9bff3a0ca0b37eabbb7f89225b595cb",
+        "c836d3b8d94e3dd381e7d4bb918875084f85715e"
+      ],
+      "paths": [
+        "fs/f2fs/data.c",
+        "fs/f2fs/f2fs.h",
+        "fs/f2fs/gc.c",
+        "fs/f2fs/gc.h",
+        "fs/f2fs/segment.c",
+        "fs/f2fs/super.c"
+      ],
+      "state": "conditional subsequent stage; local IPU drain helper/API adaptation needed"
+    },
+    "B2": {
+      "description": "opt-in checkpoint merging plus error cleanup and quota/freeze validation",
+      "upstream_references": [
+        "261eeb9c1585de4515a770b48a3c89672c08ae7f",
+        "7b02b2201893a71b881026cf574902019ab00db5",
+        "f6f8f34480c78eade6542faea6386c47c9b4c6b3"
+      ],
+      "excluded_sysfs_reference": "5cb33b00c8fbb6e8f1fa3d281c3036d5f7c7c41f",
+      "paths": [
+        "fs/f2fs/checkpoint.c",
+        "fs/f2fs/debug.c",
+        "fs/f2fs/f2fs.h",
+        "fs/f2fs/super.c"
+      ],
+      "state": "conditional subsequent stage; quota/freeze/rollback lifecycle remains implementation gate"
+    }
+  },
+  "existing_fixes_to_preserve": [
+    "GC inline-data corruption guard and owned-inode diagnostic ordering",
+    "compression reserve/release checkpoint locks",
+    "atomic-file exclusions for move-range, pinning and defragmentation"
+  ],
+  "inventory": [
+    {
+      "path": "Documentation/ABI/testing/sysfs-fs-f2fs",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "5158ce8c15fa23da0374c6ea8cd64c5854f1f67e",
+      "current_review_preimage_sha256": "73a492fa6377c0ef7971db3f7dcbf68e8a7eef8b2b616151124d059e61d4d37d",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "Documentation/filesystems/f2fs.rst",
+      "donor_status": "added",
+      "donor_postimage_git_blob_sha1": "3a5e309823ba4bd48c224c687addedb57369f224",
+      "current_review_preimage_sha256": null,
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "Documentation/filesystems/f2fs.txt",
+      "donor_status": "removed",
+      "donor_postimage_git_blob_sha1": null,
+      "current_review_preimage_sha256": "752a259fa55fc60e9a3640948901d22fca39f0bdaa412087af6a5ddc52508b90",
+      "candidate_stages": [],
+      "decision": "retain current document and extend only for selected features; do not delete"
+    },
+    {
+      "path": "Documentation/filesystems/fsverity.rst",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "8e73ac0c6ae69c39a422e4da7aadb4dea10ba602",
+      "current_review_preimage_sha256": "2cfa80463ea8f27e2395e97a86e013030d665fce1ed387b9ffeb6d4fa31286a8",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "MAINTAINERS",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "422ce5a109b3953a03385cc2944bc3009984a3d6",
+      "current_review_preimage_sha256": "d5bcbd18c5649dd656c18a20451dc3bff3db80f0bd6732783d32af3b66ef17f0",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "drivers/dax/device.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "cabd8a99f9db5b7bb390bbdc6a0a06c7ff1645b1",
+      "current_review_preimage_sha256": "d12a3c468bec270c6dd21fde68c8ea212950e6618c578756fb52c97af1dcd45e",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/buffer.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "28ea4a3d5d7180ffc5d9ac0d69a4f399e3305789",
+      "current_review_preimage_sha256": "46cd1cfb668ecbe3f4604cfb94be9f640de41afa0f14ffb0902d12e7c8f59f96",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/crypto/fname.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "a7eec67fb8aff28f504a6b895b8318e1f6e6fbf0",
+      "current_review_preimage_sha256": "127c2e9cdc970453de4c3278f58ef2111e50b7d28aedaf1b7ee11a5be1830f4d",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/crypto/hooks.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "5e262d5521885ff5a7ec2aff25d54eae08bd1b8b",
+      "current_review_preimage_sha256": "c436608df252973fe05fe845446c763eabcd12ae4233f37c48eefd929b4683d1",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/ext4/ext4.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "a95e12f527539c70bf5491d0913e59b93898f235",
+      "current_review_preimage_sha256": "eb959d27ca69e33a755b594fa6dfefae3cc0fc59f598bd9cf0a07aad84b79bf8",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/ext4/ioctl.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "35cd41630825f065cc17e1ac802d966b21ac70f3",
+      "current_review_preimage_sha256": "dcc5e7c41d4adf726458de556b31ba39e1956e36a043178ecf0fb3fd5f6a19bf",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/ext4/namei.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "b2e5fce693945559f63135ccef483a1c312558e5",
+      "current_review_preimage_sha256": "fdee1fae6efd259b999815fcd4600e5a23fc41393ef32eb8ddda76b42b72411a",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/f2fs/Kconfig",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "5186271ff7aabfeaa4ebc718c28a3ce87c78adb8",
+      "current_review_preimage_sha256": "8a45659ca8272babee586c727c5189062472e0d855128ca6f459e95032b8d655",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/Makefile",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "8a7322d229e4d28ba7991880c6893fe35d278a55",
+      "current_review_preimage_sha256": "790db4b437e06018d677b9b90ab349ff97a9372179e093f89e3cc6ba8f2c770b",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/acl.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "b21b98f924e12964a74d44c6f81f3455cbf95d6b",
+      "current_review_preimage_sha256": "2c43e7dd95bd5b8824dc793c97658f18ca952dcf81af29a36acb209033d2f2fb",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/checkpoint.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "5d7ab87a7fe040cd90dc0994f5e6e2b42725b439",
+      "current_review_preimage_sha256": "794833bcb31ddfa5381251cdcd689c0ea995786006aed9ae3b52e3c94bf80c8f",
+      "candidate_stages": [
+        "B2"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/compress.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "e8e2bf954fc3821d6b00caf845b4a24c349502df",
+      "current_review_preimage_sha256": "78b690315048784453028c59a15c391875f5414b72e9ef2ae416277d993dbe82",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/data.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "5dea7be049e435dc9bf3604d38867b1bd1f1351a",
+      "current_review_preimage_sha256": "5acbb8da5b0300d8b98d9a3bcc05183fdba048815cb130c90cd087be1f27ddf3",
+      "candidate_stages": [
+        "A",
+        "B1"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/debug.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "2e31a6b0ed0080ffecfdd81980b0cefc5848af78",
+      "current_review_preimage_sha256": "75a5b4158cee7bbcdbf3fdf2d3adfb31eb15cff4740500788bd19031b5f00242",
+      "candidate_stages": [
+        "B2"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/dir.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "7f477073a8f4ef9fdf0e8d1c1cfa02577c3df20c",
+      "current_review_preimage_sha256": "e4373844ba376bb8b29f9fd4b374051477ddd7ed7fa37b14183075395f6ac3e5",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/extent_cache.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "6a9ab5c11939fa868c5c362282cf897f48703595",
+      "current_review_preimage_sha256": "dad57fb261b77f7ae32e76d38de403473bc8a83a1065e9bf63cf31797dee1c70",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/f2fs.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "11f6205ef5f809f334efdce557839f4724e2f83b",
+      "current_review_preimage_sha256": "128e643a95eaba0e20b8cd1193a3fc0f9602d5ecb3c9ae0d1c7060a6cf119892",
+      "candidate_stages": [
+        "B1",
+        "B2"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/file.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "d1383722b671a13844cc460ac041af9b8214e805",
+      "current_review_preimage_sha256": "fe635367b8101414264605a1ea03a09778890a66b45c83828a12f11bd67e6f79",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/gc.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "f10eb6eea0e890e087c0c918e03a9a6c73372098",
+      "current_review_preimage_sha256": "d173e7b6ebc1b6a45cde20eca0818daa3cc38662f3d0dcda39ce8820267b74f2",
+      "candidate_stages": [
+        "B1"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/gc.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "19b956c2d697a48336559c04b05e703011110420",
+      "current_review_preimage_sha256": "909fcac5ed5277b2f71f4f500f1f481eb44dda03c2d24eeb1a79fafe1d495016",
+      "candidate_stages": [
+        "B1"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/hash.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "f1431a5c660270f960821d2e353a027610d1baaa",
+      "current_review_preimage_sha256": "24800e8894e0a68cb2b7bc1c8b4934f3a29ec3fdcc90f9c3fc554b13521ad541",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/inline.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "03f1e5f442ed6f8a551d8481852a1f3f02d582da",
+      "current_review_preimage_sha256": "ed5d738069e85efec13cc61893f482746d7183bca84340b9b4d1e1b86933998b",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/inode.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "cbc66a2b3ae0089791f30a4fa7d8b9df153c6d6d",
+      "current_review_preimage_sha256": "4e9e0afceb589d883697745631604cd83a15c203033a3949e46d684e7f136aa7",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/iostat.c",
+      "donor_status": "added",
+      "donor_postimage_git_blob_sha1": "cdcf54ae0db8f1e1180592eceb3d1d08cb354c35",
+      "current_review_preimage_sha256": null,
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/iostat.h",
+      "donor_status": "added",
+      "donor_postimage_git_blob_sha1": "22a2d01f57ef3b6116491502ef01a9c15dc167af",
+      "current_review_preimage_sha256": null,
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/namei.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "b23126063a07461018429a81d61ac9e0a34c6f3b",
+      "current_review_preimage_sha256": "f69fcb95fa8282da64f6652b5ae2c06828597fb9d11188c54dd669bd99678652",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/node.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "22d0edbef7fe7db1c4e868e61e3607a116679b4e",
+      "current_review_preimage_sha256": "b7743a618b2466aa0b5a15ad64c27803cf37e3f1714f2ad4f6690ca909ddf070",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/node.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "3c09cae058b0aa77fca9d3b96ab7484b8816494d",
+      "current_review_preimage_sha256": "3295d4f62768f36fa1fff2bc89ad9348a279cde59ce46043433e03ee397a08ee",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/recovery.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "59779c80735d4f0203d7e46476018f92e151bf1f",
+      "current_review_preimage_sha256": "47abfe438d7ac39cdeb07a9af671682ab6e259e0cefe3d9d858aa5d717dbd5a3",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/segment.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "cb53126c0a88dbe14ee658f8d9e678e5da47e5e6",
+      "current_review_preimage_sha256": "f91022e502e86ff634a1dc3bd4874e8f2bef373bc3d75a6b98b6865bdfcb09e7",
+      "candidate_stages": [
+        "A",
+        "B1"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/segment.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "317b3a80612e5a6bc539b0f0955a3788d2d4b2e7",
+      "current_review_preimage_sha256": "c43cc6d38b7c26caebaf0d101fabaeea6c3f370f54bb8e23f06e36b3987f269a",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/shrinker.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "dd3c3c7a90ec8f79b375624eac961405f6d399bb",
+      "current_review_preimage_sha256": "c483f512a22debb2f189f8d729872ca519c50598d326bfa442865f22ecbf59db",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/super.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "89fc2066b96874f9942787ff5894c3cde9b00863",
+      "current_review_preimage_sha256": "81643c93f123aa74f936163d3e51b0293116ecee185c9a866bab8bce28c1ad75",
+      "candidate_stages": [
+        "B1",
+        "B2"
+      ],
+      "decision": "selective adaptation only; do not import whole donor file"
+    },
+    {
+      "path": "fs/f2fs/sysfs.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "a0bd9641ed2553a20a2b5fe275527cdb3990ac97",
+      "current_review_preimage_sha256": "2d906b0341ef3216d7cc616b755d2785d175a0e5e4551290b006fd1d3bb0682f",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/trace.c",
+      "donor_status": "removed",
+      "donor_postimage_git_blob_sha1": null,
+      "current_review_preimage_sha256": "8d9c4067727580e8262f38e5a9ecc0c3b3db3b264ae01d930652d9f97cea60b8",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/trace.h",
+      "donor_status": "removed",
+      "donor_postimage_git_blob_sha1": null,
+      "current_review_preimage_sha256": "de33ccc600c616adf974f3c0836154e346f6f37ddd00f31589bf51cb221a86f7",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/verity.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "84fa3dcd4de6154f49bdc4be4ee57319367d46dd",
+      "current_review_preimage_sha256": "277d018dbbecf47c6bf3a1b2643dcee0b192e72e3d1c564795d2081e0b976ae7",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/f2fs/xattr.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "b699c92a039906d8cc2daafb9bc6651f6986d368",
+      "current_review_preimage_sha256": "e655b04f28e5ad66d27e5e73568175c12874c511e7b14f22f0cc8ca6f8785034",
+      "candidate_stages": [],
+      "decision": "skip donor change; preserve current source"
+    },
+    {
+      "path": "fs/file_table.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "a080b3f3e0ad8ce734310fea73c3d04656578356",
+      "current_review_preimage_sha256": "c8762b44c0812cedd2058cdf13c2d1915115b27b8f6c201f21edd6f0fa16e820",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/inode.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "9bba5a84b0b060de5e13042404dfde703edc79ab",
+      "current_review_preimage_sha256": "5cce98558a32bdc3340c6e2ff3e92c5797e4642c611dfd61c4564474afff92c9",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/ioctl.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "d10dcca538d2073338c69e0d268ac7221b7df7a6",
+      "current_review_preimage_sha256": "b3dd24d3089d2ccedc0b19c7b13bd0a2064c2cc178466c1c0146acc16ac71b9d",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/jbd2/journal.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "1081c8764a4810478c1d827c36e357c439b47e17",
+      "current_review_preimage_sha256": "800653b1602c05dd2272ed4f2fee7ae079ca03cd9e4f50ab2c372a9f33315d39",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/libfs.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "ab872944d481b3039234c79e4b498a877ff5e58b",
+      "current_review_preimage_sha256": "e6a21833e40fd771ad55e18169561e0fb91c916fba2aea57714496df37777817",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/open.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "004c8ddb891e7d564636608db9b5eb253e2e268b",
+      "current_review_preimage_sha256": "746a0de66b71a6ea353336e6c7575b8334c3070600a900dd12182a3210eda067",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/quota/dquot.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "d34fb63af1a2d21f92333fe43142681ade688d22",
+      "current_review_preimage_sha256": "c879dca505cccc5aa2f53d33ceedb6867ddd665eb49c7144d8ca54d98156c5af",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/sync.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "3d0985db49bcae0741ccbb61019a6261306195d5",
+      "current_review_preimage_sha256": "a602333c3eb621c397b74c056cff7000fcc3871d73dafaf2eabd8319134eb04a",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/ubifs/dir.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "afdef169960da60b362c6bee33c35a33c615e8c6",
+      "current_review_preimage_sha256": "abd502e0bc641ab0c0afd4d9fd795c7b0d269d89533f0fed9edbd7066e6aff28",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/unicode/utf8-core.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "313f9b81e8529e62ba21eac78f7a7e0f5ffb493a",
+      "current_review_preimage_sha256": "e0010626635f5d645c5eb4531d46fe234ab45b7c079244e609e88804b34c1d6d",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/Makefile",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "435559a4fa9eae1d947ef0d90d0945bc14b08ee8",
+      "current_review_preimage_sha256": "6b5c27ff2d82ceb1ed685a6ad3ee9204584bcf8ecfce29d99270c22171ecc2cd",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/enable.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "48fafe79f77c6bfc9cb4d9927fb56fd025a3d39f",
+      "current_review_preimage_sha256": "2c87e2ae00e98b76d43ff52b877f4b90f303bf05ca96a8c41dbe0f62bbe730ec",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/fsverity_private.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "52da2c92b34d21d46b80d6b95cf76e50d0642243",
+      "current_review_preimage_sha256": "84693016420b4833b8808c7738e6b0b80a558a9d1e973bb8d2edda7304f50e63",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/hash_algs.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "2e8cbca9f8a3b63365da6ac61141cb4b21a6e5e3",
+      "current_review_preimage_sha256": "066caf17ca1e95835ca59884d47375917da77c57a81b64ea540bb597e8bd6748",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/init.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "c98b7016f446be963e9ee57d96660335906743ae",
+      "current_review_preimage_sha256": "a568d42c6d984d79ef182f52d9c6c7a24369cef7722357f873092d6bd41f96ff",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/measure.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "f0d7b30c62db2bdf31db764a8d8966808993add2",
+      "current_review_preimage_sha256": "4026a926612b7e33262d8be063d925d5b07bc0f4c79091b19b7326a925db518b",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/open.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "9b870313ed663c6e5f828497885436518cb3682b",
+      "current_review_preimage_sha256": "16d7035e2e88d9c6798cde56163a136e52a37fde49d0bc9f7648333db5f5df89",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/read_metadata.c",
+      "donor_status": "added",
+      "donor_postimage_git_blob_sha1": "7e2d0c7bdf0de36290dd226252e0ad51ba250155",
+      "current_review_preimage_sha256": null,
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/signature.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "bfbde99098fe90e1a95ceec910c53bf6db1ac998",
+      "current_review_preimage_sha256": "5e7dcd43ab3663f17b906a32debeaa5a9df5575498fcdab305ee846f2edd1b78",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "fs/verity/verify.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "97681d323c6cd954f52eadbb5e80acddcf6d23ea",
+      "current_review_preimage_sha256": "9ee433f29ec86d3fcfd4bde2f9709268ec9f6939dcc61a8fa240a07d2ee0df93",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/linux/dcache.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "68d5ee2cfdd79f375039725f8c8f83f3adf59a08",
+      "current_review_preimage_sha256": "06c43496effe6f3ba7d747e5726ab9b049bbef35994021550f569c6282b13272",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/linux/f2fs_fs.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "c9a5d66579fabce4af43d16578a452d120fcd9b4",
+      "current_review_preimage_sha256": "79866f62da4a0ab93ca07d2d551b06631fcacff0c11c166a27a0187ed8aeb5af",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/linux/fs.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "db46b1e169f6410190648623151e789592b45e55",
+      "current_review_preimage_sha256": "ad778e8a31c59e08a873b919e4c29b9c5a58c2078f34fc6a973096038e24a3e3",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/linux/fscrypt.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "8231c1158b6f91d2e27ee0f123b601f904a2a0e7",
+      "current_review_preimage_sha256": "353440654e5b18fcbe46d58316d957f8addb7d77f314da546794dacb874f606d",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/linux/fsverity.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "b568b3c7d095ea76edf6923ce316ff064dcad9a3",
+      "current_review_preimage_sha256": "94862c203db1edf944f2b75645893ff09154dec69b32e1b75e2e9fccea9b554e",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/linux/pagemap.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "e656d432ffb00ad2ffd011836bc7c0e578a7bda1",
+      "current_review_preimage_sha256": "dc0738f5e706ba0f0fbbf762fe203ecb17135ca6595828ab35db4f513295df04",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/trace/events/f2fs.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "abe148d168833c8f6ba7d99179fb7e0172e52722",
+      "current_review_preimage_sha256": "8acf3b0b50513951a03a99676b0315be0e9a8e01f72d1e00388d0bbbf5bf697a",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/uapi/linux/f2fs.h",
+      "donor_status": "added",
+      "donor_postimage_git_blob_sha1": "3121d127d5aaecfed7b1e1479ba3c1c83a5bcd0c",
+      "current_review_preimage_sha256": null,
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "include/uapi/linux/fsverity.h",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "15384e22e331e8738cf05c971f00b3fe6fdfcbb6",
+      "current_review_preimage_sha256": "8be8e57a427570f53aae2ae28d3bf2d6e9c1de02a1beaef0c330cdc3544f2d4e",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    },
+    {
+      "path": "mm/page_io.c",
+      "donor_status": "modified",
+      "donor_postimage_git_blob_sha1": "5f85dcac9f00fd994b7d0c1f24ee3c77de786b19",
+      "current_review_preimage_sha256": "e7aea00e320e6941c7e1484db9173c2a9c7d47ac72af32cb98dbf22304675640",
+      "candidate_stages": [],
+      "decision": "skip donor change; outside selected feature scope"
+    }
+  ],
+  "implementation_record": "Documentation/filesystems/f2fs-staged/implementation.md",
+  "implementation_manifest": "Documentation/filesystems/f2fs-staged/UPSTREAM.json"
+}

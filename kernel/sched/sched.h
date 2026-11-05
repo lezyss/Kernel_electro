@@ -330,7 +330,7 @@ extern bool __checkparam_dl(const struct sched_attr *attr);
 extern void __dl_clear_params(struct task_struct *p);
 extern bool dl_param_changed(struct task_struct *p, const struct sched_attr *attr);
 extern int dl_task_can_attach(struct task_struct *p,
-			      const struct cpumask *cs_cpus_allowed);
+			      const struct cpumask *cs_effective_cpus);
 extern int dl_cpuset_cpumask_can_shrink(const struct cpumask *cur,
 					const struct cpumask *trial);
 extern bool dl_cpu_busy(unsigned int cpu);
@@ -1454,9 +1454,9 @@ static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
 	 */
 	smp_wmb();
 #ifdef CONFIG_THREAD_INFO_IN_TASK
-	p->cpu = cpu;
+	WRITE_ONCE(p->cpu, cpu);
 #else
-	task_thread_info(p)->cpu = cpu;
+	WRITE_ONCE(task_thread_info(p)->cpu, cpu);
 #endif
 	p->wake_cpu = cpu;
 #endif
@@ -1549,7 +1549,7 @@ static inline int task_on_rq_queued(struct task_struct *p)
 
 static inline int task_on_rq_migrating(struct task_struct *p)
 {
-	return p->on_rq == TASK_ON_RQ_MIGRATING;
+	return READ_ONCE(p->on_rq) == TASK_ON_RQ_MIGRATING;
 }
 
 #ifndef prepare_arch_switch
@@ -1830,7 +1830,6 @@ extern void init_sched_dl_class(void);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
 
-extern void reweight_task(struct task_struct *p, int prio);
 
 extern void resched_curr(struct rq *rq);
 extern void resched_cpu(int cpu);
@@ -3032,7 +3031,6 @@ static inline bool task_placement_boost_enabled(struct task_struct *p)
 	return false;
 }
 
-static inline void check_for_migration(struct rq *rq, struct task_struct *p) { }
 
 static inline int sched_boost(void)
 {

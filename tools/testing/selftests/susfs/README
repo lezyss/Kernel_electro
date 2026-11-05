@@ -1,0 +1,33 @@
+SUSFS 2.3.0 integration tests
+============================
+
+From the kernel root:
+
+    python3 tools/testing/selftests/susfs/test_integration.py
+    python3 tools/testing/selftests/susfs/test_integration.py --config out/.config
+    python3 tools/testing/selftests/susfs/test_integration.py --host-tests --cc clang
+    python3 tools/testing/selftests/susfs/test_integration.py --host-tests \
+        --cc 'clang -fsanitize=undefined -fno-sanitize-recover=all'
+
+Integrity-only checks require standard-library Python, no network or compiler.
+They verify pinned source/hook postimages, single wiring, platform dependencies
+and the requested full feature profile. CI runs them after olddefconfig.
+
+--profile disabled checks all SUSFS settings are off; --profile minimal expects
+CONFIG_KSU_SUSFS=y with all subfeatures off. Use --config with those output files.
+Run KSU and NoMount selftests separately for their source/config policies.
+
+--host-tests extracts the current reboot dispatcher, original setuid handler,
+augmented unmount path, UID helpers, flag predicates, readlink helper, pagemap
+zero-entry helper and mount-ID release function. It runs single-threaded mocks:
+256 authorization, 1792 credential/unmount, 3010 readlink/hash/fault and 2404
+pagemap cases, plus flag/ID checks. No actual rules or kernel operations occur.
+
+--negative choices no-auth, no-zygote-guard, readlink-zero-count, hash-collision,
+free-borrowed-id deliberately change extracted code IN MEMORY, then must compile
+and fail a runtime assertion. A nonzero exit is expected, and source is unchanged.
+
+Models do not establish real VFS/RCU/fsnotify/mmap/superblock behavior, concurrent
+safety, working Android root/modules, a full kernel build, boot or integrity-check
+results. See Documentation/filesystems/susfs/integration.md for limitations and
+device testing. Do not regenerate provenance merely to bypass failed tests.

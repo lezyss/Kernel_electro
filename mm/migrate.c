@@ -2378,7 +2378,7 @@ next:
  */
 static void migrate_vma_collect(struct migrate_vma *migrate)
 {
-	struct mm_walk mm_walk;
+	struct mm_walk mm_walk = {};
 
 	mm_walk.pmd_entry = migrate_vma_collect_pmd;
 	mm_walk.pte_entry = NULL;

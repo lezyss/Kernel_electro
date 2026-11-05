@@ -17,6 +17,9 @@
  *  Scaled math optimizations by Thomas Gleixner
  *  Copyright (C) 2007, Thomas Gleixner <tglx@linutronix.de>
  *
+ *  Burst-Oriented Response Enhancer (BORE) CPU Scheduler
+ *  Copyright (C) 2021-2024 Masahito Suzuki <firelzrd@gmail.com>
+ *
  *  Adaptive scheduling granularity, math enhancements by Peter Zijlstra
  *  Copyright (C) 2007 Red Hat, Inc., Peter Zijlstra
  */
@@ -87,10 +90,15 @@ walt_dec_cfs_rq_stats(struct cfs_rq *cfs_rq, struct task_struct *p) {}
  * (to see the precise effective timeslice length of your workload,
  *  run vmstat and monitor the context-switches (cs) field)
  *
- * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
+ * BORE: 24 ms constant; legacy: 5 ms * (1 + ilog(ncpus)).
  */
+#ifdef CONFIG_SCHED_BORE
+unsigned int sysctl_sched_latency = 24000000ULL;
+unsigned int normalized_sysctl_sched_latency = 24000000ULL;
+#else
 unsigned int sysctl_sched_latency			= 5000000ULL;
 unsigned int normalized_sysctl_sched_latency		= 5000000ULL;
+#endif
 
 /*
  * Enable/disable honoring sync flag in energy-aware wakeups.
@@ -112,15 +120,24 @@ unsigned int sysctl_sched_cstate_aware = 1;
  *
  * (default SCHED_TUNABLESCALING_LOG = *(1+ilog(ncpus))
  */
+#ifdef CONFIG_SCHED_BORE
+enum sched_tunable_scaling sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_NONE;
+#else
 enum sched_tunable_scaling sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_LOG;
+#endif
 
 /*
  * Minimal preemption granularity for CPU-bound tasks:
  *
- * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
+ * BORE: 5 ms constant; legacy: 0.5 ms * (1 + ilog(ncpus)).
  */
+#ifdef CONFIG_SCHED_BORE
+unsigned int sysctl_sched_min_granularity = 5000000ULL;
+unsigned int normalized_sysctl_sched_min_granularity = 5000000ULL;
+#else
 unsigned int sysctl_sched_min_granularity		= 500000ULL;
 unsigned int normalized_sysctl_sched_min_granularity	= 500000ULL;
+#endif
 
 /*
  * This value is kept at sysctl_sched_latency/sysctl_sched_min_granularity
@@ -140,10 +157,15 @@ unsigned int sysctl_sched_child_runs_first __read_mostly = 1;
  * and reduces their over-scheduling. Synchronous workloads will still
  * have immediate wakeup/sleep latencies.
  *
- * (default: 1 msec * (1 + ilog(ncpus)), units: nanoseconds)
+ * BORE: 4 ms constant; legacy: 1 ms * (1 + ilog(ncpus)).
  */
+#ifdef CONFIG_SCHED_BORE
+unsigned int sysctl_sched_wakeup_granularity = 4000000UL;
+unsigned int normalized_sysctl_sched_wakeup_granularity = 4000000UL;
+#else
 unsigned int sysctl_sched_wakeup_granularity		= 1000000UL;
 unsigned int normalized_sysctl_sched_wakeup_granularity	= 1000000UL;
+#endif
 
 const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
 DEFINE_PER_CPU_READ_MOSTLY(int, sched_load_boost);
@@ -154,6 +176,94 @@ unsigned int sysctl_sched_use_walt_task_util = 1;
 __read_mostly unsigned int sysctl_sched_walt_cpu_high_irqload =
     (10 * NSEC_PER_MSEC);
 #endif
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+#define entity_is_task(se) (!se->my_q)
+#else
+#define entity_is_task(se) 1
+#endif
+
+static inline struct task_struct *task_of(struct sched_entity *se)
+{
+	SCHED_WARN_ON(!entity_is_task(se));
+	return container_of(se, struct task_struct, se);
+}
+
+#ifdef CONFIG_SCHED_BORE
+unsigned int __read_mostly sched_bore = 1;
+unsigned int __read_mostly sched_burst_smoothness_long = 1;
+unsigned int __read_mostly sched_burst_smoothness_short = 1;
+unsigned int __read_mostly sched_burst_fork_atavistic = 2;
+unsigned int __read_mostly sched_burst_penalty_offset = 22;
+unsigned int __read_mostly sched_burst_penalty_scale = 1280;
+unsigned int __read_mostly sched_burst_cache_lifetime = 60000000;
+
+#define MAX_BURST_PENALTY (39U << 2)
+
+static __always_inline void reweight_task(struct task_struct *p, int prio);
+
+static inline u32 log2plus1_u64_u32f8(u64 v)
+{
+	u32 msb = fls64(v);
+	s32 excess_bits = (s32)msb - 9;
+	u8 fractional = excess_bits >= 0 ? v >> excess_bits : v << -excess_bits;
+
+	return msb << 8 | fractional;
+}
+
+static inline u32 calc_burst_penalty(u64 burst_time)
+{
+	u32 greed = log2plus1_u64_u32f8(burst_time);
+	u32 tolerance = READ_ONCE(sched_burst_penalty_offset) << 8;
+	u32 penalty = max(0, (s32)greed - (s32)tolerance);
+	u32 scaled = penalty * READ_ONCE(sched_burst_penalty_scale) >> 16;
+
+	return min(MAX_BURST_PENALTY, scaled);
+}
+
+static void update_burst_score(struct sched_entity *se)
+{
+	struct task_struct *p;
+	int prio, prev_prio, new_prio;
+
+	if (!entity_is_task(se))
+		return;
+	p = task_of(se);
+	prio = p->static_prio - MAX_RT_PRIO;
+	prev_prio = min(39, prio + se->burst_score);
+	se->burst_score = se->burst_penalty >> 2;
+	new_prio = min(39, prio + se->burst_score);
+	if (new_prio != prev_prio && !idle_policy(p->policy))
+		reweight_task(p, new_prio);
+}
+
+static void update_burst_penalty(struct sched_entity *se)
+{
+	se->curr_burst_penalty = calc_burst_penalty(se->burst_time);
+	WRITE_ONCE(se->burst_penalty,
+		   max(se->prev_burst_penalty, se->curr_burst_penalty));
+	update_burst_score(se);
+}
+
+static inline u32 binary_smooth(u32 new, u32 old)
+{
+	int increment = (int)new - (int)old;
+
+	if (increment >= 0)
+		return old + (increment >> READ_ONCE(sched_burst_smoothness_long));
+	return old - (-increment >> READ_ONCE(sched_burst_smoothness_short));
+}
+
+static void restart_burst(struct sched_entity *se)
+{
+	se->prev_burst_penalty = binary_smooth(se->curr_burst_penalty,
+					     se->prev_burst_penalty);
+	WRITE_ONCE(se->burst_penalty, se->prev_burst_penalty);
+	se->curr_burst_penalty = 0;
+	se->burst_time = 0;
+	update_burst_score(se);
+}
+#endif /* CONFIG_SCHED_BORE */
 
 #ifdef CONFIG_SMP
 /*
@@ -176,7 +286,11 @@ int __weak arch_asym_cpu_priority(int cpu)
  *
  * (default: 5 msec, units: microseconds)
  */
-unsigned int sysctl_sched_cfs_bandwidth_slice		= 5000UL;
+#ifdef CONFIG_SCHED_BORE
+unsigned int sysctl_sched_cfs_bandwidth_slice = 4000UL;
+#else
+unsigned int sysctl_sched_cfs_bandwidth_slice = 5000UL;
+#endif
 #endif
 
 /*
@@ -341,14 +455,7 @@ static inline struct rq *rq_of(struct cfs_rq *cfs_rq)
 	return cfs_rq->rq;
 }
 
-/* An entity is a task if it doesn't "own" a runqueue */
-#define entity_is_task(se)	(!se->my_q)
 
-static inline struct task_struct *task_of(struct sched_entity *se)
-{
-	SCHED_WARN_ON(!entity_is_task(se));
-	return container_of(se, struct task_struct, se);
-}
 
 /* Walk up scheduling entities hierarchy */
 #define for_each_sched_entity(se) \
@@ -494,17 +601,12 @@ find_matching_se(struct sched_entity **se, struct sched_entity **pse)
 
 #else	/* !CONFIG_FAIR_GROUP_SCHED */
 
-static inline struct task_struct *task_of(struct sched_entity *se)
-{
-	return container_of(se, struct task_struct, se);
-}
 
 static inline struct rq *rq_of(struct cfs_rq *cfs_rq)
 {
 	return container_of(cfs_rq, struct rq, cfs);
 }
 
-#define entity_is_task(se)	1
 
 #define for_each_sched_entity(se) \
 		for (; se; se = NULL)
@@ -913,7 +1015,14 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	curr->sum_exec_runtime += delta_exec;
 	schedstat_add(cfs_rq->exec_clock, delta_exec);
 
-	curr->vruntime += calc_delta_fair(delta_exec, curr);
+#ifdef CONFIG_SCHED_BORE
+	if (entity_is_task(curr)) {
+		curr->burst_time += min(delta_exec, U64_MAX - curr->burst_time);
+		update_burst_penalty(curr);
+		curr->vruntime += max(1ULL, calc_delta_fair(delta_exec, curr));
+	} else
+#endif
+		curr->vruntime += calc_delta_fair(delta_exec, curr);
 	update_min_vruntime(cfs_rq);
 
 	if (entity_is_task(curr)) {
@@ -2782,6 +2891,24 @@ account_entity_dequeue(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	cfs_rq->nr_running--;
 }
 
+#if defined(CONFIG_SCHED_BORE) || defined(CONFIG_FAIR_GROUP_SCHED)
+static void reweight_entity(struct cfs_rq *cfs_rq, struct sched_entity *se,
+			    unsigned long weight)
+{
+	if (se->on_rq) {
+		/* commit outstanding execution time */
+		if (cfs_rq->curr == se)
+			update_curr(cfs_rq);
+		account_entity_dequeue(cfs_rq, se);
+	}
+
+	update_load_set(&se->load, weight);
+
+	if (se->on_rq)
+		account_entity_enqueue(cfs_rq, se);
+}
+#endif
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 # ifdef CONFIG_SMP
 static long calc_cfs_shares(struct cfs_rq *cfs_rq, struct task_group *tg)
@@ -2831,31 +2958,6 @@ static inline long calc_cfs_shares(struct cfs_rq *cfs_rq, struct task_group *tg)
 }
 # endif /* CONFIG_SMP */
 
-static void reweight_entity(struct cfs_rq *cfs_rq, struct sched_entity *se,
-			    unsigned long weight)
-{
-	if (se->on_rq) {
-		/* commit outstanding execution time */
-		if (cfs_rq->curr == se)
-			update_curr(cfs_rq);
-		account_entity_dequeue(cfs_rq, se);
-	}
-
-	update_load_set(&se->load, weight);
-
-	if (se->on_rq)
-		account_entity_enqueue(cfs_rq, se);
-}
-
-void reweight_task(struct task_struct *p, int prio)
-{
-	struct sched_entity *se = &p->se;
-	struct cfs_rq *cfs_rq = cfs_rq_of(se);
-	struct load_weight *load = &se->load;
-	unsigned long weight = scale_load(sched_prio_to_weight[prio]);
-	reweight_entity(cfs_rq, se, weight);
-	load->inv_weight = sched_prio_to_wmult[prio];
-}
 
 static inline int throttled_hierarchy(struct cfs_rq *cfs_rq);
 
@@ -3927,6 +4029,19 @@ util_est_dequeue(struct cfs_rq *cfs_rq, struct task_struct *p,
 		 bool task_sleep) {}
 
 #endif /* CONFIG_SMP */
+
+#ifdef CONFIG_SCHED_BORE
+static __always_inline void reweight_task(struct task_struct *p, int prio)
+{
+	struct sched_entity *se = &p->se;
+	struct cfs_rq *cfs_rq = cfs_rq_of(se);
+
+	/* Settle this tree's weighted PELT history with the old weight first. */
+	update_load_avg(se, UPDATE_TG);
+	reweight_entity(cfs_rq, se, scale_load(sched_prio_to_weight[prio]));
+	se->load.inv_weight = sched_prio_to_wmult[prio];
+}
+#endif
 
 static void check_spread(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
@@ -5359,6 +5474,11 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	 */
 	if (p->in_iowait && prefer_idle)
 		cpufreq_update_util(rq, SCHED_CPUFREQ_IOWAIT);
+
+#ifdef CONFIG_SCHED_BORE
+	if (flags & ENQUEUE_WAKEUP)
+		restart_burst(se);
+#endif
 
 	for_each_sched_entity(se) {
 		if (se->on_rq)
@@ -8951,6 +9071,24 @@ static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
  *
  * The magic of dealing with the ->skip buddy is in pick_next_entity.
  */
+#ifdef CONFIG_SCHED_BORE
+static void yield_task_fair(struct rq *rq)
+{
+	struct task_struct *curr = rq->curr;
+	struct cfs_rq *cfs_rq = task_cfs_rq(curr);
+	struct sched_entity *se = &curr->se;
+
+	/* A yield ends this burst even if nobody else is runnable. */
+	update_rq_clock(rq);
+	update_curr(cfs_rq);
+	restart_burst(se);
+	if (unlikely(rq->nr_running == 1))
+		return;
+	clear_buddies(cfs_rq, se);
+	rq_clock_skip_update(rq, true);
+	set_skip_buddy(se);
+}
+#else
 static void yield_task_fair(struct rq *rq)
 {
 	struct task_struct *curr = rq->curr;
@@ -8981,6 +9119,7 @@ static void yield_task_fair(struct rq *rq)
 
 	set_skip_buddy(se);
 }
+#endif
 
 static bool yield_to_task_fair(struct rq *rq, struct task_struct *p, bool preempt)
 {
@@ -9132,6 +9271,8 @@ enum group_type {
 #define LBF_NEED_BREAK	0x02
 #define LBF_DST_PINNED  0x04
 #define LBF_SOME_PINNED	0x08
+/* Sticky across more_balance retries; never stores a task pointer. */
+#define LBF_MOVED		0x40
 #define LBF_IGNORE_BIG_TASKS 0x100
 #define LBF_IGNORE_PREFERRED_CLUSTER_TASKS 0x200
 
@@ -9426,6 +9567,33 @@ static struct task_struct *detach_one_task(struct lb_env *env)
 static const unsigned int sched_nr_migrate_break = 32;
 
 /*
+ * Cambyses v0.6.0 load-budget and block-rotation ideas by Masahito Suzuki,
+ * adapted to this tail-first 4.14 balancer.  A concession is valid only while
+ * the source rq remains locked: WALT detach_task() can drop that lock.
+ */
+struct lb_concession {
+	struct task_struct *p;
+	unsigned long cost;
+};
+
+static bool lb_cost_fits(struct lb_env *env, struct lb_concession *concession,
+			 struct task_struct *p, unsigned long cost, bool strict)
+{
+	if (!strict)
+		return (cost / 2) <= (unsigned long)env->imbalance;
+
+	if (cost <= (unsigned long)env->imbalance)
+		return true;
+
+	if (!(env->flags & LBF_MOVED) &&
+	    (!concession->p || cost < concession->cost)) {
+		concession->p = p;
+		concession->cost = cost;
+	}
+	return false;
+}
+
+/*
  * detach_tasks() -- tries to detach up to imbalance weighted load from
  * busiest_rq, as part of a balancing operation within domain "sd".
  *
@@ -9435,6 +9603,11 @@ static int detach_tasks(struct lb_env *env)
 {
 	struct list_head *tasks = &env->src_rq->cfs_tasks;
 	struct task_struct *p;
+	struct lb_concession concession = { NULL, 0 };
+	struct list_head *cursor;
+	bool rotate = sched_feat(LB_ROTATE_BLOCK);
+	bool strict = sched_feat(LB_STRICT_BUDGET);
+	bool scan_timed_out = false;
 	unsigned long load = 0;
 	int detached = 0;
 	int orig_loop = env->loop;
@@ -9454,7 +9627,13 @@ static int detach_tasks(struct lb_env *env)
 	}
 
 redo:
+	concession.p = NULL;
+	concession.cost = 0;
+	cursor = tasks->prev;
 	while (!list_empty(tasks)) {
+		if (rotate && cursor == tasks)
+			break;
+
 		/*
 		 * We don't want to steal all, otherwise we may be treated likewise,
 		 * which could at worst lead to a livelock crash.
@@ -9462,7 +9641,10 @@ redo:
 		if (env->idle != CPU_NOT_IDLE && env->src_rq->nr_running <= 1)
 			break;
 
-		p = list_last_entry(tasks, struct task_struct, se.group_node);
+		if (rotate)
+			p = list_entry(cursor, struct task_struct, se.group_node);
+		else
+			p = list_last_entry(tasks, struct task_struct, se.group_node);
 
 		env->loop++;
 		/* We've more or less seen every task there is, call it quits */
@@ -9470,8 +9652,10 @@ redo:
 			break;
 
 		/* Abort the loop, if we spent more than 5 msec */
-		if (rq_clock(env->src_rq) - start_t > 5000000)
+		if (rq_clock(env->src_rq) - start_t > 5000000) {
+			scan_timed_out = true;
 			break;
+		}
 
 		/* take a breather every nr_migrate tasks */
 		if (env->loop > env->loop_break) {
@@ -9479,6 +9663,9 @@ redo:
 			env->flags |= LBF_NEED_BREAK;
 			break;
 		}
+
+		/* First unexamined entry, walking towards the head. */
+		cursor = p->se.group_node.prev;
 
 		if (!can_migrate_task(p, env))
 			goto next;
@@ -9506,11 +9693,22 @@ redo:
 		 */
 		if (((cpu_rq(env->src_cpu)->nr_running > 2) ||
 			(env->flags & LBF_IGNORE_BIG_TASKS)) &&
-			((load / 2) > env->imbalance))
+			!lb_cost_fits(env, &concession, p, load, strict))
 			goto next;
 
+		/*
+		 * Flush preceding rejects before detach_task(): its WALT path
+		 * can release src_rq->lock.  Retain neither a cursor nor a
+		 * candidate across that call; restart from the new tail.
+		 */
+		if (rotate && p->se.group_node.next != tasks)
+			list_rotate_to_front(p->se.group_node.next, tasks);
+		cursor = NULL;
+		concession.p = NULL;
+		env->flags |= LBF_MOVED;
 		detach_task(p, env);
 		list_add(&p->se.group_node, &env->tasks);
+		cursor = tasks->prev;
 
 		detached++;
 		env->imbalance -= load;
@@ -9539,7 +9737,30 @@ next:
 				env->src_grp_type, p->pid, load, task_util(p),
 				cpumask_bits(&p->cpus_allowed)[0]);
 #endif
-		list_move(&p->se.group_node, tasks);
+		if (!rotate)
+			list_move(&p->se.group_node, tasks);
+	}
+
+	/* Make the first unexamined entry the new tail, in one list operation. */
+	if (rotate && cursor != tasks && cursor->next != tasks)
+		list_rotate_to_front(cursor->next, tasks);
+
+	/*
+	 * Only candidates that passed can_migrate_task() and LB_MIN reach
+	 * here.  No detach has occurred, so src_rq->lock still protects the
+	 * saved task.  Finish rotation before the possible WALT lock drop.
+	 * Respect the existing scan timeout rather than doing extra work.
+	 */
+	if (strict && concession.p && !(env->flags & LBF_MOVED) &&
+	    !scan_timed_out) {
+		p = concession.p;
+		concession.p = NULL;
+		env->flags |= LBF_MOVED;
+		detach_task(p, env);
+		list_add(&p->se.group_node, &env->tasks);
+		/* Overshoot ends the budget, even for costs above LONG_MAX. */
+		env->imbalance -= min_t(unsigned long, concession.cost, LONG_MAX);
+		detached++;
 	}
 
 	if (env->flags & (LBF_IGNORE_BIG_TASKS |
@@ -10054,9 +10275,7 @@ group_is_overloaded(struct lb_env *env, struct sg_lb_stats *sgs)
 static inline bool
 group_smaller_min_cpu_capacity(struct sched_group *sg, struct sched_group *ref)
 {
-	return sg->sgc->min_capacity *
-				sched_capacity_margin_up[group_first_cpu(sg)] <
-						ref->sgc->min_capacity * 1024;
+	return sg->sgc->min_capacity < ref->sgc->min_capacity;
 }
 
 /*
@@ -10066,9 +10285,7 @@ group_smaller_min_cpu_capacity(struct sched_group *sg, struct sched_group *ref)
 static inline bool
 group_smaller_max_cpu_capacity(struct sched_group *sg, struct sched_group *ref)
 {
-	return sg->sgc->max_capacity *
-				sched_capacity_margin_up[group_first_cpu(sg)] <
-						ref->sgc->max_capacity * 1024;
+	return sg->sgc->max_capacity < ref->sgc->max_capacity;
 }
 
 /*
@@ -10914,6 +11131,9 @@ static struct rq *find_busiest_queue(struct lb_env *env,
 		 * Both cases only affect the total convergence complexity.
 		 */
 		if (rt > env->fbq_type)
+			continue;
+
+		if (!rq->cfs.h_nr_running)
 			continue;
 
 		/*
@@ -12370,6 +12590,9 @@ static void task_fork_fair(struct task_struct *p)
 		update_curr(cfs_rq);
 		se->vruntime = curr->vruntime;
 	}
+#ifdef CONFIG_SCHED_BORE
+	update_burst_score(se);
+#endif
 	place_entity(cfs_rq, se, 1);
 
 	if (sysctl_sched_child_runs_first && curr && entity_before(curr, se)) {
