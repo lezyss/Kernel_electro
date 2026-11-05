@@ -31,3 +31,14 @@ Models do not establish real VFS/RCU/fsnotify/mmap/superblock behavior, concurre
 safety, working Android root/modules, a full kernel build, boot or integrity-check
 results. See Documentation/filesystems/susfs/integration.md for limitations and
 device testing. Do not regenerate provenance merely to bypass failed tests.
+
+BPF/task-header provenance follow-up
+----------------------------------
+The immutable original SUSFS manifest is still checked. Later approved task
+header changes use Documentation/bpf/susfs-compat-overlay.json and its exact
+reviewed patch; only include/linux/sched.h is allowed in that chain. All
+other hooks, including the existing FinaSU overlay, remain fail-closed.
+
+Run the positive/13-negative provenance regression with:
+  python3 tools/testing/selftests/susfs/test_provenance_overlays.py --config out/.config
+The CI build script runs this check before compilation.

@@ -131,6 +131,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kernel-build-details-${{ github.run_number }}
+          include-hidden-files: true
           path: |
             out/*.log
             out/.config

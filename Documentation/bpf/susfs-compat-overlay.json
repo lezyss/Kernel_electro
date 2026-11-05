@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "susfs_kernel_commit": "c931cae8ca19e4b738e3d9eda8fec4cdb7947473",
+  "bpf_reference_commit": "2a58cdc0636e8eedba246338dd565bbfffc84837",
+  "scope": "Approved task header changes only: cpuset parameter name and task_cpu READ_ONCE from prior integrations, followed by BPF local-storage/run-context declarations and fields. Existing SUSFS members/hooks unchanged.",
+  "patch": "Documentation/bpf/susfs-compat-overlay.diff",
+  "patch_sha256": "0bea74d0ecef808fbd1838afaac3cd2c80f2bca26b2ca94e3387b52a8e166c40",
+  "base_sha256": {
+    "include/linux/sched.h": "16affb757a3fece7510010ec34bf7d5409f494eb8fdc93de46c0830788a5d139"
+  },
+  "pre_bpf_sha256": {
+    "include/linux/sched.h": "338831b16d4578208753fe7902d1d3d06ef024dc63e6b6de49ba5a8dc3a68e3a"
+  },
+  "postimage_sha256": {
+    "include/linux/sched.h": "037bfe8263750b972717b966cfeb00c0f41489fbca6aa1d76a1c3c105dfe1707"
+  },
+  "replay": "PASS: exact published SUSFS header -> git apply --unidiff-zero --whitespace=error-all -> byte-identical current header",
+  "patch_format": "Zero context avoids patch-as-text whitespace false positives; apply with --unidiff-zero only to the verified base_sha256 header."
+}

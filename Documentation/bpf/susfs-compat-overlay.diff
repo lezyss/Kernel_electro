@@ -1,0 +1,22 @@
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -35,0 +36,2 @@
++struct bpf_local_storage;
++struct bpf_run_ctx;
+@@ -1399,0 +1402,6 @@
++#ifdef CONFIG_BPF_SYSCALL
++	/* Used by BPF task local storage */
++	struct bpf_local_storage __rcu	*bpf_storage;
++	/* Used for BPF run context */
++	struct bpf_run_ctx		*bpf_ctx;
++#endif
+@@ -1712 +1720 @@
+-extern int task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_allowed);
++extern int task_can_attach(struct task_struct *p, const struct cpumask *cs_effective_cpus);
+@@ -1976 +1984 @@
+-	return p->cpu;
++	return READ_ONCE(p->cpu);
+@@ -1978 +1986 @@
+-	return task_thread_info(p)->cpu;
++	return READ_ONCE(task_thread_info(p)->cpu);

@@ -182,3 +182,20 @@ positive/negative cases, BTF-dependent loads, real Android networking/cgroups,
 sockmap/stream traffic, memory pressure, suspend/nohz/CPU-hotplug and SMP/
 lockdep stress. Host shims do not establish concurrency or hardware ordering;
 full kernel compilation is not proof of runtime correctness or performance.
+
+CI provenance follow-up
+----------------------
+
+Run 42031996992 failed in the build step. Reproducing the CI build script
+locally exposed a stale SUSFS whole-file hash for ``include/linux/sched.h``.
+The original SUSFS manifest is unchanged. The reviewed
+``susfs-compat-overlay.json`` and companion patch link its original header
+through the pre-BPF header to the integrated task-storage/run-context header.
+Only that one header is permitted in the overlay; unrelated SUSFS and FinaSU
+hooks retain their original checks. Thirteen negative controls cover source
+tampering, broken chains, expanded scope, missing metadata and patch changes.
+
+This correction changes validation and artifact handling, not kernel source.
+The log artifact now explicitly includes the hidden resolved ``.config``.
+The subsequent GitHub Actions run must establish the remote build result;
+local preflight success alone is not a CI-success claim.

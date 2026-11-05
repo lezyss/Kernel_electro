@@ -41,7 +41,42 @@ def check(root, config, profile):
                 '2d5786b9129a254a87ac358c8bec0203ccd53351' and
                 shared == {'drivers/kernelsu/supercall/dispatch.c'},
                 'unexpected FinaSU/SUSFS overlay overlap')
+    # Later approved task-header changes must form an explicit, narrow chain.
+    # Do not rewrite the immutable SUSFS manifest or skip its source checks.
+    bpf_path = root / 'Documentation/bpf/susfs-compat-overlay.json'
+    bpf_overlay = json.loads(bpf_path.read_text()) if bpf_path.is_file() else None
+    bpf_shared = set()
+    if bpf_overlay:
+        bpf_shared = set(bpf_overlay['postimage_sha256'])
+        require(bpf_overlay['schema'] == 1 and
+                bpf_overlay['susfs_kernel_commit'] == PIN and
+                bpf_overlay['bpf_reference_commit'] ==
+                '2a58cdc0636e8eedba246338dd565bbfffc84837',
+                'unexpected BPF/SUSFS overlay revision')
+        require(bpf_shared == {'include/linux/sched.h'} and
+                set(bpf_overlay['base_sha256']) == bpf_shared and
+                set(bpf_overlay['pre_bpf_sha256']) == bpf_shared and
+                not bpf_shared & shared,
+                'unexpected BPF/SUSFS overlay scope')
+        require(bpf_overlay['patch'] == 'Documentation/bpf/susfs-compat-overlay.diff',
+                'unexpected BPF/SUSFS patch path')
+        patch = root / bpf_overlay['patch']
+        require(hashlib.sha256(patch.read_bytes()).hexdigest() ==
+                bpf_overlay['patch_sha256'], 'BPF/SUSFS overlay patch changed')
+        bpf_manifest = json.loads((root / 'Documentation/bpf/bpf-5.15-upgrade.json').read_text())
+        records = [record for record in bpf_manifest['source_delta_records']
+                   if record['path'] in bpf_shared]
+        require(len(records) == 1, 'missing or duplicate BPF task-header record')
+        record = records[0]
+        name = record['path']
+        require(bpf_overlay['base_sha256'][name] == manifest['postimage_sha256'][name],
+                'broken SUSFS to task-header preimage chain')
+        require(bpf_overlay['pre_bpf_sha256'][name] == record['before_sha256'] and
+                bpf_overlay['postimage_sha256'][name] == record['after_sha256'],
+                'broken task-header to BPF postimage chain')
     for name, digest in manifest['postimage_sha256'].items():
+        if name in bpf_shared:
+            digest = bpf_overlay['postimage_sha256'][name]
         if name in shared:
             require(overlay['base_sha256'][name] == digest, 'broken SUSFS to FinaSU preimage chain')
             digest = overlay['postimage_sha256'][name]
