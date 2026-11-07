@@ -146,7 +146,7 @@ scripts/config --file arch/arm64/configs/vendor/xiaomi/miatoll_defconfig \
   --disable KSU_KPROBES_KSUD \
   --disable KSU_HACK_ARM64_BRANCH_LINK \
   --disable KSU_DISABLE_32BIT_HOOKS \
-  --disable KSU_FEATURE_ADBROOT \
+  --enable KSU_FEATURE_ADBROOT \
   --disable KSU_HOSTSREDIRECT \
   --disable KSU_THRONE_TRACKER_ALWAYS_THREADED \
   --disable KSU_NOPRINTK \
@@ -161,8 +161,12 @@ scripts/config --file arch/arm64/configs/vendor/xiaomi/miatoll_defconfig \
 - Full UID checks retain an allowlist check for every non-root UID instead of
   the fork's faster shell-only gate. SU logging stays on for troubleshooting.
 - `KSU_DISABLE_32BIT_HOOKS=n`: keep compat hooks for 32-bit Android processes.
-- No unconditional shell SU, extra ADB-root feature, hosts redirection,
-  branch-link hooking, deprecated KSU kprobes mode or KSU debug mode is enabled.
+- `KSU_FEATURE_ADBROOT=y`: include the existing backslashxx ADB-root feature,
+  explicitly approved on 2026-11-07. Its runtime toggle still initializes off;
+  compilation does not automatically activate ADB root or guarantee ROM support.
+  This newly enabled configuration has not yet been target-built or device-tested.
+- No unconditional shell SU, hosts redirection, branch-link hooking, deprecated
+  KSU kprobes mode or KSU debug mode is enabled.
 - Global kernel KPROBES, seccomp, read-only protections, and other device tuning
   are not disabled. The existing SELinux/SECCOMP/COMPAT settings are retained.
 

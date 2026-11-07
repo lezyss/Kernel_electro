@@ -70,10 +70,10 @@ def check(root, config, disabled):
         require(values.get('CONFIG_KSU', 'n') == 'n', 'KSU unexpectedly enabled')
     else:
         for flag in ['KSU', 'KSU_TAMPER_SYSCALL_TABLE', 'KSU_LSM_SECURITY_HOOKS',
-                     'KSU_ENABLE_FULL_UID_CHECKS', 'KSU_FEATURE_SULOG']:
+                     'KSU_ENABLE_FULL_UID_CHECKS', 'KSU_FEATURE_SULOG', 'KSU_FEATURE_ADBROOT']:
             require(values.get('CONFIG_' + flag) == 'y', 'missing CONFIG_' + flag + '=y')
         for flag in ['KSU_KPROBES_KSUD', 'KSU_HACK_ARM64_BRANCH_LINK', 'KSU_DISABLE_32BIT_HOOKS',
-                     'KSU_FEATURE_ADBROOT', 'KSU_HOSTSREDIRECT', 'KSU_SHELL_HAS_SU_ALWAYS']:
+                     'KSU_HOSTSREDIRECT', 'KSU_SHELL_HAS_SU_ALWAYS']:
             require(values.get('CONFIG_' + flag, 'n') == 'n', 'unexpected CONFIG_' + flag)
         # Debug logging is intentionally allowed for a dedicated validation build.
         for flag in ['SECURITY_SELINUX', 'SECCOMP', 'COMPAT']:

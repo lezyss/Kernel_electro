@@ -197,3 +197,19 @@ Changing the phone's algorithm cannot by itself select the remote server's
 congestion control for downloads, and does not control QUIC. Neither v3 nor
 BBRplus is guaranteed to win on every cellular/Wi-Fi path. No device
 performance or stability advantage is claimed before actual tests.
+
+Approved configuration follow-up (2026-11-07)
+--------------------------------------------
+
+The miatoll profile now also selects ``CONFIG_KSU_FEATURE_ADBROOT=y`` at
+the user's request. This builds the existing vendored backslashxx feature;
+its runtime toggle still initializes off. No KSU source, manager, SELinux
+mode or unconditional shell-SU policy was changed.
+
+The historical full AOSP builds and module-link evidence recorded in the
+validation manifest used ADBROOT disabled. They remain evidence for the
+unchanged BBRv3/TCP sources, not proof of the newly enabled KSU code path.
+The current ADB-root-enabled profile still needs a new target build and
+device validation. CI is manual-only and was not dispatched for publication.
+The source-delta patch deliberately includes this approved config follow-up;
+its original before-images and all three historical BPF chains are retained.

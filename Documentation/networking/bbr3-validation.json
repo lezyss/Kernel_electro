@@ -124,14 +124,14 @@
   },
   "source_delta_patch": {
     "path": "Documentation/networking/bbr3-backport.diff",
-    "sha256": "4e3e6c26465123ba65f444ced03f3a7a246ad65624cbab8c40e493e81dcdb6c6",
+    "sha256": "cbcc6012916390137bf0117a79cea80581fb1d78845051f0aafe2f3aa53388f2",
     "format": "zero-context unified diff; git apply --unidiff-zero"
   },
   "source_delta_records": [
     {
       "path": "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig",
       "before_sha256": "7d049399dbd01e9f517db96c152a86148d1fdf1a307be95745ba2fa29a456a75",
-      "after_sha256": "9ae83734d1a9db5a24f41aba8832718ccc77cce1faca18e2261765e89ea1bf5f"
+      "after_sha256": "e734f530a1b8ec8154db34acf7ece9533bc636fd3228caa522382e47ccf0f32c"
     },
     {
       "path": "include/linux/tcp.h",
@@ -226,7 +226,7 @@
     {
       "path": "Documentation/networking/bbr3-backport.rst",
       "before_sha256": null,
-      "after_sha256": "9e4efc8985d22ad4746954958ecdd0b8af612286bbccf2c713e9b82f78a450d4"
+      "after_sha256": "ae6895a02664702a8533c5ef87cf28802e69dbda8456fb5991c04ec086bd638a"
     }
   ],
   "protected_source_sha256": {
@@ -253,7 +253,8 @@
   "limits": [
     "Models use socket/clock/queue/BTF fixtures, not a running TCP stack.",
     "Target compilation/linking is not boot, network stress, or performance proof.",
-    "No claim that BBRv3 always outperforms BBRplus or controls QUIC/server-side downloads."
+    "No claim that BBRv3 always outperforms BBRplus or controls QUIC/server-side downloads.",
+    "The 2026-11-07 ADBROOT=y configuration follow-up has not been target-built or device-tested; historical AOSP evidence used ADBROOT disabled."
   ],
   "production_artifacts": {
     "kernel_release": "4.14.357-electro",
@@ -411,5 +412,18 @@
     "source_provenance_20_endpoints_and_three_bpf_chains": "PASS",
     "ksu_finasu_nomount_susfs_and_13_provenance_negatives": "PASS (ADB-root-disabled configuration before the separately approved config change)",
     "historical_aosp_artifacts_and_logs": "Recorded hashes retained below; external build/evidence directories are not available in this restored workspace. No new AOSP full build or device test performed."
+  },
+  "approved_config_followup": {
+    "date": "2026-11-07",
+    "request": "Enable existing backslashxx KSU ADB-root feature in miatoll defconfig",
+    "setting": "CONFIG_KSU_FEATURE_ADBROOT=y",
+    "runtime_default": "off; no automatic activation or ROM support guarantee",
+    "historically_built_defconfig_sha256": "9ae83734d1a9db5a24f41aba8832718ccc77cce1faca18e2261765e89ea1bf5f",
+    "historically_built_setting": "# CONFIG_KSU_FEATURE_ADBROOT is not set",
+    "ksu_source_changed": false,
+    "new_profile_target_build": "NOT RUN",
+    "new_profile_device_test": "NOT RUN",
+    "provenance": "Deliberately regenerated only the combined delta/postimage seals against original before-images. Historical BPF records/protected sources remain unchanged.",
+    "local_checks": "PASS: KSU/FinaSU/NoMount/SUSFS integrity/configuration, 13 SUSFS provenance negatives, BBRv3 ASan/UBSan models, BBRplus 1080 cases, 20-path reverse/forward provenance; unintended ADBROOT disable rejected. These do not replace target compilation or device tests."
   }
 }
