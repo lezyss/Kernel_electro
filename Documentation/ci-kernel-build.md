@@ -1,8 +1,9 @@
 # GitHub Actions: full LLVM kernel build
 
 The **Build kernel (AOSP Clang r614150)** workflow builds this ARM64 kernel
-on Ubuntu 22.04. It runs on pushes and pull requests, and can also be started
-from **Actions → Build kernel (AOSP Clang r614150) → Run workflow**.
+on Ubuntu 22.04. It runs only when manually started from
+**Actions → Build kernel (AOSP Clang r614150) → Run workflow**.
+Commits, pushes, and pull-request updates do not automatically trigger a build.
 The default configuration is `vendor/xiaomi/miatoll_defconfig`; manual runs
 can select another existing ARM64 defconfig.
 

@@ -8,8 +8,6 @@ on:
         type: string
         default: vendor/xiaomi/miatoll_defconfig
         required: true
-  push:
-  pull_request:
 
 permissions:
   contents: read
