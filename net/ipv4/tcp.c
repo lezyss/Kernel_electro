@@ -284,6 +284,7 @@
 #include <net/busy_poll.h>
 
 int sysctl_tcp_min_tso_segs __read_mostly = 2;
+EXPORT_SYMBOL_GPL(sysctl_tcp_min_tso_segs);
 
 int sysctl_tcp_autocorking __read_mostly = 1;
 

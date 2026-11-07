@@ -686,6 +686,15 @@ config TCP_CONG_BBR
 	bufferbloat, policers, or AQM schemes that do not provide a delay
 	signal. It requires the fq ("Fair Queue") pacing packet scheduler.
 
+config TCP_CONG_BBR3
+	tristate "BBRv3 TCP (Google, loss-based 4.14 port)"
+	default n
+	help
+	  Google BBR version 3, available as the separate bbr3 algorithm.
+	  This port uses native TCP pacing and the loss-based Internet mode;
+	  modern ECN_LOW, PLB and EDT are not supported. It does not change
+	  the default congestion control. See bbr3-backport.rst.
+
 config TCP_CONG_BBRPLUS
 	tristate "BBRplus TCP"
 	---help---

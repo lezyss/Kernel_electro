@@ -1239,8 +1239,11 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	tp = tcp_sk(sk);
 
 	if (clone_it) {
-		TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq
-			- tp->snd_una;
+		if (!(icsk->icsk_ca_ops->flags & TCP_CONG_RATE_IN_FLIGHT)) {
+			TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq
+				- tp->snd_una;
+			TCP_SKB_CB(skb)->tx.in_flight_is_packets = 0;
+		}
 		oskb = skb;
 		if (unlikely(skb_cloned(skb)))
 			skb = pskb_copy(skb, gfp_mask);
@@ -1498,7 +1501,7 @@ int tcp_fragment(struct sock *sk, struct sk_buff *skb, u32 len,
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *buff;
-	int nsize, old_factor;
+	int nsize, old_factor, inflight_prev;
 	long limit;
 	int nlen;
 	u8 flags;
@@ -1586,6 +1589,19 @@ int tcp_fragment(struct sock *sk, struct sk_buff *skb, u32 len,
 
 		if (diff)
 			tcp_adjust_pcount(sk, skb, diff);
+		if (TCP_SKB_CB(skb)->tx.in_flight_is_packets) {
+			inflight_prev = TCP_SKB_CB(skb)->tx.in_flight - old_factor;
+			if (inflight_prev < 0) {
+				WARN_ON_ONCE(tcp_skb_tx_in_flight_is_suspicious(
+					old_factor, TCP_SKB_CB(skb)->sacked,
+					TCP_SKB_CB(skb)->tx.in_flight));
+				inflight_prev = 0;
+			}
+			TCP_SKB_CB(skb)->tx.in_flight = inflight_prev +
+				tcp_skb_pcount(skb);
+			TCP_SKB_CB(buff)->tx.in_flight = inflight_prev +
+				tcp_skb_pcount(skb) + tcp_skb_pcount(buff);
+		}
 	}
 
 	/* Link BUFF into the send queue. */
@@ -1959,6 +1975,10 @@ static u32 tcp_tso_segs(struct sock *sk, unsigned int mss_now)
 {
 	const struct tcp_congestion_ops *ca_ops = inet_csk(sk)->icsk_ca_ops;
 	u32 min_tso, tso_segs;
+
+	if (ca_ops->tso_segs)
+		return min_t(u32, ca_ops->tso_segs(sk, mss_now),
+			     sk->sk_gso_max_segs);
 
 	tso_segs = ca_ops->tso_segs_goal ? ca_ops->tso_segs_goal(sk) : 0;
 	if (!tso_segs) {
@@ -2580,6 +2600,8 @@ static bool tcp_write_xmit(struct sock *sk, unsigned int mss_now, int nonagle,
 		if (unlikely(tp->repair) && tp->repair_queue == TCP_SEND_QUEUE) {
 			/* "skb_mstamp" is used as a start point for the retransmit timer */
 			skb->skb_mstamp = tp->tcp_mstamp;
+			/* Restored bytes have no meaningful delivery-time sample. */
+			memset(&TCP_SKB_CB(skb)->tx, 0, sizeof(TCP_SKB_CB(skb)->tx));
 			goto repair; /* Skip network transmission */
 		}
 
@@ -2793,6 +2815,7 @@ void tcp_send_loss_probe(struct sock *sk)
 	if (WARN_ON(!skb || !tcp_skb_pcount(skb)))
 		goto rearm_timer;
 
+	tp->tlp_orig_data_app_limited = TCP_SKB_CB(skb)->tx.is_app_limited;
 	if (__tcp_retransmit_skb(sk, skb, 1))
 		goto rearm_timer;
 

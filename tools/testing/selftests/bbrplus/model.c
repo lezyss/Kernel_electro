@@ -41,6 +41,7 @@ struct sock;
 struct tcp_congestion_ops {
 	u32 (*min_tso_segs)(struct sock *);
 	u32 (*tso_segs_goal)(struct sock *);
+	u32 (*tso_segs)(struct sock *, unsigned int);
 };
 struct sock {
 	u32 sk_pacing_rate, sk_pacing_shift, sk_gso_max_size, sk_gso_max_segs;

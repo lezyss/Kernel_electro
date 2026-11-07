@@ -1,0 +1,36 @@
+BBRv3 4.14 port checks
+=====================
+
+Run from the repository root:
+
+  python3 tools/testing/selftests/bbr3/test_backport.py --self-test-negatives
+  python3 tools/testing/selftests/bbr3/test_backport.py \
+      --cc /path/to/exact/aosp/clang --sanitize --self-test-negatives
+  python3 tools/testing/selftests/bbr3/test_provenance.py
+  python3 tools/testing/selftests/bbrplus/test_backport.py
+
+The model runner extracts the actual BBRv3 algorithm, TCP rate code, metadata,
+loss notification, split/merge blocks, TLP classification and BPF member policy.
+It substitutes host socket/clock/queue/BTF fixtures. It is NOT an emulated TCP
+stack, boot test, network stress test, or performance benchmark. The source
+fragment extraction and host ABI checks complement, not replace, AArch64 target
+compilation and a complete kernel link.
+
+Coverage: 10,000 wrap cases; 74,100 split/merge cases; 1,188 TSO dispatch cases; CE/loss counter wrap;
+legacy bytes vs packet-valued snapshots on CC switches; missing/reneged rate
+samples; newly counted/retransmitted loss; immediate loss-bound reaction;
+STARTUP, DRAIN, all four PROBE_BW phases, PROBE_RTT entry/exit; TLP advancing,
+ambiguous, DSACK, pure-dupack and new-data ACKs; 20/52-byte diagnostic ABI;
+NULL/unsupported native callbacks in BPF struct_ops. Thirteen mutations must
+compile but fail a runtime assertion. A compiler failure is not a passing
+negative control. --mutant is for intentional individual failures only.
+
+The additive zero-context source patch and manifest preserve the historical
+BPF source seals. test_provenance.py verifies current endpoints, all three BPF
+before-image chains, protected BBR/BBRplus/TCP-buffer sources, and actual
+reverse/forward replay. They are reproducibility/integrity records, not signed
+supply-chain attestation or device proof. Refresh them deliberately only after
+reviewing a later edit; a hash mismatch is not permission to accept drift.
+
+See Documentation/networking/bbr3-backport.rst for port exclusions, selection
+and a sender-side phone comparison procedure. The default remains bbrplus.

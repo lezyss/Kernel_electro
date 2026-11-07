@@ -1,0 +1,415 @@
+{
+  "status": "implemented; local AOSP full-build, module link and host validation PASS; device tests pending",
+  "date": "2026-11-06",
+  "branch": "arena/e63a046d-kernel-electro",
+  "publication": {
+    "authorization": "User authorized branch-only commit and push on 2026-11-07; main untouched.",
+    "pushed_at_original_validation": false,
+    "ci_dispatched": false,
+    "note": "This is a pre-publication validation record. Publication is established by Git branch history/remote, not inferred from local tests. Kernel CI is manual-only."
+  },
+  "upstream": {
+    "repository": "google/bbr",
+    "commit": "90210de4b779d40496dee0b89081780eeddf2a60",
+    "linux": "6.13.7",
+    "path": "net/ipv4/tcp_bbr.c",
+    "sha256": "04ba1e8b436b88eb0716f3d2a64a9be5a5d946ba3169a590d7bb533c320bdc51",
+    "prerequisites": [
+      {
+        "commit": "a627517bdfe01967c3f8b931cfce99abfa878ef5",
+        "subject": "net-tcp_bbr: v2: shrink delivered_mstamp, first_tx_mstamp to u32 to free up 8 bytes"
+      },
+      {
+        "commit": "0e6b4413cb4a6a951532611bccd6aca4b22b5bbf",
+        "subject": "net-tcp_bbr: v2: snapshot packets in flight at transmit time and pass in rate_sample"
+      },
+      {
+        "commit": "3679f3b8da5a5b2528b6e14c5510617ed83db72b",
+        "subject": "net-tcp_bbr: v2: count packets lost over TCP rate sampling interval"
+      },
+      {
+        "commit": "500bcfec22c478f4f1e07f66fd2a23ab2184b361",
+        "subject": "net-tcp_bbr: v2: export FLAG_ECE in rate_sample.is_ece"
+      },
+      {
+        "commit": "f2078939d4a8cee55dc24cb4736b1fbb9eae5f97",
+        "subject": "net-tcp_bbr: v2: introduce ca_ops->skb_marked_lost() CC module callback API"
+      },
+      {
+        "commit": "88e09e2b7c845db4faa3532903da453db745b39c",
+        "subject": "net-tcp_bbr: v2: adjust skb tx.in_flight upon merge in tcp_shifted_skb()"
+      },
+      {
+        "commit": "5093de531d14d864bbc95bd5d3031f3996dc88fc",
+        "subject": "net-tcp_bbr: v2: adjust skb tx.in_flight upon split in tcp_fragment()"
+      },
+      {
+        "commit": "a631934cbcd8cddc4bac7d3fb91f890a3c07cd85",
+        "subject": "net-tcp_bbr: v2: record app-limited status of TLP-repaired flight"
+      },
+      {
+        "commit": "3ee83ca004fafa436d448c261472ebe3b1942b42",
+        "subject": "net-tcp_bbr: v2: inform CC module of losses repaired by TLP probe"
+      },
+      {
+        "commit": "703f20a1052d0c024f0e78bd1228eee6906dabf8",
+        "subject": "net-tcp_bbr: v2: introduce is_acking_tlp_retrans_seq into rate_sample"
+      },
+      {
+        "commit": "137a508c950878712068b1d7a67ece75e4f2835c",
+        "subject": "net-tcp_bbr: broaden app-limited rate sample detection"
+      }
+    ]
+  },
+  "mode": "loss-based Internet mode with native 4.14 fq/hrtimer pacing",
+  "excluded": [
+    "ECN_LOW and precise ECE ACKs",
+    "PLB",
+    "EDT delivery forecast",
+    "permanent ECT retransmission policy",
+    "fast ACK mode",
+    "BBRv3 BPF kfunc exports / native-only new callback attachment from BPF"
+  ],
+  "selection": {
+    "algorithm": "bbr3",
+    "kconfig": "CONFIG_TCP_CONG_BBR3",
+    "miatoll_enabled": true,
+    "default": "bbrplus",
+    "retained": [
+      "bbr",
+      "bbrplus",
+      "cubic"
+    ],
+    "tcp_buffer_cap_bytes": 16777216
+  },
+  "layouts": {
+    "tcp_skb_cb_bytes": 48,
+    "tx_bytes": 24,
+    "ca_priv_with_bbr3_bytes": 144,
+    "ca_priv_without_bbr3_bytes": 112,
+    "legacy_bbr_info_bytes": 20,
+    "bbr3_info_bytes": 52
+  },
+  "toolchain": {
+    "commit": "3b86e40facfff1eab4065614255d573293c10373",
+    "revision": "r614150",
+    "clang": "23.0.1",
+    "aosp_build": "16713961",
+    "full_llvm": true,
+    "gcc_target_toolchain": false
+  },
+  "validation": {
+    "aosp_six_tcp_objects": "PASS; final sources also compiled and linked in complete confirmation builds",
+    "aosp_disabled_bbr3_legacy_tcp_and_bpf_objects": "PASS",
+    "aosp_module_bbr3_and_bpf_struct_ops_objects": "PASS",
+    "aosp_on_and_off_layout_static_assertions": "PASS",
+    "aosp_host_models_asan_ubsan": "PASS",
+    "host_models_cases": {
+      "timestamps": 10000,
+      "split_merge": 74100,
+      "probe_bw_phases": 4,
+      "negative_runtime_assertion_controls": 13,
+      "tso_dispatch": 1188
+    },
+    "bbrplus_1080_tso_regression": "PASS",
+    "six_existing_bpf_host_model_suites_and_negatives": "PASS (UBSan host GCC models, not target proof)",
+    "susfs_integration_and_strict_provenance": "PASS",
+    "initial_full_image_modules_dtb_dtbo_build": "PASS (before final small ACK/timer/BPF edits)",
+    "final_source_confirmation": "PASS (export-build.log; exit 0; final sources and GPL min-TSO export linked into images/modules)",
+    "device_boot": "NOT RUN",
+    "tcp_network_stress": "NOT RUN",
+    "phone_ab_performance": "NOT RUN",
+    "aosp_module_link": "PASS: tcp_bbr3.ko in module config, MODPOST + LLD, using matching default-kernel exported symbol versions; no load test or full modular-profile image claim",
+    "ksu_finasu_nomount_integration": "PASS"
+  },
+  "source_delta_patch": {
+    "path": "Documentation/networking/bbr3-backport.diff",
+    "sha256": "4e3e6c26465123ba65f444ced03f3a7a246ad65624cbab8c40e493e81dcdb6c6",
+    "format": "zero-context unified diff; git apply --unidiff-zero"
+  },
+  "source_delta_records": [
+    {
+      "path": "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig",
+      "before_sha256": "7d049399dbd01e9f517db96c152a86148d1fdf1a307be95745ba2fa29a456a75",
+      "after_sha256": "9ae83734d1a9db5a24f41aba8832718ccc77cce1faca18e2261765e89ea1bf5f"
+    },
+    {
+      "path": "include/linux/tcp.h",
+      "before_sha256": "a0b9687c1745c753f28209c5f0194848ca6fa17c3c70e4431b2b7a65456488be",
+      "after_sha256": "15e88602cdb32c45d502fa6eb142d8fa8391a9715a03b8d5bff90ad971c080cb"
+    },
+    {
+      "path": "include/net/inet_connection_sock.h",
+      "before_sha256": "952a816c3d040764deba5cd5b76ce9a3321c249cb716cfdc9c80c301c40adc38",
+      "after_sha256": "8bd521f64767f16452a64ee806e22942c42cdab00791b04218fb5a794690f039"
+    },
+    {
+      "path": "include/net/tcp.h",
+      "before_sha256": "5208e244f708997a1d748bf45ae84563e5354b43521ac5b8491091c6cd7174fc",
+      "after_sha256": "7e128d928db883bdba94c95540473fef231d860f3b128c83dc7d57c848e90a0c"
+    },
+    {
+      "path": "include/uapi/linux/inet_diag.h",
+      "before_sha256": "9117fb4089ca9fba16a7a61c685c40cfa20d1c0e2ea464877663990bd42792cc",
+      "after_sha256": "d726a324418b04d3bfb50767c9c42d2563ca2186692fa2e3be926de53aa36ce2"
+    },
+    {
+      "path": "net/ipv4/Kconfig",
+      "before_sha256": "d6aa2a1fec3a06b302f7318f8509e03a04c38de1bae3562e6559a4262166be72",
+      "after_sha256": "771ea29a3d116004ecdcbd5e642d95e81cd454eb3d29cfba2b9fe2554065ca41"
+    },
+    {
+      "path": "net/ipv4/Makefile",
+      "before_sha256": "179bbb8d4b23cba370624a75f41500a90052a8e9ecccdad70cab105041618956",
+      "after_sha256": "1da26069a10aaf1f27373e2e864504da904e486593a32e623252a780403ca29f"
+    },
+    {
+      "path": "net/ipv4/bpf_tcp_ca.c",
+      "before_sha256": "279cb7a2413d3a401fcc92ea1e38530c7e12a71ff0070c59484f2c732a49880e",
+      "after_sha256": "3b07b120f3a6e4bbb6f5ad016b434cc9dc66af1f10a5688b696e33bf66d9a9dd"
+    },
+    {
+      "path": "net/ipv4/tcp.c",
+      "before_sha256": "446047081cf4ba6fbb83d08a4adb6fb33f5124fa8eafa6875824f1329fd242e6",
+      "after_sha256": "629250ac69e05cd76884b12e0e8ddab70608278cfe10b28f3776f2d896d03a1a"
+    },
+    {
+      "path": "net/ipv4/tcp_input.c",
+      "before_sha256": "7927025df6e45a883945e620c8c30ebdeb338a5fb062a32f3574ab19d393f1ef",
+      "after_sha256": "500e7b78f083900fcdfce9c9f25198886684824fdf87a28c82f688d7d2398393"
+    },
+    {
+      "path": "net/ipv4/tcp_output.c",
+      "before_sha256": "ee2e497d4c9a143613aaf0cca7198952a204916c9db95106f02173e6c94aae48",
+      "after_sha256": "d5dde73fe48d09b1df7e8db644430380c214bec052d3beb0a300b871cb4c975a"
+    },
+    {
+      "path": "net/ipv4/tcp_rate.c",
+      "before_sha256": "e935a6e4a254ac601b848318816a51b18d7304a811dc011356917de2b821b904",
+      "after_sha256": "642639bf29088ae318f1408172eacd7e3a99e29fb9c8f648c6b7d93406f5aac4"
+    },
+    {
+      "path": "net/ipv4/tcp_timer.c",
+      "before_sha256": "eb0e96b1c1981765890440f007df8306d7cbde46e217af3bc3035ba235b99220",
+      "after_sha256": "6e061731bd7e616aea4462429a5dd68641db7fdd8fc3c2701116f9417dea046f"
+    },
+    {
+      "path": "tools/testing/selftests/bbrplus/model.c",
+      "before_sha256": "43ec251ce30035b2f72803853243d7de9f179f8d794a318311189c67b22fc268",
+      "after_sha256": "d257757223adb409c72bd8d675669ff69335e20621ec681a7cf1b1a9fe377c04"
+    },
+    {
+      "path": "net/ipv4/tcp_bbr3.c",
+      "before_sha256": null,
+      "after_sha256": "96023ce77dd1ddcb1a4fc7ee90b9d97ae29d68247bbe1494a74715e5395c8548"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/model.c",
+      "before_sha256": null,
+      "after_sha256": "45fb8ea37941a77fc1366db1359505b13beef3b4231c79e85316b3a9d5e46f4b"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/test_backport.py",
+      "before_sha256": null,
+      "after_sha256": "eed393943aaa09fe8c6855e749002a37005d2d2bb29a8103b6f0967e82ada747"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/test_provenance.py",
+      "before_sha256": null,
+      "after_sha256": "cd48bd6812bd2be96ba6aa7dfa84980512c11ddb140ab9997bbe545a2cf79c4b"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/README",
+      "before_sha256": null,
+      "after_sha256": "5ffb0b2e3ef028fded473755ab80ade6cb843fde94b864dce3e09d2076858b4a"
+    },
+    {
+      "path": "Documentation/networking/bbr3-backport.rst",
+      "before_sha256": null,
+      "after_sha256": "9e4efc8985d22ad4746954958ecdd0b8af612286bbccf2c713e9b82f78a450d4"
+    }
+  ],
+  "protected_source_sha256": {
+    "net/ipv4/tcp_bbr.c": "a088ab3975a386a39596db0a580e93a26a8030d60580d374c934f24d233669c4",
+    "net/ipv4/tcp_bbrplus.c": "8239e81c402601ddc1519af9bd90f45a4e2eb4b910bb3cd830612a4232bd2f6a",
+    "net/ipv4/tcp.c": "629250ac69e05cd76884b12e0e8ddab70608278cfe10b28f3776f2d896d03a1a"
+  },
+  "tcp_c_before_export_sha256": "446047081cf4ba6fbb83d08a4adb6fb33f5124fa8eafa6875824f1329fd242e6",
+  "preservation": {
+    "baseline": "Actual task-start dirty filesystem, not a relabeled Git commit",
+    "tracked_regular_files_hashed": 72733,
+    "tracked_files_changed": 13,
+    "other_task_start_tracked_regular_files": "unchanged at scope audit",
+    "historical_bpf_overlap_chains": [
+      "include/net/tcp.h",
+      "net/ipv4/bpf_tcp_ca.c",
+      "net/ipv4/tcp.c"
+    ],
+    "historical_bpf_seals_rewritten": false,
+    "existing_untracked_bbrplus": "Algorithm source not edited; protected at sealing by its recorded SHA256. Task-start whole-tree hash audit covered tracked regular files, not untracked files.",
+    "tracked_regular_files_unchanged": 72720
+  },
+  "local_evidence_directory": "/home/user/bbr3-validation (not a committed artifact directory)",
+  "limits": [
+    "Models use socket/clock/queue/BTF fixtures, not a running TCP stack.",
+    "Target compilation/linking is not boot, network stress, or performance proof.",
+    "No claim that BBRv3 always outperforms BBRplus or controls QUIC/server-side downloads."
+  ],
+  "production_artifacts": {
+    "kernel_release": "4.14.357-electro",
+    "dtbo_entries": 4,
+    "checks": "ARM64 Image magic, gzip+DTB concatenation, all 4 DTBO entries bounded and FDT magic checked",
+    "files": [
+      {
+        "path": "vmlinux",
+        "bytes": 52927432,
+        "sha256": "edb435e48dcbfde074d1643b44e37cf6fc5425d7fd50b355405e3cdea2d886a1"
+      },
+      {
+        "path": "arch/arm64/boot/Image",
+        "bytes": 43137048,
+        "sha256": "8ced909e130de83417a076875d8384399904e54bc402d508cbe3051d9595de74"
+      },
+      {
+        "path": "arch/arm64/boot/Image.gz",
+        "bytes": 17939501,
+        "sha256": "c5b868a2cbc6b71f7511746bdf8997ae321f5df49d06392d28b405229c8ee977"
+      },
+      {
+        "path": "arch/arm64/boot/Image.gz-dtb",
+        "bytes": 18269959,
+        "sha256": "1a16ab08954dad0d79548a00249cf162750021b88b5b40a0240dc56ab10688f4"
+      },
+      {
+        "path": "arch/arm64/boot/dtb.img",
+        "bytes": 330458,
+        "sha256": "6ae7105b5ad512e40af1f14e53a8c27010b2d7caf0934d53c58cfcc24cc3f239"
+      },
+      {
+        "path": "arch/arm64/boot/dtbo.img",
+        "bytes": 1050481,
+        "sha256": "f1d15a0675d6c772384f9581d033dd555db7ba930175ffe0a3ff47032161de8a"
+      },
+      {
+        "path": "net/ipv4/tcp_bic.ko",
+        "bytes": 15232,
+        "sha256": "874e47a8bc6d4409465e168e37718f106f6e427cd2ad596c7fa4910f27a993e2"
+      },
+      {
+        "path": "net/ipv4/tcp_htcp.ko",
+        "bytes": 14136,
+        "sha256": "6310e4a035fdc483bb6f0c362c77bec8582f5cffea0e54546d73869b81fa1e97"
+      }
+    ],
+    "location": "/home/user/bbr3-validation/out; not committed or published"
+  },
+  "module_link_fixture": {
+    "path": "/home/user/bbr3-validation/out-layout-on/net/ipv4/tcp_bbr3.ko",
+    "bytes": 28024,
+    "sha256": "39e8693ae559264d7bf1803023efd8258dbd9335b8adb1f4f4fbf9d33eadbd24",
+    "note": "Link validation only; not a module to install over the builtin-bbr3 image."
+  },
+  "evidence_logs": [
+    {
+      "path": "target.log",
+      "sha256": "33f64afb36297db966cdb693cde0e0b3ef93a53e14f6052a7fdc426e73ccf478"
+    },
+    {
+      "path": "configure.log",
+      "sha256": "4c27e0af0ab9f1f3a159e093dd6f99cc5e37a52fba17df61b40e717cb96e9eeb"
+    },
+    {
+      "path": "dtbs.log",
+      "sha256": "8f24257317f6ed78b86e88216d5b2c70d5acbf0d1086d7358d6740a3a9189c17"
+    },
+    {
+      "path": "full-build.log",
+      "sha256": "0e674400f925c79f43d56fd8969b69f7c278f0725efffe5078983c01406dc0fd"
+    },
+    {
+      "path": "dtbs-confirm.log",
+      "sha256": "8f24257317f6ed78b86e88216d5b2c70d5acbf0d1086d7358d6740a3a9189c17"
+    },
+    {
+      "path": "confirmation.log",
+      "sha256": "5f0f8f71f0af3358810446c1484a562b64527c7b38daaec904c64a148aa00412"
+    },
+    {
+      "path": "final-build.log",
+      "sha256": "51e065b16997fb5b9eab454255535ac36a2787af389bd98c9a9d5bbbab7b4a68"
+    },
+    {
+      "path": "export-build.log",
+      "sha256": "8948f8b8d369d5c972205e44811559d59bbb2aa419e8c78f35e2cee38195f70b"
+    },
+    {
+      "path": "bbr3-module-link.log",
+      "sha256": "9ac1ab184d17da323a4416a95c974fd1afa4b8ef460d7875a552899638b208d2"
+    },
+    {
+      "path": "compat-final.log",
+      "sha256": "e93d10aeb019f9b89c9a46be3ad5280400afe710242ee0e5b9949bc74a6e5774"
+    },
+    {
+      "path": "model-asan-final.log",
+      "sha256": "3e12e20c067cea4987b5d594c89f13872f23f9185c29db63b548e416a09556e1"
+    },
+    {
+      "path": "bbrplus-final.log",
+      "sha256": "6b9c4514294dd52dd22d3336f3158a80f1df581167a7b20be7a2c3fb1b332f9b"
+    },
+    {
+      "path": "ksu-final.log",
+      "sha256": "0de96958759db4c47e8d0de0ce565ec4aff8b5017504fed75dcfb1fd724838dd"
+    },
+    {
+      "path": "finasu-final.log",
+      "sha256": "3fd967e014ab2e1656a33986d3461f015ccdd0642cfadbf0a5bfaf4697d7c164"
+    },
+    {
+      "path": "nomount-final.log",
+      "sha256": "9495472f7b95cbaa8a5067c0c5225824d30eab056fce9280f2308e6ec9d6e218"
+    },
+    {
+      "path": "susfs-final.log",
+      "sha256": "43b31cecb8c46132a063ee8a7aa5c13c1a3cccf5a8d7af94656a8405be491757"
+    },
+    {
+      "path": "susfs-provenance-final.log",
+      "sha256": "91ab0db7aafbcccfaa82498c75fa8b117831f98fe1bf97f38a8aebcae660b288"
+    },
+    {
+      "path": "bpf-core.log",
+      "sha256": "69e1ef72c8878427fffe472efc98b15b0f9d02baa53fbdcb143f9146cb347cbc"
+    },
+    {
+      "path": "bpf-jmp32.log",
+      "sha256": "c753212651a812768abea4aa3032b454812ba75b2ac1e7c5f182de7c87e5d4d1"
+    },
+    {
+      "path": "bpf-atomics.log",
+      "sha256": "816afff8e5b68cc58b142b1c3850a40aea953a38957727394de294e0ef06ecea"
+    },
+    {
+      "path": "bpf-lockdep.log",
+      "sha256": "baa10fab1f86bd68624606b776efde7c8ce3e1c69ea703773d315af90d619a61"
+    },
+    {
+      "path": "bpf-softirq.log",
+      "sha256": "dde73bdc19635eed068643c971f396f62a5ac2ea11e5fbbeeea18920e62bbda8"
+    },
+    {
+      "path": "bpf-timer_lifetime.log",
+      "sha256": "5ca6be442a0d75737b6b12e3064eac7a0a915d6236a1b5a870ff6bcbc52d61bb"
+    }
+  ],
+  "build_warnings": "Initial full build has existing scheduler/GPU/HID/charger warnings; no clean-warning claim. Final incremental build and BBRv3 module link have no TCP/BBRv3 warnings.",
+  "prepublication_recheck": {
+    "date": "2026-11-07",
+    "bbr3_host_models_sanitized_and_13_runtime_negatives": "PASS; system host cc, not production AOSP proof",
+    "bbrplus_1080_cases": "PASS",
+    "source_provenance_20_endpoints_and_three_bpf_chains": "PASS",
+    "ksu_finasu_nomount_susfs_and_13_provenance_negatives": "PASS (ADB-root-disabled configuration before the separately approved config change)",
+    "historical_aosp_artifacts_and_logs": "Recorded hashes retained below; external build/evidence directories are not available in this restored workspace. No new AOSP full build or device test performed."
+  }
+}

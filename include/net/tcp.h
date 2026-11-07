@@ -792,6 +792,12 @@ static inline u32 tcp_stamp_us_delta(u64 t1, u64 t0)
 	return max_t(s64, t1 - t0, 0);
 }
 
+/* Modular microsecond snapshots are valid for intervals below 2^31 us. */
+static inline u32 tcp_stamp32_us_delta(u32 t1, u32 t0)
+{
+	return max_t(s32, t1 - t0, 0);
+}
+
 static inline u32 tcp_skb_timestamp(const struct sk_buff *skb)
 {
 	return div_u64(skb->skb_mstamp, USEC_PER_SEC / TCP_TS_HZ);
@@ -860,15 +866,22 @@ struct tcp_skb_cb {
 	union {
 		struct {
 			/* There is space for up to 24 bytes */
-			__u32 in_flight:30,/* Bytes in flight at transmit */
-			      is_app_limited:1, /* cwnd not fully used? */
-			      unused:1;
+#define TCPCB_IN_FLIGHT_MAX ((1U << 30) - 1)
+			/* Legacy bytes, or packets when in_flight_is_packets is set.
+			 * Never reinterpret a queued sample after a CC switch.
+			 */
+			__u32 in_flight:30,
+			      is_app_limited:1,
+			      in_flight_is_packets:1;
 			/* pkts S/ACKed so far upon tx of skb, incl retrans: */
 			__u32 delivered;
 			/* start of send pipeline phase */
-			u64 first_tx_mstamp;
+			u32 first_tx_mstamp;
 			/* when we reached the "delivered" count */
-			u64 delivered_mstamp;
+			u32 delivered_mstamp;
+			/* Cumulative, full-width counters at transmit time. */
+			u32 delivered_ce;
+			u32 lost;
 		} tx;   /* only used for outgoing skbs */
 		union {
 			struct inet_skb_parm	h4;
@@ -986,6 +999,7 @@ enum tcp_ca_event {
 	CA_EVENT_LOSS,		/* loss timeout */
 	CA_EVENT_ECN_NO_CE,	/* ECT set, but not CE marked */
 	CA_EVENT_ECN_IS_CE,	/* received CE marked IP packet */
+	CA_EVENT_TLP_RECOVERY,	/* loss repaired by a TLP retransmit */
 };
 
 /* Information about inbound ACK, passed to cong_ops->in_ack_event() */
@@ -1008,7 +1022,10 @@ enum tcp_ca_ack_event_flags {
 #define TCP_CONG_NON_RESTRICTED 0x1
 /* Requires ECN/ECT set on all packets */
 #define TCP_CONG_NEEDS_ECN	0x2
-#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN)
+/* Requests packet-valued transmit snapshots instead of legacy bytes. */
+#define TCP_CONG_RATE_IN_FLIGHT 0x4
+#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN | \
+			 TCP_CONG_RATE_IN_FLIGHT)
 
 union tcp_cc_info;
 
@@ -1027,8 +1044,13 @@ struct ack_sample {
  * A sample is invalid if "delivered" or "interval_us" is negative.
  */
 struct rate_sample {
-	u64  prior_mstamp; /* starting timestamp for interval */
+	u64  prior_mstamp; /* low 32 bits of starting microsecond timestamp */
 	u32  prior_delivered;	/* tp->delivered at "prior_mstamp" */
+	u32  prior_delivered_ce;
+	u32  prior_lost;
+	u32  tx_in_flight;	/* packets, valid only with the flag below */
+	s32  delivered_ce;	/* CE deliveries over the sampling interval */
+	s32  lost;		/* losses over the sampling interval */
 	s32  delivered;		/* number of packets delivered over interval */
 	long interval_us;	/* time for tp->delivered to incr "delivered" */
 	long rtt_us;		/* RTT of last (S)ACKed packet (or -1) */
@@ -1037,6 +1059,10 @@ struct rate_sample {
 	u32  prior_in_flight;	/* in flight before this ACK */
 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
 	bool is_retrans;	/* is sample from retransmission? */
+	bool is_tx_in_flight_valid; /* not a legacy byte-valued snapshot */
+	bool is_ack_delayed;
+	bool is_acking_tlp_retrans_seq;
+	bool is_ece;
 };
 
 struct tcp_congestion_ops {
@@ -1067,6 +1093,10 @@ struct tcp_congestion_ops {
 	u32 (*min_tso_segs)(struct sock *sk);
 	/* suggest number of segments for each skb to transmit (optional) */
 	u32 (*tso_segs_goal)(struct sock *sk);
+	/* MSS-aware sizing; takes precedence over tso_segs_goal (optional). */
+	u32 (*tso_segs)(struct sock *sk, unsigned int mss_now);
+	/* Notification after cumulative loss accounting (optional). */
+	void (*skb_marked_lost)(struct sock *sk, const struct sk_buff *skb);
 	/* returns the multiplier used in tcp_sndbuf_expand (optional) */
 	u32 (*sndbuf_expand)(struct sock *sk);
 	/* call when packets are delivered to update cwnd and pacing rate,
@@ -1136,6 +1166,13 @@ static inline void tcp_ca_event(struct sock *sk, const enum tcp_ca_event event)
 
 	if (icsk->icsk_ca_ops->cwnd_event)
 		icsk->icsk_ca_ops->cwnd_event(sk, event);
+}
+
+/* A failed local retransmit can leave pcount larger than its snapshot. */
+static inline bool tcp_skb_tx_in_flight_is_suspicious(u32 pcount,
+						  u32 sacked, u32 in_flight)
+{
+	return pcount > in_flight && !(sacked & TCPCB_LOST);
 }
 
 /* From tcp_rate.c */

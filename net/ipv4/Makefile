@@ -51,6 +51,7 @@ obj-$(CONFIG_NET_TCPPROBE) += tcp_probe.o
 obj-$(CONFIG_TCP_CONG_BBR) += tcp_bbr.o
 obj-$(CONFIG_TCP_CONG_BIC) += tcp_bic.o
 obj-$(CONFIG_TCP_CONG_BBRPLUS) += tcp_bbrplus.o
+obj-$(CONFIG_TCP_CONG_BBR3) += tcp_bbr3.o
 obj-$(CONFIG_TCP_CONG_CDG) += tcp_cdg.o
 obj-$(CONFIG_TCP_CONG_CUBIC) += tcp_cubic.o
 obj-$(CONFIG_TCP_CONG_DCTCP) += tcp_dctcp.o

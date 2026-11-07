@@ -20,11 +20,17 @@ static u32 optional_ops[] = {
 	offsetof(struct tcp_congestion_ops, in_ack_event),
 	offsetof(struct tcp_congestion_ops, pkts_acked),
 	offsetof(struct tcp_congestion_ops, min_tso_segs),
+	offsetof(struct tcp_congestion_ops, tso_segs_goal),
 	offsetof(struct tcp_congestion_ops, sndbuf_expand),
 	offsetof(struct tcp_congestion_ops, cong_control),
 };
 
 static u32 unsupported_ops[] = {
+	/* Native BBRv3 callbacks are not part of this 5.15 BPF API. Keep
+	 * them optional when NULL, and reject BPF programs targeting them.
+	 */
+	offsetof(struct tcp_congestion_ops, tso_segs),
+	offsetof(struct tcp_congestion_ops, skb_marked_lost),
 	offsetof(struct tcp_congestion_ops, get_info),
 };
 

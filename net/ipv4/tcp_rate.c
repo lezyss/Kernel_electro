@@ -63,6 +63,20 @@ void tcp_rate_skb_sent(struct sock *sk, struct sk_buff *skb)
 	TCP_SKB_CB(skb)->tx.delivered_mstamp	= tp->delivered_mstamp;
 	TCP_SKB_CB(skb)->tx.delivered		= tp->delivered;
 	TCP_SKB_CB(skb)->tx.is_app_limited	= tp->app_limited ? 1 : 0;
+	TCP_SKB_CB(skb)->tx.delivered_ce	= tp->delivered_ce;
+	TCP_SKB_CB(skb)->tx.lost		= tp->lost;
+	TCP_SKB_CB(skb)->tx.in_flight_is_packets =
+		!!(inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_RATE_IN_FLIGHT);
+	if (TCP_SKB_CB(skb)->tx.in_flight_is_packets)
+		TCP_SKB_CB(skb)->tx.in_flight =
+			min_t(u32, tcp_packets_in_flight(tp) + tcp_skb_pcount(skb),
+			      TCPCB_IN_FLIGHT_MAX);
+	else
+		/* Also covers successful retransmits using a non-cloning copy.
+		 * A previous CC may have left a packet-valued snapshot here.
+		 */
+		TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq -
+					     tp->snd_una;
 }
 
 /* When an skb is sacked or acked, we fill in the rate sample with the (prior)
@@ -84,12 +98,17 @@ void tcp_rate_skb_delivered(struct sock *sk, struct sk_buff *skb,
 	if (!rs->prior_delivered ||
 	    after(scb->tx.delivered, rs->prior_delivered)) {
 		rs->prior_delivered  = scb->tx.delivered;
+		rs->prior_delivered_ce = scb->tx.delivered_ce;
+		rs->prior_lost = scb->tx.lost;
+		rs->is_tx_in_flight_valid = scb->tx.in_flight_is_packets;
+		if (rs->is_tx_in_flight_valid)
+			rs->tx_in_flight = scb->tx.in_flight;
 		rs->prior_mstamp     = scb->tx.delivered_mstamp;
 		rs->is_app_limited   = scb->tx.is_app_limited;
 		rs->is_retrans	     = scb->sacked & TCPCB_RETRANS;
 
 		/* Find the duration of the "send phase" of this window: */
-		rs->interval_us      = tcp_stamp_us_delta(
+		rs->interval_us      = tcp_stamp32_us_delta(
 						skb->skb_mstamp,
 						scb->tx.first_tx_mstamp);
 
@@ -130,11 +149,14 @@ void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 	 * were SACKed before the reneg.
 	 */
 	if (!rs->prior_mstamp || is_sack_reneg) {
+		rs->is_tx_in_flight_valid = false;
 		rs->delivered = -1;
 		rs->interval_us = -1;
 		return;
 	}
 	rs->delivered   = tp->delivered - rs->prior_delivered;
+	rs->delivered_ce = tp->delivered_ce - rs->prior_delivered_ce;
+	rs->lost = tp->lost - rs->prior_lost;
 
 	/* Model sending data and receiving ACKs as separate pipeline phases
 	 * for a window. Usually the ACK phase is longer, but with ACK
@@ -142,7 +164,7 @@ void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 	 * longer phase.
 	 */
 	snd_us = rs->interval_us;				/* send phase */
-	ack_us = tcp_stamp_us_delta(tp->tcp_mstamp,
+	ack_us = tcp_stamp32_us_delta(tp->tcp_mstamp,
 				    rs->prior_mstamp); /* ack phase */
 	rs->interval_us = max(snd_us, ack_us);
 
