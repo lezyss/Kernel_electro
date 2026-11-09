@@ -19,7 +19,7 @@ Structured source of truth: [`ledger.json`](ledger.json).
 - Reviewed Electro baseline: [`c6de0ddbe7e159a84c4906cbbf4f2c9138521c13`](https://github.com/lezyss/Kernel_electro/commit/c6de0ddbe7e159a84c4906cbbf4f2c9138521c13).
 - Branch: `arena/e63a046d-kernel-electro`; target: ARM64 miatoll / Electro 4.14.
 - **150 reviewed; 132 approved for adapted implementation; 18 skip/equivalent items excluded (no new skip decisions).**
-- **132 integrated locally (including documented organizational/prototype subsets); 0 approved source items queued. Full miatoll build PASS; publication prepared; device validation pending.**
+- **132 integrated locally (including documented organizational/prototype subsets); 0 approved source items queued. Full miatoll build PASS;132 approved scopes published; device validation pending.**
 - **User-submitted series complete through final batch PHX-B019.** This closes source review of the supplied links, not implementation or exhaustive Phoenix history review.
 - Earlier history-page browsing is **not** a completed review of the whole date range.
 - Existing checkpoint includes published manual-only CI, selectable/non-default BBRv3, and KSU ADBROOT=y. BBRplus stays default; ADB-root runtime toggle stays off initially. The profile now builds with the complete miatoll image; ADB-root runtime remains device-untested.
@@ -2529,7 +2529,8 @@ unchanged and chains into phase03 before-images, including test evolution.
 - PASS full miatoll `dtbs`, `Image.gz-dtb`, `dtb.img`, `dtbo.img` and modules,
   including the final rebuild with legacy module exports retained. Release:
   **4.14.357-electro**. Artifact sizes/SHA256 are recorded in phase03, not committed
-  as binaries. Publication is prepared but not yet pushed.
+  as binaries. Implementation published as [`f885b9efa8df`](https://github.com/lezyss/Kernel_electro/commit/f885b9efa8df6eee4701c8f2d5c009ecf2f97af1)
+  on the existing branch; no CI dispatched.
 - PASS exact forward/inverse phase03 overlay replay (115 paths), source/test
   chains,128 first source preimages against the publication parent, and
   selected source-only whitespace check. Portable host checks also pass from
@@ -2540,21 +2541,26 @@ unchanged and chains into phase03 before-images, including test evolution.
   enforcing ROM USB/ADB/multiple-mount policy validation.** FunctionFS remains
   unconditional; securityfs still does not gain `chcon`/setxattr support.
 
-## Next handoff
+## Post-publication handoff
 
-1. Source integration complete for132 approved scopes; keep18 excluded and all
-   profile defaults unchanged. Never rerun applied donor scripts.
-2. Full miatoll build, native ARM fork recheck and exact overlay/preservation
-   checks PASS. Read all three phase manifests before touching intersecting source.
-3. Publication is now authorized **only** to `arena/e63a046d-kernel-electro`.
-   The normal local HEAD/index are older than publishedc6de; use the verified
-   publication parent and a separate index to stage only approved source/evidence.
-   Preserve all unrelated work, especially the two local BPF test/manifest fixes.
-4. Push only after validation. Do not dispatch CI or publish to main. If an actual
-   integration blocker remains, report it honestly rather than calling the branch safe.
-5. A successful build is not device certification. Enforcing ROM policy/USB/ADB,
-   runtime clone/signal/namespace/RCU/locking and boot tests remain outstanding.
-6. Future donor links start with unused ID151/batchB020; preserve150 IDs/19 batches.
+1. **132 approved scopes implemented and published / 0 queued / 18 excluded.**
+   Source/evidence commit: `f885b9efa8df6eee4701c8f2d5c009ecf2f97af1`. See `PHX-PUBLISH-001`.
+2. Complete miatoll image/DTB/DTBO/modules and native ARM process/fork compile
+   checks PASS with exact AOSP r614150. All3 Phoenix suites/24 negative controls,
+   full BPF host suites and security provenance/models pass on the selected Git
+   source tree. Final linked artifacts preserve the legacy module exports.
+3. Publication used an isolated index/verified remote parent. The ordinary local
+   HEAD/index were intentionally retained to protect unrelated workspace work.
+   The two local BPF test/manifest corrections were **not** transplanted; portable
+   tests pass against their published-parent versions. Do not stage or discard
+   unrelated files when continuing.
+4. **No CI dispatch or automatic workflow activation.** Production defaults and
+   the18 excluded implementations remain unchanged. No publication to main.
+5. Next: device boot/smoke, enforcing ROM USB/ADB/multiple-mount policy, real
+   concurrent clone/signal/namespace/RCU/locking and external module validation.
+   The build/host evidence is not a zero-breakage/performance/runtime certificate.
+6. Future donor links start at unused ID151/batchB020. Preserve all150 IDs and
+   immutable phase01/02 evidence; use chained successors for future changes.
 
 Final ABI adaptation: retain `sys_close` export and module-only legacy
 `iov_shorten`/`sigset_from_compat` APIs, alongside the converted native paths.

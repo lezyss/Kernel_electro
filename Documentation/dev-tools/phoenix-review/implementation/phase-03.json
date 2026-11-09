@@ -1,7 +1,7 @@
 {
   "phase": "PHX-IMPLEMENTATION-03",
   "date": "2026-10-13",
-  "status": "source_integrated_full_miatoll_build_pass_device_pending",
+  "status": "published_full_miatoll_build_pass_device_pending",
   "baseline": "PHX-IMPLEMENTATION-02 visible tree; publication parent c6de0ddbe7e159a84c4906cbbf4f2c9138521c13 verified against source preimages",
   "baseline_evidence": "Documentation/dev-tools/phoenix-review/implementation/phase-02.json",
   "baseline_evidence_sha256": "d21651ba7a8d8b167d6735398e4ccdcd564e3752ca76c8445c887f85f87ca327",
@@ -6033,10 +6033,13 @@
     "Excluded18 reviewed skip/equivalent IDs remain untouched as separate implementations."
   ],
   "publication": {
-    "status": "validated_prepared_not_yet_pushed",
+    "status": "source_commit_pushed_verified",
     "branch": "arena/e63a046d-kernel-electro",
     "verified_parent": "c6de0ddbe7e159a84c4906cbbf4f2c9138521c13",
-    "ci_dispatch": "not_authorized_not_run"
+    "ci_dispatch": "not_run_manual_only",
+    "source_commit": "f885b9efa8df6eee4701c8f2d5c009ecf2f97af1",
+    "verified_remote_head": "f885b9efa8df6eee4701c8f2d5c009ecf2f97af1",
+    "method": "Selected approved source/evidence committed from verified remote parent using an isolated index; non-force push to the existing branch only. Ordinary local HEAD/index and unrelated workspace preserved."
   },
   "regression_commands": [
     "python3 tools/testing/selftests/phoenix_upgrade/test_phase01.py --self-test-negatives",
