@@ -1,0 +1,1032 @@
+{
+  "candidate_checks": 128,
+  "normalized_equivalent": 91,
+  "non_equivalent_not_claimed_as_proof": 37,
+  "review": "Non-equivalent cases include old thin-wrapper aliases, compat marshaling, helper parameter-name changes and intentional eventfd conversion. Full-body diffs reviewed;97 independent argument/return contracts and ARM64 target/matrix compilation supplement, not replace, runtime testing.",
+  "entries": [
+    {
+      "path": "fs/notify/fanotify/fanotify_user.c",
+      "syscall": "SYSCALL_DEFINE5(fanotify_mark",
+      "helper": "do_fanotify_mark",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "bd6089bc1d4c04db0a79efd4802991e0e3ba877011630fcc2d0641f1533449eb",
+      "helper_normalized_sha256": "bd6089bc1d4c04db0a79efd4802991e0e3ba877011630fcc2d0641f1533449eb"
+    },
+    {
+      "path": "fs/notify/fanotify/fanotify_user.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE6(fanotify_mark",
+      "helper": "do_fanotify_mark",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "7d6e9765bc534f7952110155be6188ac4f4890f451358b71a7c25feed6629c5f",
+      "helper_normalized_sha256": "bd6089bc1d4c04db0a79efd4802991e0e3ba877011630fcc2d0641f1533449eb"
+    },
+    {
+      "path": "fs/stat.c",
+      "syscall": "SYSCALL_DEFINE4(readlinkat",
+      "helper": "do_readlinkat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "7bada85fefb2767f8dadaf9c2bbe7811e2af677af4096ea92431aa00079fd98a",
+      "helper_normalized_sha256": "7bada85fefb2767f8dadaf9c2bbe7811e2af677af4096ea92431aa00079fd98a"
+    },
+    {
+      "path": "fs/stat.c",
+      "syscall": "SYSCALL_DEFINE3(readlink",
+      "helper": "do_readlinkat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "2d4eecbef36bc8519191b081fe0e70d580857af7e7064512b811e1edccf6328b",
+      "helper_normalized_sha256": "7bada85fefb2767f8dadaf9c2bbe7811e2af677af4096ea92431aa00079fd98a"
+    },
+    {
+      "path": "fs/pipe.c",
+      "syscall": "SYSCALL_DEFINE2(pipe2",
+      "helper": "do_pipe2",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "d3160e69924ce2e06d72edbf235fb871af1db63131c075c3fd0d3f82ca206ff6",
+      "helper_normalized_sha256": "d3160e69924ce2e06d72edbf235fb871af1db63131c075c3fd0d3f82ca206ff6"
+    },
+    {
+      "path": "fs/pipe.c",
+      "syscall": "SYSCALL_DEFINE1(pipe",
+      "helper": "do_pipe2",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "d2e3ede45c836affd1d83cdd8a1e1a16d7c2dea6f86d0ed2bf3953951b224b7f",
+      "helper_normalized_sha256": "d3160e69924ce2e06d72edbf235fb871af1db63131c075c3fd0d3f82ca206ff6"
+    },
+    {
+      "path": "fs/dcookies.c",
+      "syscall": "SYSCALL_DEFINE3(lookup_dcookie",
+      "helper": "do_lookup_dcookie",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "5b81ddbaec834c4c952ceeea76864e1f5ea4d0ee6d90a9c482e06d0f98eee36d",
+      "helper_normalized_sha256": "5b81ddbaec834c4c952ceeea76864e1f5ea4d0ee6d90a9c482e06d0f98eee36d"
+    },
+    {
+      "path": "fs/sync.c",
+      "syscall": "SYSCALL_DEFINE4(sync_file_range",
+      "helper": "ksys_sync_file_range",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "1916874731a707b6c6325e8e3f6082457e1277106693d2ad9418594babc6231c",
+      "helper_normalized_sha256": "1916874731a707b6c6325e8e3f6082457e1277106693d2ad9418594babc6231c"
+    },
+    {
+      "path": "fs/sync.c",
+      "syscall": "SYSCALL_DEFINE4(sync_file_range2",
+      "helper": "ksys_sync_file_range",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "db5736f03bd5a4ddcaccf28d0f565c194e4b0cfb4bc3f6676973e950193f0f9f",
+      "helper_normalized_sha256": "1916874731a707b6c6325e8e3f6082457e1277106693d2ad9418594babc6231c"
+    },
+    {
+      "path": "fs/ioctl.c",
+      "syscall": "SYSCALL_DEFINE3(ioctl",
+      "helper": "ksys_ioctl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "a4e07c05f1e9a15bc13b4443d6571d81b285a89f0eaaeb8db300138f7728c4d4",
+      "helper_normalized_sha256": "a4e07c05f1e9a15bc13b4443d6571d81b285a89f0eaaeb8db300138f7728c4d4"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE4(fallocate",
+      "helper": "ksys_fallocate",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "5ee29f219981f3301d56be53990e9291ef0cc3cb653f241d022881f7d3525535",
+      "helper_normalized_sha256": "5ee29f219981f3301d56be53990e9291ef0cc3cb653f241d022881f7d3525535"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE3(faccessat",
+      "helper": "do_faccessat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "d51d78c2f0cce430755f5c19275dc8ed76c5b21317d0de624641841be629460d",
+      "helper_normalized_sha256": "d51d78c2f0cce430755f5c19275dc8ed76c5b21317d0de624641841be629460d"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE2(access",
+      "helper": "do_faccessat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "095b0c47489e316e15e411ed99b6f3b96e331fc7a8e9ee54d5121397757d463a",
+      "helper_normalized_sha256": "d51d78c2f0cce430755f5c19275dc8ed76c5b21317d0de624641841be629460d"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE1(chdir",
+      "helper": "ksys_chdir",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "6a79bd797fa7eef5eceeb066e6e4ecfe9ee93891b2b2bb09cb5ae7b19ac456f5",
+      "helper_normalized_sha256": "6a79bd797fa7eef5eceeb066e6e4ecfe9ee93891b2b2bb09cb5ae7b19ac456f5"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE1(chroot",
+      "helper": "ksys_chroot",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "84d1bd11621f8995bbc1e2eb3f68b26fecf2081458bc7545b140962695380d8f",
+      "helper_normalized_sha256": "84d1bd11621f8995bbc1e2eb3f68b26fecf2081458bc7545b140962695380d8f"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE2(fchmod",
+      "helper": "ksys_fchmod",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "aeabfe0e071259f8e79635f7a8a1b6c38af1d35919e9478503475a342b64edd8",
+      "helper_normalized_sha256": "aeabfe0e071259f8e79635f7a8a1b6c38af1d35919e9478503475a342b64edd8"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE3(fchmodat",
+      "helper": "do_fchmodat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "16058e6f6a66403659b2e9db8f58fb9d8df9640447269e87f8f73f2e4efd9fb5",
+      "helper_normalized_sha256": "16058e6f6a66403659b2e9db8f58fb9d8df9640447269e87f8f73f2e4efd9fb5"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE2(chmod",
+      "helper": "do_fchmodat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "47f8e299d4576f49fbaa1d7c8b4808e2b17aea5d7cc9d430b45e3d5c4ed8a736",
+      "helper_normalized_sha256": "16058e6f6a66403659b2e9db8f58fb9d8df9640447269e87f8f73f2e4efd9fb5"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE5(fchownat",
+      "helper": "do_fchownat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "5ab5bfb1f724462b6ddec300744c7387b1dd5b6db34fd8f37bb40a78d1549810",
+      "helper_normalized_sha256": "5ab5bfb1f724462b6ddec300744c7387b1dd5b6db34fd8f37bb40a78d1549810"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE3(chown",
+      "helper": "do_fchownat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "6ea9c60ae042863e402ac3fbbeede7ad25cc8ccadd62ee2c5b054e416abdd7d0",
+      "helper_normalized_sha256": "5ab5bfb1f724462b6ddec300744c7387b1dd5b6db34fd8f37bb40a78d1549810"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE3(lchown",
+      "helper": "do_fchownat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "525141a077216d48a24a65a5bb618f3270840e1fd8e6a38b45ac55fce588baeb",
+      "helper_normalized_sha256": "5ab5bfb1f724462b6ddec300744c7387b1dd5b6db34fd8f37bb40a78d1549810"
+    },
+    {
+      "path": "fs/open.c",
+      "syscall": "SYSCALL_DEFINE3(fchown",
+      "helper": "ksys_fchown",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "e4fb6cc6f3fa0aa9994e90436380bca478143c5a114c460ff19ae837852669f0",
+      "helper_normalized_sha256": "e4fb6cc6f3fa0aa9994e90436380bca478143c5a114c460ff19ae837852669f0"
+    },
+    {
+      "path": "fs/namespace.c",
+      "syscall": "SYSCALL_DEFINE2(umount",
+      "helper": "ksys_umount",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "eeacff34228854b74a529699c1acdd59c37635816a1fcb1ce4739bf6fd8da9f8",
+      "helper_normalized_sha256": "eeacff34228854b74a529699c1acdd59c37635816a1fcb1ce4739bf6fd8da9f8"
+    },
+    {
+      "path": "fs/namespace.c",
+      "syscall": "SYSCALL_DEFINE1(oldumount",
+      "helper": "ksys_umount",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "0103e99589af8a366959057a23271bd69c9e06b828ef8ff050ef1fe6b7e49f91",
+      "helper_normalized_sha256": "eeacff34228854b74a529699c1acdd59c37635816a1fcb1ce4739bf6fd8da9f8"
+    },
+    {
+      "path": "fs/namespace.c",
+      "syscall": "SYSCALL_DEFINE5(mount",
+      "helper": "ksys_mount",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "294d6141b504bf8584480a4772e219c7da30c33b6c963e0f5d600d77b6fbf145",
+      "helper_normalized_sha256": "294d6141b504bf8584480a4772e219c7da30c33b6c963e0f5d600d77b6fbf145"
+    },
+    {
+      "path": "ipc/msg.c",
+      "syscall": "SYSCALL_DEFINE2(msgget",
+      "helper": "ksys_msgget",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "dd865c7a9475b6d690dc83519fbfe3a4ad57ce4ee824499dcefdcf5283d255b1",
+      "helper_normalized_sha256": "dd865c7a9475b6d690dc83519fbfe3a4ad57ce4ee824499dcefdcf5283d255b1"
+    },
+    {
+      "path": "ipc/msg.c",
+      "syscall": "SYSCALL_DEFINE3(msgctl",
+      "helper": "ksys_msgctl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "83eaa6525c610acece26fa842574c86e2fefcf1850e0f06d6bddcd19bc02425a",
+      "helper_normalized_sha256": "83eaa6525c610acece26fa842574c86e2fefcf1850e0f06d6bddcd19bc02425a"
+    },
+    {
+      "path": "ipc/msg.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(msgctl",
+      "helper": "compat_ksys_msgctl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "400260f226fa04196bd1124972f6d714e4ea6129fe30287cf75022c6b2a8c6ef",
+      "helper_normalized_sha256": "400260f226fa04196bd1124972f6d714e4ea6129fe30287cf75022c6b2a8c6ef"
+    },
+    {
+      "path": "ipc/msg.c",
+      "syscall": "SYSCALL_DEFINE4(msgsnd",
+      "helper": "ksys_msgsnd",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "7c89e8d55db6db80eeb2e5a022a05d528eb01aa71fb49ea1af29762aa80325a6",
+      "helper_normalized_sha256": "7c89e8d55db6db80eeb2e5a022a05d528eb01aa71fb49ea1af29762aa80325a6"
+    },
+    {
+      "path": "ipc/msg.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE4(msgsnd",
+      "helper": "compat_ksys_msgsnd",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "bff295ca491832f3531092a700e5749a47ade68782dc6eb4803c3955eba98a0b",
+      "helper_normalized_sha256": "bff295ca491832f3531092a700e5749a47ade68782dc6eb4803c3955eba98a0b"
+    },
+    {
+      "path": "ipc/msg.c",
+      "syscall": "SYSCALL_DEFINE5(msgrcv",
+      "helper": "ksys_msgrcv",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "cbab6eaed32ed205f6858b19d82c988e73d3b6879ab1663173e0c7637b02b737",
+      "helper_normalized_sha256": "cbab6eaed32ed205f6858b19d82c988e73d3b6879ab1663173e0c7637b02b737"
+    },
+    {
+      "path": "ipc/msg.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE5(msgrcv",
+      "helper": "compat_ksys_msgrcv",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "cbdf688e729c5fb16249611d49107d89cc712f3832f6c7799f95cfaf2cd85d9c",
+      "helper_normalized_sha256": "cbdf688e729c5fb16249611d49107d89cc712f3832f6c7799f95cfaf2cd85d9c"
+    },
+    {
+      "path": "mm/mempolicy.c",
+      "syscall": "SYSCALL_DEFINE6(mbind",
+      "helper": "kernel_mbind",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "c6913fb1c0aa8f584fede8ef1165be48fbe3b195701fdb5e67ec9fbbe7fc4049",
+      "helper_normalized_sha256": "c6913fb1c0aa8f584fede8ef1165be48fbe3b195701fdb5e67ec9fbbe7fc4049"
+    },
+    {
+      "path": "mm/mempolicy.c",
+      "syscall": "SYSCALL_DEFINE3(set_mempolicy",
+      "helper": "kernel_set_mempolicy",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "1c144475e1a8aa3c3cc5aefee1b5ad793ac98ecc78bb2c94be06046c6a7e9dd8",
+      "helper_normalized_sha256": "1c144475e1a8aa3c3cc5aefee1b5ad793ac98ecc78bb2c94be06046c6a7e9dd8"
+    },
+    {
+      "path": "mm/mempolicy.c",
+      "syscall": "SYSCALL_DEFINE4(migrate_pages",
+      "helper": "kernel_migrate_pages",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "310b5fb681771669b70cd57a5303ed963d5e257ad3394f73ac68e25ea15086d1",
+      "helper_normalized_sha256": "310b5fb681771669b70cd57a5303ed963d5e257ad3394f73ac68e25ea15086d1"
+    },
+    {
+      "path": "mm/mempolicy.c",
+      "syscall": "SYSCALL_DEFINE5(get_mempolicy",
+      "helper": "kernel_get_mempolicy",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "85a23cebdda8a14ce3b3fe645d0924cb95914888752b16bc22c259ddb8c7713b",
+      "helper_normalized_sha256": "85a23cebdda8a14ce3b3fe645d0924cb95914888752b16bc22c259ddb8c7713b"
+    },
+    {
+      "path": "net/compat.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(sendmsg",
+      "helper": "__compat_sys_sendmsg",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "b7956937b88a7a3cca5df09921b0c9e85afd481efdf1c06803d2a070bcd382a7",
+      "helper_normalized_sha256": "8051fa4c7e3913205378a7d4d7fd1875d50765ba2ba6e2d8cbaf357635f612cd"
+    },
+    {
+      "path": "net/compat.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE4(sendmmsg",
+      "helper": "__compat_sys_sendmmsg",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "ef3219442557583155331689a225c204b8fac5875c6c376b9b779b54074ed082",
+      "helper_normalized_sha256": "18a62bbb9823bd05ef0c48d7cc80848549b3a49fbcde6639d0172f2c4c485374"
+    },
+    {
+      "path": "net/compat.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(recvmsg",
+      "helper": "__compat_sys_recvmsg",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "50ff925c2f06d39ee31f228241411970046451f43a1742af671fcc4d2b69ab7a",
+      "helper_normalized_sha256": "ae2504c80b2278a4d1ba299979781dae6793da98ee93ac561bf8a2c8c929949a"
+    },
+    {
+      "path": "net/compat.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE4(recv",
+      "helper": "__compat_sys_recvfrom",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "68ca17db6263eb4d3b344504c8039a78096734790fd0ddb83d1941712b729744",
+      "helper_normalized_sha256": "e18068e794d863613f77aa529e27fb27b408be8e4ac44be198753d6e95e60621"
+    },
+    {
+      "path": "net/compat.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE6(recvfrom",
+      "helper": "__compat_sys_recvfrom",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "e18068e794d863613f77aa529e27fb27b408be8e4ac44be198753d6e95e60621",
+      "helper_normalized_sha256": "e18068e794d863613f77aa529e27fb27b408be8e4ac44be198753d6e95e60621"
+    },
+    {
+      "path": "net/compat.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE5(recvmmsg",
+      "helper": "__compat_sys_recvmmsg",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "bbfa5c9c3c95fb57949d5094842ad3d2d9e98454ff1a96ae59aac5b9e912cd51",
+      "helper_normalized_sha256": "bbfa5c9c3c95fb57949d5094842ad3d2d9e98454ff1a96ae59aac5b9e912cd51"
+    },
+    {
+      "path": "mm/mmap.c",
+      "syscall": "SYSCALL_DEFINE6(mmap_pgoff",
+      "helper": "ksys_mmap_pgoff",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "4277118c85465dfd5092c09064485c2f706d248b2f3bcee3e04fef177c2ae56c",
+      "helper_normalized_sha256": "4277118c85465dfd5092c09064485c2f706d248b2f3bcee3e04fef177c2ae56c"
+    },
+    {
+      "path": "ipc/shm.c",
+      "syscall": "SYSCALL_DEFINE3(shmget",
+      "helper": "ksys_shmget",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "53a0b94b8a3432a78510f8799bab551e7be5f84a37d947dfc47baa5f11e73b4c",
+      "helper_normalized_sha256": "53a0b94b8a3432a78510f8799bab551e7be5f84a37d947dfc47baa5f11e73b4c"
+    },
+    {
+      "path": "ipc/shm.c",
+      "syscall": "SYSCALL_DEFINE3(shmctl",
+      "helper": "ksys_shmctl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "733fd261e388f21da2584fa283cac5aeadeebc6965683c21a2ce28b9da783d1c",
+      "helper_normalized_sha256": "733fd261e388f21da2584fa283cac5aeadeebc6965683c21a2ce28b9da783d1c"
+    },
+    {
+      "path": "ipc/shm.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(shmctl",
+      "helper": "compat_ksys_shmctl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "2916fe4804f7e11f5ebd96c8b81cb3cf0e17e738ad193b3dd0a02b6716db10b2",
+      "helper_normalized_sha256": "2916fe4804f7e11f5ebd96c8b81cb3cf0e17e738ad193b3dd0a02b6716db10b2"
+    },
+    {
+      "path": "ipc/shm.c",
+      "syscall": "SYSCALL_DEFINE1(shmdt",
+      "helper": "ksys_shmdt",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "94cac412c193d32836b6fee79b60a11128aee5bca6b261b19d7d2dbe295de00e",
+      "helper_normalized_sha256": "94cac412c193d32836b6fee79b60a11128aee5bca6b261b19d7d2dbe295de00e"
+    },
+    {
+      "path": "fs/fcntl.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(fcntl64",
+      "helper": "do_compat_fcntl64",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "4d214ae06bcd43b3d4488b63026d7ca0934bcfdf9df86867749aacc53a3b25bd",
+      "helper_normalized_sha256": "4d214ae06bcd43b3d4488b63026d7ca0934bcfdf9df86867749aacc53a3b25bd"
+    },
+    {
+      "path": "fs/fcntl.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(fcntl",
+      "helper": "do_compat_fcntl64",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "4d214ae06bcd43b3d4488b63026d7ca0934bcfdf9df86867749aacc53a3b25bd",
+      "helper_normalized_sha256": "4d214ae06bcd43b3d4488b63026d7ca0934bcfdf9df86867749aacc53a3b25bd"
+    },
+    {
+      "path": "fs/readdir.c",
+      "syscall": "SYSCALL_DEFINE3(getdents64",
+      "helper": "ksys_getdents64",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "a043d1164a1d9933b74b40d3009c1936a637c7b1d3267dbd388be7c6851a1606",
+      "helper_normalized_sha256": "a043d1164a1d9933b74b40d3009c1936a637c7b1d3267dbd388be7c6851a1606"
+    },
+    {
+      "path": "mm/readahead.c",
+      "syscall": "SYSCALL_DEFINE3(readahead",
+      "helper": "ksys_readahead",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "ecf827a70397618771ed36f1ac625dc6538316dc9f243c60ed3b70e646191eed",
+      "helper_normalized_sha256": "ecf827a70397618771ed36f1ac625dc6538316dc9f243c60ed3b70e646191eed"
+    },
+    {
+      "path": "kernel/fork.c",
+      "syscall": "SYSCALL_DEFINE1(unshare",
+      "helper": "ksys_unshare",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "eb3666adc62881704aca4e2693e1e3c01fa86679d837f6dd47201ecf5b94e739",
+      "helper_normalized_sha256": "eb3666adc62881704aca4e2693e1e3c01fa86679d837f6dd47201ecf5b94e739"
+    },
+    {
+      "path": "mm/migrate.c",
+      "syscall": "SYSCALL_DEFINE6(move_pages",
+      "helper": "kernel_move_pages",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "9f11f68afab6e4740802d0e93da45d4cbd42f12806338c48f73ab0e679347a7e",
+      "helper_normalized_sha256": "9f11f68afab6e4740802d0e93da45d4cbd42f12806338c48f73ab0e679347a7e"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE2(setregid",
+      "helper": "__sys_setregid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "17730cfba165c3b6db54af30620c932b2ff2f6e55c7d641dc4d0a41d865fcb0e",
+      "helper_normalized_sha256": "17730cfba165c3b6db54af30620c932b2ff2f6e55c7d641dc4d0a41d865fcb0e"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE1(setgid",
+      "helper": "__sys_setgid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "f486ad41840d9e29794cabaebd36a220b4d7be1b7ca27c0820c4ccd607612215",
+      "helper_normalized_sha256": "f486ad41840d9e29794cabaebd36a220b4d7be1b7ca27c0820c4ccd607612215"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE2(setreuid",
+      "helper": "__sys_setreuid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "c93b683d8b1e58edc3b96df2a3886d14a9d32002ca09032eca5a3016c317d18d",
+      "helper_normalized_sha256": "c93b683d8b1e58edc3b96df2a3886d14a9d32002ca09032eca5a3016c317d18d"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE1(setuid",
+      "helper": "__sys_setuid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "abda4d11041e0bc36df4572ef490e5a83513f42359026e6da6a93ec3210ad1ec",
+      "helper_normalized_sha256": "abda4d11041e0bc36df4572ef490e5a83513f42359026e6da6a93ec3210ad1ec"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE3(setresuid",
+      "helper": "__sys_setresuid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "f229502b415dea56f4ac6364624e54b9e297aea4c94e743a8ced5515e9bd560d",
+      "helper_normalized_sha256": "f229502b415dea56f4ac6364624e54b9e297aea4c94e743a8ced5515e9bd560d"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE3(setresgid",
+      "helper": "__sys_setresgid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "44589166c516b07c52c09b7f9b3124b20a13af3354b376f52a60f058168ee53c",
+      "helper_normalized_sha256": "44589166c516b07c52c09b7f9b3124b20a13af3354b376f52a60f058168ee53c"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE1(setfsuid",
+      "helper": "__sys_setfsuid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "7092ae8a1e3eb52ade376c9ccb91a3c3b805f838ab2c93f259be1e62a21e5376",
+      "helper_normalized_sha256": "7092ae8a1e3eb52ade376c9ccb91a3c3b805f838ab2c93f259be1e62a21e5376"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE1(setfsgid",
+      "helper": "__sys_setfsgid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "c58f7c1fcf710a2db47a1ce8abff62d670a48794523c461130fd74619a599311",
+      "helper_normalized_sha256": "c58f7c1fcf710a2db47a1ce8abff62d670a48794523c461130fd74619a599311"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE1(getpgid",
+      "helper": "do_getpgid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "cd17e55de3b0f21c9008bc82bacd4797d94a1cf26defb345d8b809d5e5da6dff",
+      "helper_normalized_sha256": "cd17e55de3b0f21c9008bc82bacd4797d94a1cf26defb345d8b809d5e5da6dff"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE0(getpgrp",
+      "helper": "do_getpgid",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "d40de23a68f50509e7835c964ce1c21c3d15b9346971f25a4396f99fde3c4dec",
+      "helper_normalized_sha256": "cd17e55de3b0f21c9008bc82bacd4797d94a1cf26defb345d8b809d5e5da6dff"
+    },
+    {
+      "path": "kernel/sys.c",
+      "syscall": "SYSCALL_DEFINE0(setsid",
+      "helper": "ksys_setsid",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "245d2db546932effb306760a4d00d9ca33e6e32b5f1d026864b5a4c127bd0a7a",
+      "helper_normalized_sha256": "245d2db546932effb306760a4d00d9ca33e6e32b5f1d026864b5a4c127bd0a7a"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(socket",
+      "helper": "__sys_socket",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "67b6402e00691926f7e49ca2f1ae3d052e1a62ddb6a2f4c52765f5f805b398ff",
+      "helper_normalized_sha256": "67b6402e00691926f7e49ca2f1ae3d052e1a62ddb6a2f4c52765f5f805b398ff"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE4(socketpair",
+      "helper": "__sys_socketpair",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "b756097338ace92da3445b17821feab3535ae08ed4bf87d763cece777eed3cac",
+      "helper_normalized_sha256": "b756097338ace92da3445b17821feab3535ae08ed4bf87d763cece777eed3cac"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(bind",
+      "helper": "__sys_bind",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "14b24cbfa31a1e1d82a27a600b47a5f9d1ff7af8209756d2077d0b67baac35d2",
+      "helper_normalized_sha256": "14b24cbfa31a1e1d82a27a600b47a5f9d1ff7af8209756d2077d0b67baac35d2"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE2(listen",
+      "helper": "__sys_listen",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "7b2dadd11820eb2b40984ac6f9e916e7e2d9274b8cb722e2be3e28b1990da64d",
+      "helper_normalized_sha256": "7b2dadd11820eb2b40984ac6f9e916e7e2d9274b8cb722e2be3e28b1990da64d"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE4(accept4",
+      "helper": "__sys_accept4",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "42fa3046b7b33ee3da222bacb8ca799602021d30f50641d7ccb764d821a07b9e",
+      "helper_normalized_sha256": "42fa3046b7b33ee3da222bacb8ca799602021d30f50641d7ccb764d821a07b9e"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(accept",
+      "helper": "__sys_accept4",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "15ebc60de0720793bfec9f2971909ec777682db280ae0aad17d341a3523e06eb",
+      "helper_normalized_sha256": "42fa3046b7b33ee3da222bacb8ca799602021d30f50641d7ccb764d821a07b9e"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(connect",
+      "helper": "__sys_connect",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "4faa868eccfebc0801ac348c69eb637375941c7ad47cb75f69b28ab8529abc2b",
+      "helper_normalized_sha256": "4faa868eccfebc0801ac348c69eb637375941c7ad47cb75f69b28ab8529abc2b"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(getsockname",
+      "helper": "__sys_getsockname",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "038977cd5a10565e6fd084f3080b7fe5849690b2fa05a6e1f5ccc96de99e0090",
+      "helper_normalized_sha256": "038977cd5a10565e6fd084f3080b7fe5849690b2fa05a6e1f5ccc96de99e0090"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(getpeername",
+      "helper": "__sys_getpeername",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "99cfe29c827041ad3ec57913c6cd6ed4370ebb3daadb403dbefe15256c9be97a",
+      "helper_normalized_sha256": "99cfe29c827041ad3ec57913c6cd6ed4370ebb3daadb403dbefe15256c9be97a"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE6(sendto",
+      "helper": "__sys_sendto",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "de9e09516b82171b073f0e14fbbe315ead9589ab9f7eaca5d8ffc38e71bd3c4c",
+      "helper_normalized_sha256": "de9e09516b82171b073f0e14fbbe315ead9589ab9f7eaca5d8ffc38e71bd3c4c"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE4(send",
+      "helper": "__sys_sendto",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "b1363ef4809f74beaf01d5a95bb0868ddde4b8f844e0b0af84f53df1495969cf",
+      "helper_normalized_sha256": "de9e09516b82171b073f0e14fbbe315ead9589ab9f7eaca5d8ffc38e71bd3c4c"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE6(recvfrom",
+      "helper": "__sys_recvfrom",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "d8bb6d865fb74e52a11d1d03e6440cfa22ee5448ac529b4cffcb9a565896c0df",
+      "helper_normalized_sha256": "d8bb6d865fb74e52a11d1d03e6440cfa22ee5448ac529b4cffcb9a565896c0df"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE4(recv",
+      "helper": "__sys_recvfrom",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "e1a979268601a4624fabdeb5430e12df955f2ea567b72d8150b572093910c97a",
+      "helper_normalized_sha256": "d8bb6d865fb74e52a11d1d03e6440cfa22ee5448ac529b4cffcb9a565896c0df"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE2(shutdown",
+      "helper": "__sys_shutdown",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "82cc9ebd7949fc15111c48a08223ac4093f75cbfdb61b1ee0f61b1303834c3f7",
+      "helper_normalized_sha256": "82cc9ebd7949fc15111c48a08223ac4093f75cbfdb61b1ee0f61b1303834c3f7"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(sendmsg",
+      "helper": "__sys_sendmsg",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "1892bc38c9b2a1d5f8e43418cce28f411277684205476f7f5c69af5032dfa98a",
+      "helper_normalized_sha256": "b3d228d8f81d5b4b4450f83f4e22779f98ce9ce18b901dfcf161126224c5f8d0"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE4(sendmmsg",
+      "helper": "__sys_sendmmsg",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "bdfca2646590ab8c07c4a005170a681613db6dcec7aa570250b5e6cb9720dd2b",
+      "helper_normalized_sha256": "92bb342c53a60bc30617e1f381bc85e25895d1d0133d41d0f5ee99871af4e0a3"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE3(recvmsg",
+      "helper": "__sys_recvmsg",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "a2c6af63e7de390cbdf0dfb566825ef8fd1c0b394801e973ed672a46683bc852",
+      "helper_normalized_sha256": "9909cdfe3e30efcf54c004770ff5a8676c798e287f808d1920969a1bce7f9b7a"
+    },
+    {
+      "path": "net/socket.c",
+      "syscall": "SYSCALL_DEFINE5(recvmmsg",
+      "helper": "do_sys_recvmmsg",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "39fb78f3a6421366233651e2a1dfc5319b6aae13fd963c5ca95a157ddaa6eb16",
+      "helper_normalized_sha256": "39fb78f3a6421366233651e2a1dfc5319b6aae13fd963c5ca95a157ddaa6eb16"
+    },
+    {
+      "path": "fs/signalfd.c",
+      "syscall": "SYSCALL_DEFINE4(signalfd4",
+      "helper": "do_signalfd4",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "60eb45f7036871dcac537f3ba9d0635c11aa7c7031082170f3d1c10db8d3bbcf",
+      "helper_normalized_sha256": "60eb45f7036871dcac537f3ba9d0635c11aa7c7031082170f3d1c10db8d3bbcf"
+    },
+    {
+      "path": "fs/signalfd.c",
+      "syscall": "SYSCALL_DEFINE3(signalfd",
+      "helper": "do_signalfd4",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "241b51ff307b3aca14832ea2cfb619d8e1fca3993d189c79487955e7212e81ec",
+      "helper_normalized_sha256": "60eb45f7036871dcac537f3ba9d0635c11aa7c7031082170f3d1c10db8d3bbcf"
+    },
+    {
+      "path": "fs/signalfd.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE4(signalfd4",
+      "helper": "do_compat_signalfd4",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "8caebe7857189b220b68fbdad9ea6c188262f0fa9599747ab1fc6adc8ea4121f",
+      "helper_normalized_sha256": "1c95b432fe0ec2703d71cbcb9f275434cd6ea4b3cdff098a3c046dacc54e072d"
+    },
+    {
+      "path": "fs/signalfd.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(signalfd",
+      "helper": "do_compat_signalfd4",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "4b42de09c30f6dbfcc9b219c5dc4cba4aac9fdfb90516772e557bb678a7b8de6",
+      "helper_normalized_sha256": "1c95b432fe0ec2703d71cbcb9f275434cd6ea4b3cdff098a3c046dacc54e072d"
+    },
+    {
+      "path": "fs/eventfd.c",
+      "syscall": "SYSCALL_DEFINE2(eventfd2",
+      "helper": "do_eventfd",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "5ce8b7e77bf15501de2546a697e5a1bbafe209a1cbaaf734e901101095f63d09",
+      "helper_normalized_sha256": "b5e639acf6fcbed2dd03a8bb055274233dbcbc9c71cd98a251f0e8ef699cf572"
+    },
+    {
+      "path": "fs/eventfd.c",
+      "syscall": "SYSCALL_DEFINE1(eventfd",
+      "helper": "do_eventfd",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "0e5b3bf4d7b78ab8637a2c5fc5eeccab94ff37c16b3e18e290500c5b013c4b22",
+      "helper_normalized_sha256": "b5e639acf6fcbed2dd03a8bb055274233dbcbc9c71cd98a251f0e8ef699cf572"
+    },
+    {
+      "path": "fs/utimes.c",
+      "syscall": "SYSCALL_DEFINE3(futimesat",
+      "helper": "do_futimesat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "c47aac914afa006b0a7ce51ad789ed481d22ce87cd6ce3de003201f89281479b",
+      "helper_normalized_sha256": "c47aac914afa006b0a7ce51ad789ed481d22ce87cd6ce3de003201f89281479b"
+    },
+    {
+      "path": "fs/utimes.c",
+      "syscall": "SYSCALL_DEFINE2(utimes",
+      "helper": "do_futimesat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "b77264c695809bd3f5d5e8d6468508ea19af733039bc16196b14e8b430d05323",
+      "helper_normalized_sha256": "c47aac914afa006b0a7ce51ad789ed481d22ce87cd6ce3de003201f89281479b"
+    },
+    {
+      "path": "fs/utimes.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(futimesat",
+      "helper": "do_compat_futimesat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "a913f5fecc09464d5b865b2b6b2263bda3e98b5e3ce0c9300f64de51ffa59cf5",
+      "helper_normalized_sha256": "a913f5fecc09464d5b865b2b6b2263bda3e98b5e3ce0c9300f64de51ffa59cf5"
+    },
+    {
+      "path": "fs/utimes.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE2(utimes",
+      "helper": "do_compat_futimesat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "97bb57ff98974ecb5e9a6ebe7ea9594d592004568e85865f13a0367f92bb11de",
+      "helper_normalized_sha256": "a913f5fecc09464d5b865b2b6b2263bda3e98b5e3ce0c9300f64de51ffa59cf5"
+    },
+    {
+      "path": "kernel/exit.c",
+      "syscall": "SYSCALL_DEFINE3(waitpid",
+      "helper": "kernel_wait4",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "598c9fb18c00d555338331f25d5361c39e09c59fe8ad14e4f333df72ebbcdd2b",
+      "helper_normalized_sha256": "da7e235c627e5d146502c0a22ca92325ab2c82694c05096b862952afbf788a38"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE4(mknodat",
+      "helper": "do_mknodat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "24568b5242025454bab5f9d4ddf808b90e6f9b7b156735abd86709cab3505182",
+      "helper_normalized_sha256": "24568b5242025454bab5f9d4ddf808b90e6f9b7b156735abd86709cab3505182"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE3(mknod",
+      "helper": "do_mknodat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "aba501fe9a653c0de67123e7503921509e3fe01d4bfbe1a915c49813d1c60a26",
+      "helper_normalized_sha256": "24568b5242025454bab5f9d4ddf808b90e6f9b7b156735abd86709cab3505182"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE3(mkdirat",
+      "helper": "do_mkdirat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "30e8015aa15a2f78654f2c064f84538528027f42eda8a1a60fe72029dca01f68",
+      "helper_normalized_sha256": "30e8015aa15a2f78654f2c064f84538528027f42eda8a1a60fe72029dca01f68"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE2(mkdir",
+      "helper": "do_mkdirat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "2c26bb5c00f2683f594a9decee260f8b972c060d3abb7b4038088d60556a152d",
+      "helper_normalized_sha256": "30e8015aa15a2f78654f2c064f84538528027f42eda8a1a60fe72029dca01f68"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE1(unlink",
+      "helper": "do_unlinkat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "a70a36d6fe1900ffc0b63b13dd384a35ba59fd0dc0db0eda343cec70fcf4976d",
+      "helper_normalized_sha256": "2e1c887b080100ae6a4c4ea1613feebf3ae53df86f01b7a52837fcbade8b255e"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE3(symlinkat",
+      "helper": "do_symlinkat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "4f6f59514860593ddfcac96f82ede8c255c261eaf532b7f01caab982a7d6bc80",
+      "helper_normalized_sha256": "4f6f59514860593ddfcac96f82ede8c255c261eaf532b7f01caab982a7d6bc80"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE2(symlink",
+      "helper": "do_symlinkat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "33439a1df09d7ab6b3457a5e6f6db3e51fad3af57b23e7351b646cc6cdb44c40",
+      "helper_normalized_sha256": "4f6f59514860593ddfcac96f82ede8c255c261eaf532b7f01caab982a7d6bc80"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE5(linkat",
+      "helper": "do_linkat",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "8c070dbd2e26feadabfc892ddd6fdedcc6dd9e98d6807e2e0d29cc5cb92590a7",
+      "helper_normalized_sha256": "8c070dbd2e26feadabfc892ddd6fdedcc6dd9e98d6807e2e0d29cc5cb92590a7"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE2(link",
+      "helper": "do_linkat",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "0603f101fb8ac2acbe8388eef0efa76cf8b25cab3f7a791c7597cda15b3bde3f",
+      "helper_normalized_sha256": "8c070dbd2e26feadabfc892ddd6fdedcc6dd9e98d6807e2e0d29cc5cb92590a7"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE5(renameat2",
+      "helper": "do_renameat2",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "554e7fa4b5b88813c9b652832f665a919dd0b7746463bc09a3edd4fda38ad11b",
+      "helper_normalized_sha256": "554e7fa4b5b88813c9b652832f665a919dd0b7746463bc09a3edd4fda38ad11b"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE4(renameat",
+      "helper": "do_renameat2",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "74c54c8e7c9d1d4b189a4a5e1be75377facdf564f60b8181e67e7138a188ea6a",
+      "helper_normalized_sha256": "554e7fa4b5b88813c9b652832f665a919dd0b7746463bc09a3edd4fda38ad11b"
+    },
+    {
+      "path": "fs/namei.c",
+      "syscall": "SYSCALL_DEFINE2(rename",
+      "helper": "do_renameat2",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "41ebc35923237681adf8ceec3499cc6793649c38d418444ccca6494bda424e0f",
+      "helper_normalized_sha256": "554e7fa4b5b88813c9b652832f665a919dd0b7746463bc09a3edd4fda38ad11b"
+    },
+    {
+      "path": "fs/quota/quota.c",
+      "syscall": "SYSCALL_DEFINE4(quotactl",
+      "helper": "kernel_quotactl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "1526a21e11716190fca6073b89eda33d959eca3f7fdc56f0b78ac97d80fa4014",
+      "helper_normalized_sha256": "1526a21e11716190fca6073b89eda33d959eca3f7fdc56f0b78ac97d80fa4014"
+    },
+    {
+      "path": "mm/nommu.c",
+      "syscall": "SYSCALL_DEFINE6(mmap_pgoff",
+      "helper": "ksys_mmap_pgoff",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "59dc748a45625193c78b883017366e8d2d69a3bdfb8909f1f3426005f6e62cc8",
+      "helper_normalized_sha256": "59dc748a45625193c78b883017366e8d2d69a3bdfb8909f1f3426005f6e62cc8"
+    },
+    {
+      "path": "ipc/sem.c",
+      "syscall": "SYSCALL_DEFINE3(semget",
+      "helper": "ksys_semget",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "cc307d1ddb928202a19ccf6e5e8fe8038e1aa7e443bb832be2247bb6424654d3",
+      "helper_normalized_sha256": "cc307d1ddb928202a19ccf6e5e8fe8038e1aa7e443bb832be2247bb6424654d3"
+    },
+    {
+      "path": "ipc/sem.c",
+      "syscall": "SYSCALL_DEFINE4(semctl",
+      "helper": "ksys_semctl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "2e92694360911f7d74602114611a388bfefc22d924c6b7263f204dbab5c7e1e1",
+      "helper_normalized_sha256": "2e92694360911f7d74602114611a388bfefc22d924c6b7263f204dbab5c7e1e1"
+    },
+    {
+      "path": "ipc/sem.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE4(semctl",
+      "helper": "compat_ksys_semctl",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "8638e3bace489a0ca65f93515e15f17eb1e52968db6d28d7e6a27de64ffc12d0",
+      "helper_normalized_sha256": "8638e3bace489a0ca65f93515e15f17eb1e52968db6d28d7e6a27de64ffc12d0"
+    },
+    {
+      "path": "ipc/sem.c",
+      "syscall": "SYSCALL_DEFINE4(semtimedop",
+      "helper": "ksys_semtimedop",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "72c5b0faeb32b7f57064f70a03508fee2d004687cda37d2ea7db81de74a70a8f",
+      "helper_normalized_sha256": "72c5b0faeb32b7f57064f70a03508fee2d004687cda37d2ea7db81de74a70a8f"
+    },
+    {
+      "path": "ipc/sem.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE4(semtimedop",
+      "helper": "compat_ksys_semtimedop",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "ecc5c71d7072150c692c55916cd6cbea9a34cc1029b15c6b8b99cbd1fabf603a",
+      "helper_normalized_sha256": "ecc5c71d7072150c692c55916cd6cbea9a34cc1029b15c6b8b99cbd1fabf603a"
+    },
+    {
+      "path": "fs/splice.c",
+      "syscall": "SYSCALL_DEFINE4(vmsplice",
+      "helper": "do_vmsplice",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "a4b2443c0c39cf5eddf9c70dbdcf81547e0df849a384823ce7a9aa95ed2ff901",
+      "helper_normalized_sha256": "a4b2443c0c39cf5eddf9c70dbdcf81547e0df849a384823ce7a9aa95ed2ff901"
+    },
+    {
+      "path": "fs/notify/inotify/inotify_user.c",
+      "syscall": "SYSCALL_DEFINE1(inotify_init1",
+      "helper": "do_inotify_init",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "175c31f088fdd03a2810db6d0092f979a6d93c93462fcdb4d13f48e24cf81ecf",
+      "helper_normalized_sha256": "175c31f088fdd03a2810db6d0092f979a6d93c93462fcdb4d13f48e24cf81ecf"
+    },
+    {
+      "path": "fs/notify/inotify/inotify_user.c",
+      "syscall": "SYSCALL_DEFINE0(inotify_init",
+      "helper": "do_inotify_init",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "5bd53cabbaf6e2933a7445d6a5f391d34b8adecf842e5403a0e3750225245c27",
+      "helper_normalized_sha256": "175c31f088fdd03a2810db6d0092f979a6d93c93462fcdb4d13f48e24cf81ecf"
+    },
+    {
+      "path": "fs/select.c",
+      "syscall": "SYSCALL_DEFINE5(select",
+      "helper": "kern_select",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "6c26a0b8f7ece1a36a0447f9ab62aecb3b324130c58af905c71d8a5f7aa99fac",
+      "helper_normalized_sha256": "6c26a0b8f7ece1a36a0447f9ab62aecb3b324130c58af905c71d8a5f7aa99fac"
+    },
+    {
+      "path": "fs/select.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE5(select",
+      "helper": "do_compat_select",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "607173ef758d147573760b79df978bb759f39a337365c7af632759e759de7e13",
+      "helper_normalized_sha256": "607173ef758d147573760b79df978bb759f39a337365c7af632759e759de7e13"
+    },
+    {
+      "path": "kernel/signal.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE2(sigaltstack",
+      "helper": "do_compat_sigaltstack",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "049aa269fecd420c564086fda0afe361fc09ae12938ab48e84c53c1f7a41978e",
+      "helper_normalized_sha256": "049aa269fecd420c564086fda0afe361fc09ae12938ab48e84c53c1f7a41978e"
+    },
+    {
+      "path": "mm/fadvise.c",
+      "syscall": "SYSCALL_DEFINE4(fadvise64_64",
+      "helper": "ksys_fadvise64_64",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "266ee442c09486f059d790122081ee8087db43d00555810a676b6dc6bca7e4a3",
+      "helper_normalized_sha256": "266ee442c09486f059d790122081ee8087db43d00555810a676b6dc6bca7e4a3"
+    },
+    {
+      "path": "mm/fadvise.c",
+      "syscall": "SYSCALL_DEFINE4(fadvise64",
+      "helper": "ksys_fadvise64_64",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "266ee442c09486f059d790122081ee8087db43d00555810a676b6dc6bca7e4a3",
+      "helper_normalized_sha256": "266ee442c09486f059d790122081ee8087db43d00555810a676b6dc6bca7e4a3"
+    },
+    {
+      "path": "fs/file.c",
+      "syscall": "SYSCALL_DEFINE3(dup3",
+      "helper": "ksys_dup3",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "9a17e4d8a07df2a28f8814b5875de976f0e5ac3d8551d4f1ee63e5693e5204c6",
+      "helper_normalized_sha256": "9a17e4d8a07df2a28f8814b5875de976f0e5ac3d8551d4f1ee63e5693e5204c6"
+    },
+    {
+      "path": "fs/file.c",
+      "syscall": "SYSCALL_DEFINE1(dup",
+      "helper": "ksys_dup",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "9a3ca0c04a26637e34cd6fa3d8bc6166327578d437de25e534cd8bd4d4251d1d",
+      "helper_normalized_sha256": "9a3ca0c04a26637e34cd6fa3d8bc6166327578d437de25e534cd8bd4d4251d1d"
+    },
+    {
+      "path": "fs/read_write.c",
+      "syscall": "SYSCALL_DEFINE3(lseek",
+      "helper": "ksys_lseek",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "d38d0cad446a61926233f6716df800ec51e02019cf0a67ef0dfd12219981b1a4",
+      "helper_normalized_sha256": "d38d0cad446a61926233f6716df800ec51e02019cf0a67ef0dfd12219981b1a4"
+    },
+    {
+      "path": "fs/read_write.c",
+      "syscall": "COMPAT_SYSCALL_DEFINE3(lseek",
+      "helper": "ksys_lseek",
+      "body_equivalent_after_call_renames": false,
+      "old_normalized_sha256": "2e328983e6bcf846101ed2a2dcd794d07aa420f2fdd9164842064db63dd89424",
+      "helper_normalized_sha256": "d38d0cad446a61926233f6716df800ec51e02019cf0a67ef0dfd12219981b1a4"
+    },
+    {
+      "path": "fs/read_write.c",
+      "syscall": "SYSCALL_DEFINE3(read",
+      "helper": "ksys_read",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "97d7cd0c26e85b2e89668d159dbe9d772bee07e08715f68ad996a61c967f8f24",
+      "helper_normalized_sha256": "97d7cd0c26e85b2e89668d159dbe9d772bee07e08715f68ad996a61c967f8f24"
+    },
+    {
+      "path": "fs/read_write.c",
+      "syscall": "SYSCALL_DEFINE3(write",
+      "helper": "ksys_write",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "2533c38dd8c6428dff286079fa715a04ebd5ea49ececb03164810b3ec2b07cf3",
+      "helper_normalized_sha256": "2533c38dd8c6428dff286079fa715a04ebd5ea49ececb03164810b3ec2b07cf3"
+    },
+    {
+      "path": "fs/read_write.c",
+      "syscall": "SYSCALL_DEFINE4(pread64",
+      "helper": "ksys_pread64",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "400b3369063565cc36d4950659e40fcf1d0f7308e3f9d57fe2669475b4ef711a",
+      "helper_normalized_sha256": "400b3369063565cc36d4950659e40fcf1d0f7308e3f9d57fe2669475b4ef711a"
+    },
+    {
+      "path": "fs/read_write.c",
+      "syscall": "SYSCALL_DEFINE4(pwrite64",
+      "helper": "ksys_pwrite64",
+      "body_equivalent_after_call_renames": true,
+      "old_normalized_sha256": "92620c2fdc3e200b8858d069b20daf6e9586982bfac948866ee6984863f3ec5f",
+      "helper_normalized_sha256": "92620c2fdc3e200b8858d069b20daf6e9586982bfac948866ee6984863f3ec5f"
+    }
+  ]
+}

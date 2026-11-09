@@ -22,6 +22,7 @@
 
 #include "../kselftest.h"
 #include "clone3_selftests.h"
+#include "clone3_set_tid_counts.h"
 
 #ifndef MAX_PID_NS_LEVEL
 #define MAX_PID_NS_LEVEL 32
@@ -29,6 +30,16 @@
 
 static int pipe_1[2];
 static int pipe_2[2];
+static int pipe_counts[2];
+
+#define NESTED_TESTS 6
+
+static void child_exit(int ret)
+{
+	fflush(stdout);
+	fflush(stderr);
+	_exit(ret);
+}
 
 static int call_clone3_set_tid(pid_t *set_tid,
 			       size_t set_tid_size,
@@ -84,8 +95,8 @@ static int call_clone3_set_tid(pid_t *set_tid,
 		}
 
 		if (set_tid[0] != getpid())
-			_exit(EXIT_FAILURE);
-		_exit(exit_code);
+			child_exit(EXIT_FAILURE);
+		child_exit(exit_code);
 	}
 
 	if (expected_pid == 0 || expected_pid == pid) {
@@ -148,6 +159,7 @@ int main(void)
 	char proc_path[100] = {0};
 	pid_t pid, ns1 = 0, ns2 = 0, ns3 = 0, ns_pid;
 	pid_t set_tid[MAX_PID_NS_LEVEL * 2];
+	struct ksft_count before_nested, delta = {};
 
 	test_clone3_supported();
 	if (access("/proc/self/ns/pid", F_OK))
@@ -160,7 +172,7 @@ int main(void)
 		ksft_exit_fail_msg("pipe() failed\n");
 
 	ksft_print_header();
-	ksft_set_plan(27);
+	ksft_set_plan(29);
 
 	f = fopen("/proc/sys/kernel/pid_max", "r");
 	if (f == NULL)
@@ -256,7 +268,7 @@ int main(void)
 	pid = fork();
 	if (pid == 0) {
 		ksft_print_msg("Child has PID %d\n", getpid());
-		_exit(EXIT_SUCCESS);
+		child_exit(EXIT_SUCCESS);
 	}
 	if (waitpid(pid, &status, 0) < 0)
 		ksft_exit_fail_msg("Waiting for child %d failed", pid);
@@ -287,9 +299,27 @@ int main(void)
 	/* This should fail as there is no PID 1 in that namespace */
 	test_clone3_set_tid(set_tid, 1, 0, -EINVAL, 0, 0);
 
+	/* Keep child-only result counts out of the eight-bit exit status. */
+	if (pipe(pipe_counts) < 0)
+		ksft_exit_fail_msg("counter pipe() failed\n");
+	before_nested = ksft_cnt;
 	/* Let's create a PID 1 */
 	ns_pid = fork();
+	if (ns_pid < 0) {
+		close(pipe_counts[0]);
+		close(pipe_counts[1]);
+		ksft_exit_fail_msg("fork() failed\n");
+	}
 	if (ns_pid == 0) {
+		close(pipe_counts[0]);
+		/* A failed ancestor allocation must release the requested PID. */
+		set_tid[0] = 43;
+		set_tid[1] = -1;
+		test_clone3_set_tid(set_tid, 2, 0, -EINVAL, 0, false);
+
+		set_tid[0] = 43;
+		set_tid[1] = pid;
+		test_clone3_set_tid(set_tid, 2, 0, 0, 43, false);
 		ksft_print_msg("Child in PID namespace has PID %d\n", getpid());
 		set_tid[0] = 2;
 		test_clone3_set_tid(set_tid, 1, 0, 0, 2, 0);
@@ -316,8 +346,14 @@ int main(void)
 		 */
 		test_clone3_set_tid(set_tid, 3, CLONE_NEWPID, 0, 42, true);
 
-		_exit(ksft_get_fail_cnt() ? 255 : ksft_cnt.ksft_pass);
+		if (clone3_count_delta(&ksft_cnt, &before_nested, &delta,
+				       NESTED_TESTS) ||
+		    clone3_count_write(pipe_counts[1], &delta))
+			child_exit(EXIT_FAILURE);
+		close(pipe_counts[1]);
+		child_exit(EXIT_SUCCESS);
 	}
+	close(pipe_counts[1]);
 
 	close(pipe_1[1]);
 	close(pipe_2[0]);
@@ -359,22 +395,17 @@ int main(void)
 	if (waitpid(ns_pid, &status, 0) < 0) {
 		ksft_print_msg("Child returned %s\n", strerror(errno));
 		ret = -errno;
+		close(pipe_counts[0]);
 		goto out;
 	}
 
-	if (!WIFEXITED(status))
-		ksft_test_result_fail("Child error\n");
-
-	if (WIFEXITED(status) && WEXITSTATUS(status) == 255)
-		ksft_test_result_fail("nested set_tid child failed\n");
-
-	if (WIFEXITED(status) && WEXITSTATUS(status) != 255 &&
-	    WEXITSTATUS(status))
-		/*
-		 * Update the number of total tests with the tests from the
-		 * child processes.
-		 */
-		ksft_cnt.ksft_pass = WEXITSTATUS(status);
+	if (!WIFEXITED(status) || WEXITSTATUS(status)) {
+		ksft_test_result_fail("nested set_tid child exited abnormally\n");
+	} else if (clone3_count_read(pipe_counts[0], &delta) ||
+		   clone3_count_merge(&ksft_cnt, &delta, NESTED_TESTS)) {
+		ksft_test_result_fail("invalid nested set_tid counter report\n");
+	}
+	close(pipe_counts[0]);
 
 	if (ns3 == pid && ns2 == 42 && ns1 == 1)
 		ksft_test_result_pass(

@@ -55,7 +55,8 @@ asmlinkage long sys32_truncate64(const char __user *filename,
 				 unsigned long offset_low,
 				 unsigned long offset_high)
 {
-       return sys_truncate(filename, ((loff_t) offset_high << 32) | offset_low);
+	return ksys_truncate(filename,
+			    ((loff_t) offset_high << 32) | offset_low);
 }
 
 asmlinkage long sys32_ftruncate64(unsigned int fd, unsigned long offset_low,
@@ -163,7 +164,7 @@ asmlinkage long sys32_mmap(struct mmap_arg_struct32 __user *arg)
 	if (a.offset & ~PAGE_MASK)
 		return -EINVAL;
 
-	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
+	return ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
 			       a.offset>>PAGE_SHIFT);
 }
 
@@ -177,14 +178,14 @@ asmlinkage long sys32_waitpid(compat_pid_t pid, unsigned int __user *stat_addr,
 asmlinkage long sys32_pread(unsigned int fd, char __user *ubuf, u32 count,
 			    u32 poslo, u32 poshi)
 {
-	return sys_pread64(fd, ubuf, count,
+	return ksys_pread64(fd, ubuf, count,
 			 ((loff_t)AA(poshi) << 32) | AA(poslo));
 }
 
 asmlinkage long sys32_pwrite(unsigned int fd, const char __user *ubuf,
 			     u32 count, u32 poslo, u32 poshi)
 {
-	return sys_pwrite64(fd, ubuf, count,
+	return ksys_pwrite64(fd, ubuf, count,
 			  ((loff_t)AA(poshi) << 32) | AA(poslo));
 }
 
@@ -196,37 +197,37 @@ asmlinkage long sys32_pwrite(unsigned int fd, const char __user *ubuf,
 long sys32_fadvise64_64(int fd, __u32 offset_low, __u32 offset_high,
 			__u32 len_low, __u32 len_high, int advice)
 {
-	return sys_fadvise64_64(fd,
-			       (((u64)offset_high)<<32) | offset_low,
-			       (((u64)len_high)<<32) | len_low,
-				advice);
+	return ksys_fadvise64_64(fd,
+				 (((u64)offset_high)<<32) | offset_low,
+				 (((u64)len_high)<<32) | len_low,
+				 advice);
 }
 
 asmlinkage ssize_t sys32_readahead(int fd, unsigned off_lo, unsigned off_hi,
 				   size_t count)
 {
-	return sys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
+	return ksys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
 }
 
 asmlinkage long sys32_sync_file_range(int fd, unsigned off_low, unsigned off_hi,
 				      unsigned n_low, unsigned n_hi,  int flags)
 {
-	return sys_sync_file_range(fd,
-				   ((u64)off_hi << 32) | off_low,
-				   ((u64)n_hi << 32) | n_low, flags);
+	return ksys_sync_file_range(fd,
+				    ((u64)off_hi << 32) | off_low,
+				    ((u64)n_hi << 32) | n_low, flags);
 }
 
 asmlinkage long sys32_fadvise64(int fd, unsigned offset_lo, unsigned offset_hi,
 				size_t len, int advice)
 {
-	return sys_fadvise64_64(fd, ((u64)offset_hi << 32) | offset_lo,
-				len, advice);
+	return ksys_fadvise64_64(fd, ((u64)offset_hi << 32) | offset_lo,
+				 len, advice);
 }
 
 asmlinkage long sys32_fallocate(int fd, int mode, unsigned offset_lo,
 				unsigned offset_hi, unsigned len_lo,
 				unsigned len_hi)
 {
-	return sys_fallocate(fd, mode, ((u64)offset_hi << 32) | offset_lo,
-			     ((u64)len_hi << 32) | len_lo);
+	return ksys_fallocate(fd, mode, ((u64)offset_hi << 32) | offset_lo,
+			      ((u64)len_hi << 32) | len_lo);
 }

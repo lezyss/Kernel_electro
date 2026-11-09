@@ -86,7 +86,7 @@ static inline void set_fs(mm_segment_t fs)
 #define __range_ok(addr, size) ({ \
 	unsigned long flag, roksum; \
 	__chk_user_ptr(addr);	\
-	__asm__("adds %1, %2, %3; sbcccs %1, %1, %0; movcc %0, #0" \
+	__asm__("adds %1, %2, %3; sbcscc %1, %1, %0; movcc %0, #0" \
 		: "=&r" (flag), "=&r" (roksum) \
 		: "r" (addr), "Ir" (size), "0" (current_thread_info()->addr_limit) \
 		: "cc"); \
@@ -152,7 +152,7 @@ extern int __get_user_64t_4(void *);
 		__asmbl("", "ip", "__get_user_" #__s)			\
 		: "=&r" (__e), "=r" (__r2)				\
 		: "0" (__p), "r" (__l)					\
-		: __asmbl_clobber("ip"), "lr", "cc")
+		: "lr", "cc" __asmbl_clobber("ip"))
 
 /* narrowing a double-word get into a single 32bit word register: */
 #ifdef __ARMEB__

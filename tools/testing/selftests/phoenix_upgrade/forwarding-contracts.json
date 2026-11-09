@@ -1,0 +1,1003 @@
+[
+  {
+    "path": "fs/notify/fanotify/fanotify_user.c",
+    "signature": "SYSCALL_DEFINE5(fanotify_mark",
+    "helper": "do_fanotify_mark",
+    "parameters": [
+      "fanotify_fd",
+      "flags",
+      "mask",
+      "dfd",
+      "pathname"
+    ]
+  },
+  {
+    "path": "fs/stat.c",
+    "signature": "SYSCALL_DEFINE4(readlinkat",
+    "helper": "do_readlinkat",
+    "parameters": [
+      "dfd",
+      "pathname",
+      "buf",
+      "bufsiz"
+    ]
+  },
+  {
+    "path": "fs/pipe.c",
+    "signature": "SYSCALL_DEFINE2(pipe2",
+    "helper": "do_pipe2",
+    "parameters": [
+      "fildes",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/dcookies.c",
+    "signature": "SYSCALL_DEFINE3(lookup_dcookie",
+    "helper": "do_lookup_dcookie",
+    "parameters": [
+      "cookie64",
+      "buf",
+      "len"
+    ]
+  },
+  {
+    "path": "fs/sync.c",
+    "signature": "SYSCALL_DEFINE4(sync_file_range",
+    "helper": "ksys_sync_file_range",
+    "parameters": [
+      "fd",
+      "offset",
+      "nbytes",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/ioctl.c",
+    "signature": "SYSCALL_DEFINE3(ioctl",
+    "helper": "ksys_ioctl",
+    "parameters": [
+      "fd",
+      "cmd",
+      "arg"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE4(fallocate",
+    "helper": "ksys_fallocate",
+    "parameters": [
+      "fd",
+      "mode",
+      "offset",
+      "len"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE3(faccessat",
+    "helper": "do_faccessat",
+    "parameters": [
+      "dfd",
+      "filename",
+      "mode"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE1(chdir",
+    "helper": "ksys_chdir",
+    "parameters": [
+      "filename"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE1(chroot",
+    "helper": "ksys_chroot",
+    "parameters": [
+      "filename"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE2(fchmod",
+    "helper": "ksys_fchmod",
+    "parameters": [
+      "fd",
+      "mode"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE3(fchmodat",
+    "helper": "do_fchmodat",
+    "parameters": [
+      "dfd",
+      "filename",
+      "mode"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE5(fchownat",
+    "helper": "do_fchownat",
+    "parameters": [
+      "dfd",
+      "filename",
+      "user",
+      "group",
+      "flag"
+    ]
+  },
+  {
+    "path": "fs/open.c",
+    "signature": "SYSCALL_DEFINE3(fchown",
+    "helper": "ksys_fchown",
+    "parameters": [
+      "fd",
+      "user",
+      "group"
+    ]
+  },
+  {
+    "path": "fs/namespace.c",
+    "signature": "SYSCALL_DEFINE2(umount",
+    "helper": "ksys_umount",
+    "parameters": [
+      "name",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/namespace.c",
+    "signature": "SYSCALL_DEFINE5(mount",
+    "helper": "ksys_mount",
+    "parameters": [
+      "dev_name",
+      "dir_name",
+      "type",
+      "flags",
+      "data"
+    ]
+  },
+  {
+    "path": "ipc/msg.c",
+    "signature": "SYSCALL_DEFINE2(msgget",
+    "helper": "ksys_msgget",
+    "parameters": [
+      "key",
+      "msgflg"
+    ]
+  },
+  {
+    "path": "ipc/msg.c",
+    "signature": "SYSCALL_DEFINE3(msgctl",
+    "helper": "ksys_msgctl",
+    "parameters": [
+      "msqid",
+      "cmd",
+      "buf"
+    ]
+  },
+  {
+    "path": "ipc/msg.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(msgctl",
+    "helper": "compat_ksys_msgctl",
+    "parameters": [
+      "msqid",
+      "cmd",
+      "uptr"
+    ]
+  },
+  {
+    "path": "ipc/msg.c",
+    "signature": "SYSCALL_DEFINE4(msgsnd",
+    "helper": "ksys_msgsnd",
+    "parameters": [
+      "msqid",
+      "msgp",
+      "msgsz",
+      "msgflg"
+    ]
+  },
+  {
+    "path": "ipc/msg.c",
+    "signature": "COMPAT_SYSCALL_DEFINE4(msgsnd",
+    "helper": "compat_ksys_msgsnd",
+    "parameters": [
+      "msqid",
+      "msgp",
+      "msgsz",
+      "msgflg"
+    ]
+  },
+  {
+    "path": "ipc/msg.c",
+    "signature": "SYSCALL_DEFINE5(msgrcv",
+    "helper": "ksys_msgrcv",
+    "parameters": [
+      "msqid",
+      "msgp",
+      "msgsz",
+      "msgtyp",
+      "msgflg"
+    ]
+  },
+  {
+    "path": "ipc/msg.c",
+    "signature": "COMPAT_SYSCALL_DEFINE5(msgrcv",
+    "helper": "compat_ksys_msgrcv",
+    "parameters": [
+      "msqid",
+      "msgp",
+      "msgsz",
+      "msgtyp",
+      "msgflg"
+    ]
+  },
+  {
+    "path": "mm/mempolicy.c",
+    "signature": "SYSCALL_DEFINE6(mbind",
+    "helper": "kernel_mbind",
+    "parameters": [
+      "start",
+      "len",
+      "mode",
+      "nmask",
+      "maxnode",
+      "flags"
+    ]
+  },
+  {
+    "path": "mm/mempolicy.c",
+    "signature": "SYSCALL_DEFINE3(set_mempolicy",
+    "helper": "kernel_set_mempolicy",
+    "parameters": [
+      "mode",
+      "nmask",
+      "maxnode"
+    ]
+  },
+  {
+    "path": "mm/mempolicy.c",
+    "signature": "SYSCALL_DEFINE4(migrate_pages",
+    "helper": "kernel_migrate_pages",
+    "parameters": [
+      "pid",
+      "maxnode",
+      "old_nodes",
+      "new_nodes"
+    ]
+  },
+  {
+    "path": "mm/mempolicy.c",
+    "signature": "SYSCALL_DEFINE5(get_mempolicy",
+    "helper": "kernel_get_mempolicy",
+    "parameters": [
+      "policy",
+      "nmask",
+      "maxnode",
+      "addr",
+      "flags"
+    ]
+  },
+  {
+    "path": "net/compat.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(sendmsg",
+    "helper": "__compat_sys_sendmsg",
+    "parameters": [
+      "fd",
+      "msg",
+      "flags"
+    ]
+  },
+  {
+    "path": "net/compat.c",
+    "signature": "COMPAT_SYSCALL_DEFINE4(sendmmsg",
+    "helper": "__compat_sys_sendmmsg",
+    "parameters": [
+      "fd",
+      "mmsg",
+      "vlen",
+      "flags"
+    ]
+  },
+  {
+    "path": "net/compat.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(recvmsg",
+    "helper": "__compat_sys_recvmsg",
+    "parameters": [
+      "fd",
+      "msg",
+      "flags"
+    ]
+  },
+  {
+    "path": "net/compat.c",
+    "signature": "COMPAT_SYSCALL_DEFINE6(recvfrom",
+    "helper": "__compat_sys_recvfrom",
+    "parameters": [
+      "fd",
+      "buf",
+      "len",
+      "flags",
+      "addr",
+      "addrlen"
+    ]
+  },
+  {
+    "path": "net/compat.c",
+    "signature": "COMPAT_SYSCALL_DEFINE5(recvmmsg",
+    "helper": "__compat_sys_recvmmsg",
+    "parameters": [
+      "fd",
+      "mmsg",
+      "vlen",
+      "flags",
+      "timeout"
+    ]
+  },
+  {
+    "path": "mm/mmap.c",
+    "signature": "SYSCALL_DEFINE6(mmap_pgoff",
+    "helper": "ksys_mmap_pgoff",
+    "parameters": [
+      "addr",
+      "len",
+      "prot",
+      "flags",
+      "fd",
+      "pgoff"
+    ]
+  },
+  {
+    "path": "ipc/shm.c",
+    "signature": "SYSCALL_DEFINE3(shmget",
+    "helper": "ksys_shmget",
+    "parameters": [
+      "key",
+      "size",
+      "shmflg"
+    ]
+  },
+  {
+    "path": "ipc/shm.c",
+    "signature": "SYSCALL_DEFINE3(shmctl",
+    "helper": "ksys_shmctl",
+    "parameters": [
+      "shmid",
+      "cmd",
+      "buf"
+    ]
+  },
+  {
+    "path": "ipc/shm.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(shmctl",
+    "helper": "compat_ksys_shmctl",
+    "parameters": [
+      "shmid",
+      "cmd",
+      "uptr"
+    ]
+  },
+  {
+    "path": "ipc/shm.c",
+    "signature": "SYSCALL_DEFINE1(shmdt",
+    "helper": "ksys_shmdt",
+    "parameters": [
+      "shmaddr"
+    ]
+  },
+  {
+    "path": "fs/fcntl.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(fcntl64",
+    "helper": "do_compat_fcntl64",
+    "parameters": [
+      "fd",
+      "cmd",
+      "arg"
+    ]
+  },
+  {
+    "path": "fs/fcntl.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(fcntl",
+    "helper": "do_compat_fcntl64",
+    "parameters": [
+      "fd",
+      "cmd",
+      "arg"
+    ]
+  },
+  {
+    "path": "fs/readdir.c",
+    "signature": "SYSCALL_DEFINE3(getdents64",
+    "helper": "ksys_getdents64",
+    "parameters": [
+      "fd",
+      "dirent",
+      "count"
+    ]
+  },
+  {
+    "path": "mm/readahead.c",
+    "signature": "SYSCALL_DEFINE3(readahead",
+    "helper": "ksys_readahead",
+    "parameters": [
+      "fd",
+      "offset",
+      "count"
+    ]
+  },
+  {
+    "path": "kernel/fork.c",
+    "signature": "SYSCALL_DEFINE1(unshare",
+    "helper": "ksys_unshare",
+    "parameters": [
+      "unshare_flags"
+    ]
+  },
+  {
+    "path": "mm/migrate.c",
+    "signature": "SYSCALL_DEFINE6(move_pages",
+    "helper": "kernel_move_pages",
+    "parameters": [
+      "pid",
+      "nr_pages",
+      "pages",
+      "nodes",
+      "status",
+      "flags"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE2(setregid",
+    "helper": "__sys_setregid",
+    "parameters": [
+      "rgid",
+      "egid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE1(setgid",
+    "helper": "__sys_setgid",
+    "parameters": [
+      "gid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE2(setreuid",
+    "helper": "__sys_setreuid",
+    "parameters": [
+      "ruid",
+      "euid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE1(setuid",
+    "helper": "__sys_setuid",
+    "parameters": [
+      "uid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE3(setresuid",
+    "helper": "__sys_setresuid",
+    "parameters": [
+      "ruid",
+      "euid",
+      "suid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE3(setresgid",
+    "helper": "__sys_setresgid",
+    "parameters": [
+      "rgid",
+      "egid",
+      "sgid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE1(setfsuid",
+    "helper": "__sys_setfsuid",
+    "parameters": [
+      "uid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE1(setfsgid",
+    "helper": "__sys_setfsgid",
+    "parameters": [
+      "gid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE1(getpgid",
+    "helper": "do_getpgid",
+    "parameters": [
+      "pid"
+    ]
+  },
+  {
+    "path": "kernel/sys.c",
+    "signature": "SYSCALL_DEFINE0(setsid",
+    "helper": "ksys_setsid",
+    "parameters": []
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE3(socket",
+    "helper": "__sys_socket",
+    "parameters": [
+      "family",
+      "type",
+      "protocol"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE4(socketpair",
+    "helper": "__sys_socketpair",
+    "parameters": [
+      "family",
+      "type",
+      "protocol",
+      "usockvec"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE3(bind",
+    "helper": "__sys_bind",
+    "parameters": [
+      "fd",
+      "umyaddr",
+      "addrlen"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE2(listen",
+    "helper": "__sys_listen",
+    "parameters": [
+      "fd",
+      "backlog"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE4(accept4",
+    "helper": "__sys_accept4",
+    "parameters": [
+      "fd",
+      "upeer_sockaddr",
+      "upeer_addrlen",
+      "flags"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE3(connect",
+    "helper": "__sys_connect",
+    "parameters": [
+      "fd",
+      "uservaddr",
+      "addrlen"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE3(getsockname",
+    "helper": "__sys_getsockname",
+    "parameters": [
+      "fd",
+      "usockaddr",
+      "usockaddr_len"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE3(getpeername",
+    "helper": "__sys_getpeername",
+    "parameters": [
+      "fd",
+      "usockaddr",
+      "usockaddr_len"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE6(sendto",
+    "helper": "__sys_sendto",
+    "parameters": [
+      "fd",
+      "buff",
+      "len",
+      "flags",
+      "addr",
+      "addr_len"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE6(recvfrom",
+    "helper": "__sys_recvfrom",
+    "parameters": [
+      "fd",
+      "ubuf",
+      "size",
+      "flags",
+      "addr",
+      "addr_len"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE2(shutdown",
+    "helper": "__sys_shutdown",
+    "parameters": [
+      "fd",
+      "how"
+    ]
+  },
+  {
+    "path": "net/socket.c",
+    "signature": "SYSCALL_DEFINE5(recvmmsg",
+    "helper": "do_sys_recvmmsg",
+    "parameters": [
+      "fd",
+      "mmsg",
+      "vlen",
+      "flags",
+      "timeout"
+    ]
+  },
+  {
+    "path": "fs/signalfd.c",
+    "signature": "SYSCALL_DEFINE4(signalfd4",
+    "helper": "do_signalfd4",
+    "parameters": [
+      "ufd",
+      "user_mask",
+      "sizemask",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/signalfd.c",
+    "signature": "COMPAT_SYSCALL_DEFINE4(signalfd4",
+    "helper": "do_compat_signalfd4",
+    "parameters": [
+      "ufd",
+      "sigmask",
+      "sigsetsize",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/eventfd.c",
+    "signature": "SYSCALL_DEFINE2(eventfd2",
+    "helper": "do_eventfd",
+    "parameters": [
+      "count",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/utimes.c",
+    "signature": "SYSCALL_DEFINE3(futimesat",
+    "helper": "do_futimesat",
+    "parameters": [
+      "dfd",
+      "filename",
+      "utimes"
+    ]
+  },
+  {
+    "path": "fs/utimes.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(futimesat",
+    "helper": "do_compat_futimesat",
+    "parameters": [
+      "dfd",
+      "filename",
+      "t"
+    ]
+  },
+  {
+    "path": "fs/namei.c",
+    "signature": "SYSCALL_DEFINE4(mknodat",
+    "helper": "do_mknodat",
+    "parameters": [
+      "dfd",
+      "filename",
+      "mode",
+      "dev"
+    ]
+  },
+  {
+    "path": "fs/namei.c",
+    "signature": "SYSCALL_DEFINE3(mkdirat",
+    "helper": "do_mkdirat",
+    "parameters": [
+      "dfd",
+      "pathname",
+      "mode"
+    ]
+  },
+  {
+    "path": "fs/namei.c",
+    "signature": "SYSCALL_DEFINE3(symlinkat",
+    "helper": "do_symlinkat",
+    "parameters": [
+      "oldname",
+      "newdfd",
+      "newname"
+    ]
+  },
+  {
+    "path": "fs/namei.c",
+    "signature": "SYSCALL_DEFINE5(linkat",
+    "helper": "do_linkat",
+    "parameters": [
+      "olddfd",
+      "oldname",
+      "newdfd",
+      "newname",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/namei.c",
+    "signature": "SYSCALL_DEFINE5(renameat2",
+    "helper": "do_renameat2",
+    "parameters": [
+      "olddfd",
+      "oldname",
+      "newdfd",
+      "newname",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/quota/quota.c",
+    "signature": "SYSCALL_DEFINE4(quotactl",
+    "helper": "kernel_quotactl",
+    "parameters": [
+      "cmd",
+      "special",
+      "id",
+      "addr"
+    ]
+  },
+  {
+    "path": "mm/nommu.c",
+    "signature": "SYSCALL_DEFINE6(mmap_pgoff",
+    "helper": "ksys_mmap_pgoff",
+    "parameters": [
+      "addr",
+      "len",
+      "prot",
+      "flags",
+      "fd",
+      "pgoff"
+    ]
+  },
+  {
+    "path": "ipc/sem.c",
+    "signature": "SYSCALL_DEFINE3(semget",
+    "helper": "ksys_semget",
+    "parameters": [
+      "key",
+      "nsems",
+      "semflg"
+    ]
+  },
+  {
+    "path": "ipc/sem.c",
+    "signature": "SYSCALL_DEFINE4(semctl",
+    "helper": "ksys_semctl",
+    "parameters": [
+      "semid",
+      "semnum",
+      "cmd",
+      "arg"
+    ]
+  },
+  {
+    "path": "ipc/sem.c",
+    "signature": "COMPAT_SYSCALL_DEFINE4(semctl",
+    "helper": "compat_ksys_semctl",
+    "parameters": [
+      "semid",
+      "semnum",
+      "cmd",
+      "arg"
+    ]
+  },
+  {
+    "path": "ipc/sem.c",
+    "signature": "SYSCALL_DEFINE4(semtimedop",
+    "helper": "ksys_semtimedop",
+    "parameters": [
+      "semid",
+      "tsops",
+      "nsops",
+      "timeout"
+    ]
+  },
+  {
+    "path": "ipc/sem.c",
+    "signature": "COMPAT_SYSCALL_DEFINE4(semtimedop",
+    "helper": "compat_ksys_semtimedop",
+    "parameters": [
+      "semid",
+      "tsems",
+      "nsops",
+      "timeout"
+    ]
+  },
+  {
+    "path": "fs/splice.c",
+    "signature": "SYSCALL_DEFINE4(vmsplice",
+    "helper": "do_vmsplice",
+    "parameters": [
+      "fd",
+      "iov",
+      "nr_segs",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/notify/inotify/inotify_user.c",
+    "signature": "SYSCALL_DEFINE1(inotify_init1",
+    "helper": "do_inotify_init",
+    "parameters": [
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/select.c",
+    "signature": "SYSCALL_DEFINE5(select",
+    "helper": "kern_select",
+    "parameters": [
+      "n",
+      "inp",
+      "outp",
+      "exp",
+      "tvp"
+    ]
+  },
+  {
+    "path": "fs/select.c",
+    "signature": "COMPAT_SYSCALL_DEFINE5(select",
+    "helper": "do_compat_select",
+    "parameters": [
+      "n",
+      "inp",
+      "outp",
+      "exp",
+      "tvp"
+    ]
+  },
+  {
+    "path": "kernel/signal.c",
+    "signature": "COMPAT_SYSCALL_DEFINE2(sigaltstack",
+    "helper": "do_compat_sigaltstack",
+    "parameters": [
+      "uss_ptr",
+      "uoss_ptr"
+    ]
+  },
+  {
+    "path": "mm/fadvise.c",
+    "signature": "SYSCALL_DEFINE4(fadvise64_64",
+    "helper": "ksys_fadvise64_64",
+    "parameters": [
+      "fd",
+      "offset",
+      "len",
+      "advice"
+    ]
+  },
+  {
+    "path": "mm/fadvise.c",
+    "signature": "SYSCALL_DEFINE4(fadvise64",
+    "helper": "ksys_fadvise64_64",
+    "parameters": [
+      "fd",
+      "offset",
+      "len",
+      "advice"
+    ]
+  },
+  {
+    "path": "fs/file.c",
+    "signature": "SYSCALL_DEFINE3(dup3",
+    "helper": "ksys_dup3",
+    "parameters": [
+      "oldfd",
+      "newfd",
+      "flags"
+    ]
+  },
+  {
+    "path": "fs/file.c",
+    "signature": "SYSCALL_DEFINE1(dup",
+    "helper": "ksys_dup",
+    "parameters": [
+      "fildes"
+    ]
+  },
+  {
+    "path": "fs/read_write.c",
+    "signature": "SYSCALL_DEFINE3(lseek",
+    "helper": "ksys_lseek",
+    "parameters": [
+      "fd",
+      "offset",
+      "whence"
+    ]
+  },
+  {
+    "path": "fs/read_write.c",
+    "signature": "COMPAT_SYSCALL_DEFINE3(lseek",
+    "helper": "ksys_lseek",
+    "parameters": [
+      "fd",
+      "offset",
+      "whence"
+    ]
+  },
+  {
+    "path": "fs/read_write.c",
+    "signature": "SYSCALL_DEFINE3(read",
+    "helper": "ksys_read",
+    "parameters": [
+      "fd",
+      "buf",
+      "count"
+    ]
+  },
+  {
+    "path": "fs/read_write.c",
+    "signature": "SYSCALL_DEFINE3(write",
+    "helper": "ksys_write",
+    "parameters": [
+      "fd",
+      "buf",
+      "count"
+    ]
+  },
+  {
+    "path": "fs/read_write.c",
+    "signature": "SYSCALL_DEFINE4(pread64",
+    "helper": "ksys_pread64",
+    "parameters": [
+      "fd",
+      "buf",
+      "count",
+      "pos"
+    ]
+  },
+  {
+    "path": "fs/read_write.c",
+    "signature": "SYSCALL_DEFINE4(pwrite64",
+    "helper": "ksys_pwrite64",
+    "parameters": [
+      "fd",
+      "buf",
+      "count",
+      "pos"
+    ]
+  }
+]

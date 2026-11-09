@@ -1,0 +1,744 @@
+diff --git a/fs/namei.c b/fs/namei.c
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -4050,8 +4050,8 @@
+ 	}
+ }
+ 
+-SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
+-		unsigned, dev)
++long do_mknodat(int dfd, const char __user *filename, umode_t mode,
++		unsigned int dev)
+ {
+ 	struct dentry *dentry;
+ 	struct path path;
+@@ -4094,9 +4094,15 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
++		unsigned int, dev)
++{
++	return do_mknodat(dfd, filename, mode, dev);
++}
++
+ SYSCALL_DEFINE3(mknod, const char __user *, filename, umode_t, mode, unsigned, dev)
+ {
+-	return sys_mknodat(AT_FDCWD, filename, mode, dev);
++	return do_mknodat(AT_FDCWD, filename, mode, dev);
+ }
+ 
+ int vfs_mkdir2(struct vfsmount *mnt, struct inode *dir, struct dentry *dentry, umode_t mode)
+@@ -4131,7 +4137,7 @@
+ }
+ EXPORT_SYMBOL(vfs_mkdir);
+ 
+-SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
++long do_mkdirat(int dfd, const char __user *pathname, umode_t mode)
+ {
+ 	struct dentry *dentry;
+ 	struct path path;
+@@ -4156,9 +4162,14 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
++{
++	return do_mkdirat(dfd, pathname, mode);
++}
++
+ SYSCALL_DEFINE2(mkdir, const char __user *, pathname, umode_t, mode)
+ {
+-	return sys_mkdirat(AT_FDCWD, pathname, mode);
++	return do_mkdirat(AT_FDCWD, pathname, mode);
+ }
+ 
+ int vfs_rmdir2(struct vfsmount *mnt, struct inode *dir, struct dentry *dentry)
+@@ -4206,7 +4217,7 @@
+ }
+ EXPORT_SYMBOL(vfs_rmdir);
+ 
+-static long do_rmdir(int dfd, const char __user *pathname)
++long do_rmdir(int dfd, const char __user *pathname)
+ {
+ 	int error = 0;
+ 	struct filename *name;
+@@ -4340,10 +4351,9 @@
+  * writeout happening, and we don't want to prevent access to the directory
+  * while waiting on the I/O.
+  */
+-static long do_unlinkat(int dfd, const char __user *pathname)
++long do_unlinkat(int dfd, struct filename *name)
+ {
+ 	int error;
+-	struct filename *name;
+ 	struct dentry *dentry;
+ 	struct path path;
+ 	struct qstr last;
+@@ -4352,8 +4362,7 @@
+ 	struct inode *delegated_inode = NULL;
+ 	unsigned int lookup_flags = 0;
+ retry:
+-	name = filename_parentat(dfd, getname(pathname), lookup_flags,
+-				&path, &last, &type);
++	name = filename_parentat(dfd, name, lookup_flags, &path, &last, &type);
+ 	if (IS_ERR(name))
+ 		return PTR_ERR(name);
+ 
+@@ -4395,12 +4404,12 @@
+ 	mnt_drop_write(path.mnt);
+ exit1:
+ 	path_put(&path);
+-	putname(name);
+ 	if (retry_estale(error, lookup_flags)) {
+ 		lookup_flags |= LOOKUP_REVAL;
+ 		inode = NULL;
+ 		goto retry;
+ 	}
++	putname(name);
+ 	return error;
+ 
+ slashes:
+@@ -4421,12 +4430,12 @@
+ 	if (flag & AT_REMOVEDIR)
+ 		return do_rmdir(dfd, pathname);
+ 
+-	return do_unlinkat(dfd, pathname);
++	return do_unlinkat(dfd, getname(pathname));
+ }
+ 
+ SYSCALL_DEFINE1(unlink, const char __user *, pathname)
+ {
+-	return do_unlinkat(AT_FDCWD, pathname);
++	return do_unlinkat(AT_FDCWD, getname(pathname));
+ }
+ 
+ int vfs_symlink2(struct vfsmount *mnt, struct inode *dir, struct dentry *dentry, const char *oldname)
+@@ -4456,8 +4465,8 @@
+ }
+ EXPORT_SYMBOL(vfs_symlink);
+ 
+-SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
+-		int, newdfd, const char __user *, newname)
++long do_symlinkat(const char __user *oldname, int newdfd,
++		  const char __user *newname)
+ {
+ 	int error;
+ 	struct filename *from;
+@@ -4487,9 +4496,15 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
++		int, newdfd, const char __user *, newname)
++{
++	return do_symlinkat(oldname, newdfd, newname);
++}
++
+ SYSCALL_DEFINE2(symlink, const char __user *, oldname, const char __user *, newname)
+ {
+-	return sys_symlinkat(oldname, AT_FDCWD, newname);
++	return do_symlinkat(oldname, AT_FDCWD, newname);
+ }
+ 
+ /**
+@@ -4587,8 +4602,8 @@
+  * with linux 2.0, and to avoid hard-linking to directories
+  * and other special files.  --ADM
+  */
+-SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
+-		int, newdfd, const char __user *, newname, int, flags)
++int do_linkat(int olddfd, const char __user *oldname, int newdfd,
++	      const char __user *newname, int flags)
+ {
+ 	struct dentry *new_dentry;
+ 	struct path old_path, new_path;
+@@ -4652,9 +4667,15 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
++		int, newdfd, const char __user *, newname, int, flags)
++{
++	return do_linkat(olddfd, oldname, newdfd, newname, flags);
++}
++
+ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname)
+ {
+-	return sys_linkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
++	return do_linkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+ }
+ 
+ /**
+@@ -4841,8 +4862,8 @@
+ }
+ EXPORT_SYMBOL(vfs_rename);
+ 
+-SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
+-		int, newdfd, const char __user *, newname, unsigned int, flags)
++static int do_renameat2(int olddfd, const char __user *oldname, int newdfd,
++			const char __user *newname, unsigned int flags)
+ {
+ 	struct dentry *old_dentry, *new_dentry;
+ 	struct dentry *trap;
+@@ -4984,15 +5005,21 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
++		int, newdfd, const char __user *, newname, unsigned int, flags)
++{
++	return do_renameat2(olddfd, oldname, newdfd, newname, flags);
++}
++
+ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
+ 		int, newdfd, const char __user *, newname)
+ {
+-	return sys_renameat2(olddfd, oldname, newdfd, newname, 0);
++	return do_renameat2(olddfd, oldname, newdfd, newname, 0);
+ }
+ 
+ SYSCALL_DEFINE2(rename, const char __user *, oldname, const char __user *, newname)
+ {
+-	return sys_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
++	return do_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+ }
+ 
+ int vfs_whiteout(struct inode *dir, struct dentry *dentry)
+diff --git a/fs/namespace.c b/fs/namespace.c
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -1923,7 +1923,7 @@
+  * unixes. Our API is identical to OSF/1 to avoid making a mess of AMD
+  */
+ 
+-SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
++int ksys_umount(char __user *name, int flags)
+ {
+ 	struct path path;
+ 	struct mount *mnt;
+@@ -1963,6 +1963,11 @@
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
++{
++	return ksys_umount(name, flags);
++}
++
+ #ifdef __ARCH_WANT_SYS_OLDUMOUNT
+ 
+ /*
+@@ -1970,7 +1975,7 @@
+  */
+ SYSCALL_DEFINE1(oldumount, char __user *, name)
+ {
+-	return sys_umount(name, 0);
++	return ksys_umount(name, 0);
+ }
+ 
+ #endif
+@@ -3307,8 +3312,8 @@
+ }
+ EXPORT_SYMBOL(mount_subtree);
+ 
+-SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
+-		char __user *, type, unsigned long, flags, void __user *, data)
++int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
++	       unsigned long flags, void __user *data)
+ {
+ 	int ret;
+ 	char *kernel_type;
+@@ -3339,6 +3344,12 @@
+ 	kfree(kernel_type);
+ out_type:
+ 	return ret;
++}
++
++SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
++		char __user *, type, unsigned long, flags, void __user *, data)
++{
++	return ksys_mount(dev_name, dir_name, type, flags, data);
+ }
+ 
+ /*
+diff --git a/fs/open.c b/fs/open.c
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -138,7 +138,7 @@
+ }
+ EXPORT_SYMBOL_GPL(vfs_truncate);
+ 
+-static long do_sys_truncate(const char __user *pathname, loff_t length)
++long do_sys_truncate(const char __user *pathname, loff_t length)
+ {
+ 	unsigned int lookup_flags = LOOKUP_FOLLOW;
+ 	struct path path;
+@@ -345,7 +345,7 @@
+ }
+ EXPORT_SYMBOL_GPL(vfs_fallocate);
+ 
+-SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
++int ksys_fallocate(int fd, int mode, loff_t offset, loff_t len)
+ {
+ 	struct fd f = fdget(fd);
+ 	int error = -EBADF;
+@@ -355,6 +355,11 @@
+ 		fdput(f);
+ 	}
+ 	return error;
++}
++
++SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
++{
++	return ksys_fallocate(fd, mode, offset, len);
+ }
+ 
+ /*
+@@ -362,7 +367,7 @@
+  * We do this by temporarily clearing all FS-related capabilities and
+  * switching the fsuid/fsgid around to the real ones.
+  */
+-SYSCALL_DEFINE3(faccessat, int, dfd, const char __user *, filename, int, mode)
++long do_faccessat(int dfd, const char __user *filename, int mode)
+ {
+ 	const struct cred *old_cred;
+ 	struct cred *override_cred;
+@@ -470,12 +475,17 @@
+ 	return res;
+ }
+ 
++SYSCALL_DEFINE3(faccessat, int, dfd, const char __user *, filename, int, mode)
++{
++	return do_faccessat(dfd, filename, mode);
++}
++
+ SYSCALL_DEFINE2(access, const char __user *, filename, int, mode)
+ {
+-	return sys_faccessat(AT_FDCWD, filename, mode);
+-}
+-
+-SYSCALL_DEFINE1(chdir, const char __user *, filename)
++	return do_faccessat(AT_FDCWD, filename, mode);
++}
++
++int ksys_chdir(const char __user *filename)
+ {
+ 	struct path path;
+ 	int error;
+@@ -499,6 +509,11 @@
+ 	}
+ out:
+ 	return error;
++}
++
++SYSCALL_DEFINE1(chdir, const char __user *, filename)
++{
++	return ksys_chdir(filename);
+ }
+ 
+ SYSCALL_DEFINE1(fchdir, unsigned int, fd)
+@@ -526,7 +541,7 @@
+ 	return error;
+ }
+ 
+-SYSCALL_DEFINE1(chroot, const char __user *, filename)
++int ksys_chroot(const char __user *filename)
+ {
+ 	struct path path;
+ 	int error;
+@@ -557,6 +572,11 @@
+ 	}
+ out:
+ 	return error;
++}
++
++SYSCALL_DEFINE1(chroot, const char __user *, filename)
++{
++	return ksys_chroot(filename);
+ }
+ 
+ static int chmod_common(const struct path *path, umode_t mode)
+@@ -588,7 +608,7 @@
+ 	return error;
+ }
+ 
+-SYSCALL_DEFINE2(fchmod, unsigned int, fd, umode_t, mode)
++int ksys_fchmod(unsigned int fd, umode_t mode)
+ {
+ 	struct fd f = fdget(fd);
+ 	int err = -EBADF;
+@@ -601,7 +621,12 @@
+ 	return err;
+ }
+ 
+-SYSCALL_DEFINE3(fchmodat, int, dfd, const char __user *, filename, umode_t, mode)
++SYSCALL_DEFINE2(fchmod, unsigned int, fd, umode_t, mode)
++{
++	return ksys_fchmod(fd, mode);
++}
++
++int do_fchmodat(int dfd, const char __user *filename, umode_t mode)
+ {
+ 	struct path path;
+ 	int error;
+@@ -619,9 +644,15 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE3(fchmodat, int, dfd, const char __user *, filename,
++		umode_t, mode)
++{
++	return do_fchmodat(dfd, filename, mode);
++}
++
+ SYSCALL_DEFINE2(chmod, const char __user *, filename, umode_t, mode)
+ {
+-	return sys_fchmodat(AT_FDCWD, filename, mode);
++	return do_fchmodat(AT_FDCWD, filename, mode);
+ }
+ 
+ static int chown_common(const struct path *path, uid_t user, gid_t group)
+@@ -666,8 +697,8 @@
+ 	return error;
+ }
+ 
+-SYSCALL_DEFINE5(fchownat, int, dfd, const char __user *, filename, uid_t, user,
+-		gid_t, group, int, flag)
++int do_fchownat(int dfd, const char __user *filename, uid_t user, gid_t group,
++		int flag)
+ {
+ 	struct path path;
+ 	int error = -EINVAL;
+@@ -698,18 +729,24 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE5(fchownat, int, dfd, const char __user *, filename, uid_t, user,
++		gid_t, group, int, flag)
++{
++	return do_fchownat(dfd, filename, user, group, flag);
++}
++
+ SYSCALL_DEFINE3(chown, const char __user *, filename, uid_t, user, gid_t, group)
+ {
+-	return sys_fchownat(AT_FDCWD, filename, user, group, 0);
++	return do_fchownat(AT_FDCWD, filename, user, group, 0);
+ }
+ 
+ SYSCALL_DEFINE3(lchown, const char __user *, filename, uid_t, user, gid_t, group)
+ {
+-	return sys_fchownat(AT_FDCWD, filename, user, group,
+-			    AT_SYMLINK_NOFOLLOW);
+-}
+-
+-SYSCALL_DEFINE3(fchown, unsigned int, fd, uid_t, user, gid_t, group)
++	return do_fchownat(AT_FDCWD, filename, user, group,
++			   AT_SYMLINK_NOFOLLOW);
++}
++
++int ksys_fchown(unsigned int fd, uid_t user, gid_t group)
+ {
+ 	struct fd f = fdget(fd);
+ 	int error = -EBADF;
+@@ -727,6 +764,11 @@
+ 	fdput(f);
+ out:
+ 	return error;
++}
++
++SYSCALL_DEFINE3(fchown, unsigned int, fd, uid_t, user, gid_t, group)
++{
++	return ksys_fchown(fd, user, group);
+ }
+ 
+ int open_check_o_direct(struct file *f)
+@@ -1197,7 +1239,7 @@
+  */
+ SYSCALL_DEFINE2(creat, const char __user *, pathname, umode_t, mode)
+ {
+-	return sys_open(pathname, O_CREAT | O_WRONLY | O_TRUNC, mode);
++	return ksys_open(pathname, O_CREAT | O_WRONLY | O_TRUNC, mode);
+ }
+ 
+ #endif
+diff --git a/fs/readdir.c b/fs/readdir.c
+--- a/fs/readdir.c
++++ b/fs/readdir.c
+@@ -401,8 +401,8 @@
+ 	return -EFAULT;
+ }
+ 
+-SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+-		struct linux_dirent64 __user *, dirent, unsigned int, count)
++int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
++		    unsigned int count)
+ {
+ 	struct fd f;
+ 	struct linux_dirent64 __user * lastdirent;
+@@ -438,6 +438,13 @@
+ 	return error;
+ }
+ 
++
++SYSCALL_DEFINE3(getdents64, unsigned int, fd,
++		struct linux_dirent64 __user *, dirent, unsigned int, count)
++{
++	return ksys_getdents64(fd, dirent, count);
++}
++
+ #ifdef CONFIG_COMPAT
+ struct compat_old_linux_dirent {
+ 	compat_ulong_t	d_ino;
+diff --git a/fs/stat.c b/fs/stat.c
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -437,8 +437,8 @@
+ 	return error;
+ }
+ 
+-SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
+-		char __user *, buf, int, bufsiz)
++static int do_readlinkat(int dfd, const char __user *pathname,
++			 char __user *buf, int bufsiz)
+ {
+ 	struct path path;
+ 	int error;
+@@ -473,10 +473,16 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
++		char __user *, buf, int, bufsiz)
++{
++	return do_readlinkat(dfd, pathname, buf, bufsiz);
++}
++
+ SYSCALL_DEFINE3(readlink, const char __user *, path, char __user *, buf,
+ 		int, bufsiz)
+ {
+-	return sys_readlinkat(AT_FDCWD, path, buf, bufsiz);
++	return do_readlinkat(AT_FDCWD, path, buf, bufsiz);
+ }
+ 
+ 
+diff --git a/kernel/sys.c b/kernel/sys.c
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -73,6 +73,8 @@
+ #include <asm/io.h>
+ #include <asm/unistd.h>
+ 
++#include "uid16.h"
++
+ #ifndef SET_UNALIGN_CTL
+ # define SET_UNALIGN_CTL(a, b)	(-EINVAL)
+ #endif
+@@ -344,7 +346,7 @@
+  *      operations (as far as semantic preservation is concerned).
+  */
+ #ifdef CONFIG_MULTIUSER
+-SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
++long __sys_setregid(gid_t rgid, gid_t egid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -396,12 +398,17 @@
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
++{
++	return __sys_setregid(rgid, egid);
++}
++
+ /*
+  * setgid() is implemented like SysV w/ SAVED_IDS
+  *
+  * SMP: Same implicit races as above.
+  */
+-SYSCALL_DEFINE1(setgid, gid_t, gid)
++long __sys_setgid(gid_t gid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -431,6 +438,11 @@
+ error:
+ 	abort_creds(new);
+ 	return retval;
++}
++
++SYSCALL_DEFINE1(setgid, gid_t, gid)
++{
++	return __sys_setgid(gid);
+ }
+ 
+ /*
+@@ -477,7 +489,7 @@
+  * 100% compatible with BSD.  A program which uses just setuid() will be
+  * 100% compatible with POSIX with saved IDs.
+  */
+-SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
++long __sys_setreuid(uid_t ruid, uid_t euid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -535,6 +547,11 @@
+ error:
+ 	abort_creds(new);
+ 	return retval;
++}
++
++SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
++{
++	return __sys_setreuid(ruid, euid);
+ }
+ 
+ /*
+@@ -548,7 +565,7 @@
+  * will allow a root program to temporarily drop privileges and be able to
+  * regain them by swapping the real and effective uid.
+  */
+-SYSCALL_DEFINE1(setuid, uid_t, uid)
++long __sys_setuid(uid_t uid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -590,12 +607,17 @@
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE1(setuid, uid_t, uid)
++{
++	return __sys_setuid(uid);
++}
++
+ 
+ /*
+  * This function implements a generic ability to update ruid, euid,
+  * and suid.  This allows you to implement the 4.4 compatible seteuid().
+  */
+-SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
++long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -660,6 +682,11 @@
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
++{
++	return __sys_setresuid(ruid, euid, suid);
++}
++
+ SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t __user *, suidp)
+ {
+ 	const struct cred *cred = current_cred();
+@@ -682,7 +709,7 @@
+ /*
+  * Same as above, but for rgid, egid, sgid.
+  */
+-SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
++long __sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -734,6 +761,11 @@
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
++{
++	return __sys_setresgid(rgid, egid, sgid);
++}
++
+ SYSCALL_DEFINE3(getresgid, gid_t __user *, rgidp, gid_t __user *, egidp, gid_t __user *, sgidp)
+ {
+ 	const struct cred *cred = current_cred();
+@@ -761,7 +793,7 @@
+  * whatever uid it wants to). It normally shadows "euid", except when
+  * explicitly set by setfsuid() or for access..
+  */
+-SYSCALL_DEFINE1(setfsuid, uid_t, uid)
++long __sys_setfsuid(uid_t uid)
+ {
+ 	const struct cred *old;
+ 	struct cred *new;
+@@ -797,10 +829,15 @@
+ 	return old_fsuid;
+ }
+ 
++SYSCALL_DEFINE1(setfsuid, uid_t, uid)
++{
++	return __sys_setfsuid(uid);
++}
++
+ /*
+  * Samma på svenska..
+  */
+-SYSCALL_DEFINE1(setfsgid, gid_t, gid)
++long __sys_setfsgid(gid_t gid)
+ {
+ 	const struct cred *old;
+ 	struct cred *new;
+@@ -833,6 +870,11 @@
+ change_okay:
+ 	commit_creds(new);
+ 	return old_fsgid;
++}
++
++SYSCALL_DEFINE1(setfsgid, gid_t, gid)
++{
++	return __sys_setfsgid(gid);
+ }
+ #endif /* CONFIG_MULTIUSER */
+ 
+@@ -1031,7 +1073,7 @@
+ 	return err;
+ }
+ 
+-SYSCALL_DEFINE1(getpgid, pid_t, pid)
++static int do_getpgid(pid_t pid)
+ {
+ 	struct task_struct *p;
+ 	struct pid *grp;
+@@ -1059,11 +1101,16 @@
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE1(getpgid, pid_t, pid)
++{
++	return do_getpgid(pid);
++}
++
+ #ifdef __ARCH_WANT_SYS_GETPGRP
+ 
+ SYSCALL_DEFINE0(getpgrp)
+ {
+-	return sys_getpgid(0);
++	return do_getpgid(0);
+ }
+ 
+ #endif
+@@ -1107,7 +1154,7 @@
+ 		change_pid(curr, PIDTYPE_PGID, pid);
+ }
+ 
+-SYSCALL_DEFINE0(setsid)
++int ksys_setsid(void)
+ {
+ 	struct task_struct *group_leader = current->group_leader;
+ 	struct pid *sid = task_pid(group_leader);
+@@ -1138,6 +1185,11 @@
+ 		sched_autogroup_create_attach(group_leader);
+ 	}
+ 	return err;
++}
++
++SYSCALL_DEFINE0(setsid)
++{
++	return ksys_setsid();
+ }
+ 
+ DECLARE_RWSEM(uts_sem);

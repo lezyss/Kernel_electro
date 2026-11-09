@@ -1,0 +1,1074 @@
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -57,6 +57,7 @@
+ 	select HAVE_EBPF_JIT if !CPU_ENDIAN_BE32
+ 	select HAVE_CC_STACKPROTECTOR
+ 	select HAVE_CONTEXT_TRACKING
++	select HAVE_COPY_THREAD_TLS
+ 	select HAVE_C_RECORDMCOUNT
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DMA_API_DEBUG
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -230,8 +230,8 @@
+ asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
+ 
+ int
+-copy_thread(unsigned long clone_flags, unsigned long stack_start,
+-	    unsigned long stk_sz, struct task_struct *p)
++copy_thread_tls(unsigned long clone_flags, unsigned long stack_start,
++		unsigned long stk_sz, struct task_struct *p, unsigned long tls)
+ {
+ 	struct thread_info *thread = task_thread_info(p);
+ 	struct pt_regs *childregs = task_pt_regs(p);
+@@ -265,7 +265,7 @@
+ 	clear_ptrace_hw_breakpoint(p);
+ 
+ 	if (clone_flags & CLONE_SETTLS)
+-		thread->tp_value[0] = childregs->ARM_r3;
++		thread->tp_value[0] = tls;
+ 	thread->tp_value[1] = get_tpuser();
+ 
+ 	thread_notify(THREAD_NOTIFY_COPY, thread);
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -15,6 +15,7 @@
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_PCI_IOMAP
+ 	select GENERIC_SCHED_CLOCK
++	select HAVE_COPY_THREAD_TLS
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DMA_API_DEBUG
+ 	select HAVE_DMA_CONTIGUOUS
+diff --git a/arch/xtensa/kernel/process.c b/arch/xtensa/kernel/process.c
+--- a/arch/xtensa/kernel/process.c
++++ b/arch/xtensa/kernel/process.c
+@@ -197,8 +197,9 @@
+  * involved.  Much simpler to just not copy those live frames across.
+  */
+ 
+-int copy_thread(unsigned long clone_flags, unsigned long usp_thread_fn,
+-		unsigned long thread_fn_arg, struct task_struct *p)
++int copy_thread_tls(unsigned long clone_flags, unsigned long usp_thread_fn,
++		    unsigned long thread_fn_arg, struct task_struct *p,
++		    unsigned long tls)
+ {
+ 	struct pt_regs *childregs = task_pt_regs(p);
+ 
+@@ -259,9 +260,8 @@
+ 			       &regs->areg[XCHAL_NUM_AREGS - len/4], len);
+ 		}
+ 
+-		/* The thread pointer is passed in the '4th argument' (= a5) */
+ 		if (clone_flags & CLONE_SETTLS)
+-			childregs->threadptr = childregs->areg[5];
++			childregs->threadptr = tls;
+ 	} else {
+ 		p->thread.ra = MAKE_RA_FOR_CALL(
+ 				(unsigned long)ret_from_kernel_thread, 1);
+diff --git a/drivers/net/tun.c b/drivers/net/tun.c
+--- a/drivers/net/tun.c
++++ b/drivers/net/tun.c
+@@ -2679,7 +2679,7 @@
+ 		goto out;
+ 
+ 	if (on) {
+-		__f_setown(file, task_pid(current), PIDTYPE_PID, 0);
++		__f_setown(file, task_pid(current), PIDTYPE_TGID, 0);
+ 		tfile->flags |= TUN_FASYNC;
+ 	} else
+ 		tfile->flags &= ~TUN_FASYNC;
+diff --git a/drivers/tty/tty_io.c b/drivers/tty/tty_io.c
+--- a/drivers/tty/tty_io.c
++++ b/drivers/tty/tty_io.c
+@@ -2138,7 +2138,7 @@
+ 			type = PIDTYPE_PGID;
+ 		} else {
+ 			pid = task_pid(current);
+-			type = PIDTYPE_PID;
++			type = PIDTYPE_TGID;
+ 		}
+ 		get_pid(pid);
+ 		spin_unlock_irqrestore(&tty->ctrl_lock, flags);
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -110,7 +110,7 @@
+ 	struct pid *pid = NULL;
+ 	int who = arg, ret = 0;
+ 
+-	type = PIDTYPE_PID;
++	type = PIDTYPE_TGID;
+ 	if (who < 0) {
+ 		/* avoid overflow below */
+ 		if (who == INT_MIN)
+@@ -137,7 +137,7 @@
+ 
+ void f_delown(struct file *filp)
+ {
+-	__f_setown(filp, NULL, PIDTYPE_PID, 1);
++	__f_setown(filp, NULL, PIDTYPE_TGID, 1);
+ }
+ 
+ pid_t f_getown(struct file *filp)
+@@ -165,11 +165,11 @@
+ 
+ 	switch (owner.type) {
+ 	case F_OWNER_TID:
+-		type = PIDTYPE_MAX;
++		type = PIDTYPE_PID;
+ 		break;
+ 
+ 	case F_OWNER_PID:
+-		type = PIDTYPE_PID;
++		type = PIDTYPE_TGID;
+ 		break;
+ 
+ 	case F_OWNER_PGRP:
+@@ -200,11 +200,11 @@
+ 	read_lock(&filp->f_owner.lock);
+ 	owner.pid = pid_vnr(filp->f_owner.pid);
+ 	switch (filp->f_owner.pid_type) {
+-	case PIDTYPE_MAX:
++	case PIDTYPE_PID:
+ 		owner.type = F_OWNER_TID;
+ 		break;
+ 
+-	case PIDTYPE_PID:
++	case PIDTYPE_TGID:
+ 		owner.type = F_OWNER_PID;
+ 		break;
+ 
+@@ -711,7 +711,7 @@
+ 
+ static void send_sigio_to_task(struct task_struct *p,
+ 			       struct fown_struct *fown,
+-			       int fd, int reason, int group)
++			       int fd, int reason, enum pid_type type)
+ {
+ 	/*
+ 	 * F_SETSIG can change ->signum lockless in parallel, make
+@@ -754,11 +754,11 @@
+ 			else
+ 				si.si_band = band_table[reason - POLL_IN];
+ 			si.si_fd    = fd;
+-			if (!do_send_sig_info(signum, &si, p, group))
++			if (!do_send_sig_info(signum, &si, p, type != PIDTYPE_PID))
+ 				break;
+ 		/* fall-through: fall back on the old plain SIGIO signal */
+ 		case 0:
+-			do_send_sig_info(SIGIO, SEND_SIG_PRIV, p, group);
++			do_send_sig_info(SIGIO, SEND_SIG_PRIV, p, type != PIDTYPE_PID);
+ 	}
+ }
+ 
+@@ -767,34 +767,36 @@
+ 	struct task_struct *p;
+ 	enum pid_type type;
+ 	struct pid *pid;
+-	int group = 1;
+ 	
+ 	read_lock(&fown->lock);
+ 
+ 	type = fown->pid_type;
+-	if (type == PIDTYPE_MAX) {
+-		group = 0;
+-		type = PIDTYPE_PID;
+-	}
+-
+ 	pid = fown->pid;
+ 	if (!pid)
+ 		goto out_unlock_fown;
+-	
+-	read_lock(&tasklist_lock);
+-	do_each_pid_task(pid, type, p) {
+-		send_sigio_to_task(p, fown, fd, band, group);
+-	} while_each_pid_task(pid, type, p);
+-	read_unlock(&tasklist_lock);
++
++	if (type <= PIDTYPE_TGID) {
++		rcu_read_lock();
++		p = pid_task(pid, PIDTYPE_PID);
++		if (p)
++			send_sigio_to_task(p, fown, fd, band, type);
++		rcu_read_unlock();
++	} else {
++		read_lock(&tasklist_lock);
++		do_each_pid_task(pid, type, p) {
++			send_sigio_to_task(p, fown, fd, band, type);
++		} while_each_pid_task(pid, type, p);
++		read_unlock(&tasklist_lock);
++	}
+  out_unlock_fown:
+ 	read_unlock(&fown->lock);
+ }
+ 
+ static void send_sigurg_to_task(struct task_struct *p,
+-				struct fown_struct *fown, int group)
++				struct fown_struct *fown, enum pid_type type)
+ {
+ 	if (sigio_perm(p, fown, SIGURG))
+-		do_send_sig_info(SIGURG, SEND_SIG_PRIV, p, group);
++		do_send_sig_info(SIGURG, SEND_SIG_PRIV, p, type != PIDTYPE_PID);
+ }
+ 
+ int send_sigurg(struct fown_struct *fown)
+@@ -802,28 +804,30 @@
+ 	struct task_struct *p;
+ 	enum pid_type type;
+ 	struct pid *pid;
+-	int group = 1;
+ 	int ret = 0;
+ 	
+ 	read_lock(&fown->lock);
+ 
+ 	type = fown->pid_type;
+-	if (type == PIDTYPE_MAX) {
+-		group = 0;
+-		type = PIDTYPE_PID;
+-	}
+-
+ 	pid = fown->pid;
+ 	if (!pid)
+ 		goto out_unlock_fown;
+ 
+ 	ret = 1;
+-	
+-	read_lock(&tasklist_lock);
+-	do_each_pid_task(pid, type, p) {
+-		send_sigurg_to_task(p, fown, group);
+-	} while_each_pid_task(pid, type, p);
+-	read_unlock(&tasklist_lock);
++
++	if (type <= PIDTYPE_TGID) {
++		rcu_read_lock();
++		p = pid_task(pid, PIDTYPE_PID);
++		if (p)
++			send_sigurg_to_task(p, fown, type);
++		rcu_read_unlock();
++	} else {
++		read_lock(&tasklist_lock);
++		do_each_pid_task(pid, type, p) {
++			send_sigurg_to_task(p, fown, type);
++		} while_each_pid_task(pid, type, p);
++		read_unlock(&tasklist_lock);
++	}
+  out_unlock_fown:
+ 	read_unlock(&fown->lock);
+ 	return ret;
+diff --git a/fs/locks.c b/fs/locks.c
+--- a/fs/locks.c
++++ b/fs/locks.c
+@@ -546,7 +546,7 @@
+ 	if (!fasync_insert_entry(fa->fa_fd, filp, &fl->fl_fasync, fa))
+ 		*priv = NULL;
+ 
+-	__f_setown(filp, task_pid(current), PIDTYPE_PID, 0);
++	__f_setown(filp, task_pid(current), PIDTYPE_TGID, 0);
+ }
+ 
+ static const struct lock_manager_operations lease_manager_ops = {
+diff --git a/fs/notify/dnotify/dnotify.c b/fs/notify/dnotify/dnotify.c
+--- a/fs/notify/dnotify/dnotify.c
++++ b/fs/notify/dnotify/dnotify.c
+@@ -19,6 +19,7 @@
+ #include <linux/fs.h>
+ #include <linux/module.h>
+ #include <linux/sched.h>
++#include <linux/sched/signal.h>
+ #include <linux/dnotify.h>
+ #include <linux/init.h>
+ #include <linux/spinlock.h>
+@@ -353,7 +354,7 @@
+ 		goto out;
+ 	}
+ 
+-	__f_setown(filp, task_pid(current), PIDTYPE_PID, 0);
++	__f_setown(filp, task_pid(current), PIDTYPE_TGID, 0);
+ 
+ 	error = attach_dn(dn, dn_mark, id, fd, filp, mask);
+ 	/* !error means that we attached the dn to the dn_mark, so don't free it */
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -48,6 +48,7 @@
+ 	COMPAT_SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
+ 
+ #define COMPAT_SYSCALL_DEFINEx(x, name, ...)				\
++	asmlinkage long compat_sys##name(__MAP(x, __SC_DECL, __VA_ARGS__));\
+ 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
+ 		__attribute__((alias(__stringify(compat_SyS##name))));  \
+ 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
+diff --git a/kernel/fork.c b/kernel/fork.c
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -2433,6 +2433,16 @@
+ #endif
+ 
+ #ifdef __ARCH_WANT_SYS_CLONE3
++
++/*
++ * copy_thread implementations handle CLONE_SETTLS by reading the TLS value from
++ * the registers containing the syscall arguments for clone. This doesn't work
++ * with clone3 since the TLS value is passed in clone_args instead.
++ */
++#ifndef CONFIG_HAVE_COPY_THREAD_TLS
++#error clone3 requires copy_thread_tls support in arch
++#endif
++
+ static noinline int copy_clone_args_from_user(struct kernel_clone_args *kargs,
+ 					      struct clone_args __user *uargs,
+ 					      size_t usize)
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -410,7 +410,8 @@
+ 		!strcmp(sb->s_type->name, "rootfs") ||
+ 		(selinux_policycap_cgroupseclabel() &&
+ 		 (!strcmp(sb->s_type->name, "cgroup") ||
+-		  !strcmp(sb->s_type->name, "cgroup2")));
++		  !strcmp(sb->s_type->name, "cgroup2"))) ||
++		!strcmp(sb->s_type->name, "functionfs");
+ }
+ 
+ static int selinux_is_sblabel_mnt(struct super_block *sb)
+@@ -772,7 +773,9 @@
+ 	    !strcmp(sb->s_type->name, "tracefs") ||
+ 	    !strcmp(sb->s_type->name, "pstore") ||
+ 	    !strcmp(sb->s_type->name, "binder") ||
+-	    !strcmp(sb->s_type->name, "bpf"))
++	    !strcmp(sb->s_type->name, "bpf") ||
++	    !strcmp(sb->s_type->name, "securityfs") ||
++	    !strcmp(sb->s_type->name, "functionfs"))
+ 		sbsec->flags |= SE_SBGENFS;
+ 
+ 	if (!strcmp(sb->s_type->name, "sysfs") ||
+diff --git a/tools/testing/selftests/clone3/clone3_set_tid.c b/tools/testing/selftests/clone3/clone3_set_tid.c
+--- a/tools/testing/selftests/clone3/clone3_set_tid.c
++++ b/tools/testing/selftests/clone3/clone3_set_tid.c
+@@ -22,6 +22,7 @@
+ 
+ #include "../kselftest.h"
+ #include "clone3_selftests.h"
++#include "clone3_set_tid_counts.h"
+ 
+ #ifndef MAX_PID_NS_LEVEL
+ #define MAX_PID_NS_LEVEL 32
+@@ -29,6 +30,9 @@
+ 
+ static int pipe_1[2];
+ static int pipe_2[2];
++static int pipe_counts[2];
++
++#define NESTED_TESTS 6
+ 
+ static void child_exit(int ret)
+ {
+@@ -155,6 +159,7 @@
+ 	char proc_path[100] = {0};
+ 	pid_t pid, ns1 = 0, ns2 = 0, ns3 = 0, ns_pid;
+ 	pid_t set_tid[MAX_PID_NS_LEVEL * 2];
++	struct ksft_count before_nested, delta = {};
+ 
+ 	test_clone3_supported();
+ 	if (access("/proc/self/ns/pid", F_OK))
+@@ -167,7 +172,7 @@
+ 		ksft_exit_fail_msg("pipe() failed\n");
+ 
+ 	ksft_print_header();
+-	ksft_set_plan(27);
++	ksft_set_plan(29);
+ 
+ 	f = fopen("/proc/sys/kernel/pid_max", "r");
+ 	if (f == NULL)
+@@ -294,9 +299,27 @@
+ 	/* This should fail as there is no PID 1 in that namespace */
+ 	test_clone3_set_tid(set_tid, 1, 0, -EINVAL, 0, 0);
+ 
++	/* Keep child-only result counts out of the eight-bit exit status. */
++	if (pipe(pipe_counts) < 0)
++		ksft_exit_fail_msg("counter pipe() failed\n");
++	before_nested = ksft_cnt;
+ 	/* Let's create a PID 1 */
+ 	ns_pid = fork();
++	if (ns_pid < 0) {
++		close(pipe_counts[0]);
++		close(pipe_counts[1]);
++		ksft_exit_fail_msg("fork() failed\n");
++	}
+ 	if (ns_pid == 0) {
++		close(pipe_counts[0]);
++		/* A failed ancestor allocation must release the requested PID. */
++		set_tid[0] = 43;
++		set_tid[1] = -1;
++		test_clone3_set_tid(set_tid, 2, 0, -EINVAL, 0, false);
++
++		set_tid[0] = 43;
++		set_tid[1] = pid;
++		test_clone3_set_tid(set_tid, 2, 0, 0, 43, false);
+ 		ksft_print_msg("Child in PID namespace has PID %d\n", getpid());
+ 		set_tid[0] = 2;
+ 		test_clone3_set_tid(set_tid, 1, 0, 0, 2, 0);
+@@ -323,8 +346,14 @@
+ 		 */
+ 		test_clone3_set_tid(set_tid, 3, CLONE_NEWPID, 0, 42, true);
+ 
+-		child_exit(ksft_get_fail_cnt() ? 255 : ksft_cnt.ksft_pass);
+-	}
++		if (clone3_count_delta(&ksft_cnt, &before_nested, &delta,
++				       NESTED_TESTS) ||
++		    clone3_count_write(pipe_counts[1], &delta))
++			child_exit(EXIT_FAILURE);
++		close(pipe_counts[1]);
++		child_exit(EXIT_SUCCESS);
++	}
++	close(pipe_counts[1]);
+ 
+ 	close(pipe_1[1]);
+ 	close(pipe_2[0]);
+@@ -366,22 +395,17 @@
+ 	if (waitpid(ns_pid, &status, 0) < 0) {
+ 		ksft_print_msg("Child returned %s\n", strerror(errno));
+ 		ret = -errno;
++		close(pipe_counts[0]);
+ 		goto out;
+ 	}
+ 
+-	if (!WIFEXITED(status))
+-		ksft_test_result_fail("Child error\n");
+-
+-	if (WIFEXITED(status) && WEXITSTATUS(status) == 255)
+-		ksft_test_result_fail("nested set_tid child failed\n");
+-
+-	if (WIFEXITED(status) && WEXITSTATUS(status) != 255 &&
+-	    WEXITSTATUS(status))
+-		/*
+-		 * Update the number of total tests with the tests from the
+-		 * child processes.
+-		 */
+-		ksft_cnt.ksft_pass = WEXITSTATUS(status);
++	if (!WIFEXITED(status) || WEXITSTATUS(status)) {
++		ksft_test_result_fail("nested set_tid child exited abnormally\n");
++	} else if (clone3_count_read(pipe_counts[0], &delta) ||
++		   clone3_count_merge(&ksft_cnt, &delta, NESTED_TESTS)) {
++		ksft_test_result_fail("invalid nested set_tid counter report\n");
++	}
++	close(pipe_counts[0]);
+ 
+ 	if (ns3 == pid && ns2 == 42 && ns1 == 1)
+ 		ksft_test_result_pass(
+diff --git a/tools/testing/selftests/clone3/clone3_set_tid_counts.h b/tools/testing/selftests/clone3/clone3_set_tid_counts.h
+new file mode 100644
+--- /dev/null
++++ b/tools/testing/selftests/clone3/clone3_set_tid_counts.h
+@@ -0,0 +1,134 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef CLONE3_SET_TID_COUNTS_H
++#define CLONE3_SET_TID_COUNTS_H
++
++#include <errno.h>
++#include <limits.h>
++#include <poll.h>
++#include <stdio.h>
++#include <unistd.h>
++#include "../kselftest.h"
++
++#ifndef ARRAY_SIZE
++#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
++#endif
++
++/* Transport child-only deltas, never inherited parent counts or exit bytes. */
++static inline int clone3_count_total(const struct ksft_count *counts,
++				     unsigned int expected)
++{
++	unsigned long long total = 0;
++
++	total += counts->ksft_pass;
++	total += counts->ksft_fail;
++	total += counts->ksft_xfail;
++	total += counts->ksft_xpass;
++	total += counts->ksft_xskip;
++	total += counts->ksft_error;
++	return total == expected ? 0 : -EINVAL;
++}
++
++static inline int clone3_count_delta(const struct ksft_count *now,
++				     const struct ksft_count *before,
++				     struct ksft_count *delta,
++				     unsigned int expected)
++{
++	const unsigned int values[] = {
++		now->ksft_pass,
++		now->ksft_fail,
++		now->ksft_xfail,
++		now->ksft_xpass,
++		now->ksft_xskip,
++		now->ksft_error
++	};
++	const unsigned int baseline[] = {
++		before->ksft_pass,
++		before->ksft_fail,
++		before->ksft_xfail,
++		before->ksft_xpass,
++		before->ksft_xskip,
++		before->ksft_error
++	};
++	unsigned int *child_values[] = {
++		&delta->ksft_pass,
++		&delta->ksft_fail,
++		&delta->ksft_xfail,
++		&delta->ksft_xpass,
++		&delta->ksft_xskip,
++		&delta->ksft_error
++	};
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(values); i++) {
++		if (values[i] < baseline[i])
++			return -EINVAL;
++		*child_values[i] = values[i] - baseline[i];
++	}
++	return clone3_count_total(delta, expected);
++}
++
++static inline int clone3_count_merge(struct ksft_count *parent,
++				     const struct ksft_count *delta,
++				     unsigned int expected)
++{
++	const unsigned int values[] = {
++		delta->ksft_pass,
++		delta->ksft_fail,
++		delta->ksft_xfail,
++		delta->ksft_xpass,
++		delta->ksft_xskip,
++		delta->ksft_error
++	};
++	unsigned int *parent_values[] = {
++		&parent->ksft_pass,
++		&parent->ksft_fail,
++		&parent->ksft_xfail,
++		&parent->ksft_xpass,
++		&parent->ksft_xskip,
++		&parent->ksft_error
++	};
++	unsigned int i;
++
++	if (clone3_count_total(delta, expected))
++		return -EINVAL;
++	/* Validate every addition before mutating any inherited parent result. */
++	for (i = 0; i < ARRAY_SIZE(values); i++) {
++		if (values[i] > UINT_MAX - *parent_values[i])
++			return -EOVERFLOW;
++	}
++	for (i = 0; i < ARRAY_SIZE(values); i++)
++		*parent_values[i] += values[i];
++	return 0;
++}
++
++static inline int clone3_count_write(int fd, const struct ksft_count *delta)
++{
++	ssize_t size;
++
++	/* The fixed-size report fits in PIPE_BUF: one atomic pipe write. */
++	_Static_assert(sizeof(*delta) <= PIPE_BUF, "counter report too large");
++	do {
++		size = write(fd, delta, sizeof(*delta));
++	} while (size < 0 && errno == EINTR);
++	return size == sizeof(*delta) ? 0 : -EIO;
++}
++
++static inline int clone3_count_read(int fd, struct ksft_count *delta)
++{
++	struct pollfd report = { .fd = fd, .events = POLLIN };
++	ssize_t size;
++	int ready;
++
++	/* Called after waitpid: do not hang if a child exited without a report. */
++	do {
++		ready = poll(&report, 1, 0);
++	} while (ready < 0 && errno == EINTR);
++	if (ready <= 0 || !(report.revents & POLLIN))
++		return -EIO;
++	do {
++		size = read(fd, delta, sizeof(*delta));
++	} while (size < 0 && errno == EINTR);
++	return size == sizeof(*delta) ? 0 : -EIO;
++}
++
++#endif /* CLONE3_SET_TID_COUNTS_H */
+diff --git a/tools/testing/selftests/phoenix_upgrade/README.md b/tools/testing/selftests/phoenix_upgrade/README.md
+--- a/tools/testing/selftests/phoenix_upgrade/README.md
++++ b/tools/testing/selftests/phoenix_upgrade/README.md
+@@ -1,14 +1,16 @@
+-# Phoenix implementation regressions — phase 01
++# Phoenix implementation regressions — phases 01–02
+ 
+ Run from the repository root:
+ 
+ ```sh
+ python3 tools/testing/selftests/phoenix_upgrade/test_phase01.py --self-test-negatives
++python3 tools/testing/selftests/phoenix_upgrade/test_phase02.py --self-test-negatives
+ ```
+ 
+ Requires Python 3 and host GCC with UBSan. Generated C files and binaries live
+-only in temporary directories. No real clone/clone3, waitpid, namespace creation,
+-capability changes, kernel installation or device operation is performed.
++only in temporary directories. Phase01 uses only mocks. Phase02 performs one ordinary host fork/wait and
++bounded pipe I/O to exercise counter transport; it never invokes clone3, creates
++a PID namespace, changes capabilities, installs a kernel or operates a device.
+ 
+ Checks:
+ 
+@@ -26,7 +28,10 @@
+   operations are replaced with host shims; no real syscall or child is created.
+ - Source guards check pidfd installation after both locks are released, existing
+   failure cleanup and MGLRU-before-wakeup ordering, stdio flush ordering and
+-  preservation of the nested-test failure sentinel.
++  nested-test failure propagation. Phase02 explicitly supersedes the old255
++  sentinel with a complete six-counter child-only delta pipe; the updated guard
++  requires report/write/read/merge and abnormal-exit checks, with exact caller
++  counts. Run both phase suites.
+ - Five deliberately regressed fixtures must be rejected: pidfd under locks,
+   unconditional native/compat RR user copy, missing PID errno reset, and the old
+   clone3 selftest success return value.
+@@ -39,3 +44,35 @@
+ `Documentation/dev-tools/phoenix-review/implementation/phase-01.{json,diff}`.
+ Historical BPF source seals remain unchanged; the explicit overlay records the
+ new fork/pid hashes rather than pretending the old seals describe edited files.
++
++## Phase02 (corrected adaptations)
++
++- Extract actual fcntl owner encoder/decoder/clear and SIGIO/SIGURG dispatch
++  bodies. Mocked task lookup and lock checks cover live/dead/absent owners,
++  TID/TGID/process groups, bad pointers/PIDs/types, forced/nonforced ownership
++  and lock balance. Delivery/permission hooks are mocked; this is **not** proof
++  of RCU races, exec/exit races, LSM denial behavior or realtime queue fallback.
++- Compile the actual clone3 counter header with GCC/UBSan.75 assertions cover
++  inherited failures, all six counters, child-only subtraction, >255 results,
++  real pipe/fork transport, short/absent reports, underflow and overflow with
++  no partial parent mutation. Source checks enforce six nested tests, plan29,
++  PID43 retry after failed ancestor allocation and abnormal-exit handling.
++- Compile both actual SELinux genfs predicates:56 filesystem/policycap cases.
++  FunctionFS is unconditional (no new policycap array/ABI entry); securityfs
++  becomes genfs-labeled, not specially setxattr-capable. These checks cannot
++  validate an Android ROM's enforcing USB/ADB policy or multiple mounts.
++-512 extracted ARM/Xtensa TLS assignments verify explicit argument selection
++  and no override without CLONE_SETTLS. Check all four currently clone3-capable
++  architecture selectors/backends and preprocess the actual missing-TLS guard.
++  Xtensa's real conversion is required before the guard (upstream c346b94f8c5d).
++- Compile six arities of the actual generic compat macro and callable aliases
++  using long-argument host fixtures. x86 declarations are retained. This is not
++  an ARM32 compat ABI execution test.
++- Eight negative fixtures reject either missing NULL guard, wrong owner mapping,
++  overwriting inherited parent counts, including inherited child counts, and
++  losing overflow rejection, legacy TLS selection and policycap-gating FunctionFS. Phase01's five negative controls also remain.
++
++Phase02 replay/chain/provenance:
++`Documentation/dev-tools/phoenix-review/implementation/phase-02.{json,diff}`.
++Exact production AOSP Clang builds, runtime/locking/namespace and enforcing-ROM
++validation remain mandatory before any deployment safety claim.
+diff --git a/tools/testing/selftests/phoenix_upgrade/count_model.c b/tools/testing/selftests/phoenix_upgrade/count_model.c
+new file mode 100644
+--- /dev/null
++++ b/tools/testing/selftests/phoenix_upgrade/count_model.c
+@@ -0,0 +1,64 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#include <assert.h>
++#include <signal.h>
++#include <string.h>
++#include <sys/wait.h>
++#include "clone3_set_tid_counts.h"
++static int checks;
++#define CHECK(x) do { checks++; assert(x); } while (0)
++int main(void)
++{
++	struct ksft_count before = {10, 3, 2, 1, 4, 5}, now, delta, parent, saved;
++	int fd[2], status;
++	pid_t child;
++
++	for (unsigned int failures = 0; failures <= 6; failures++) {
++		now = before; now.ksft_pass += 6 - failures; now.ksft_fail += failures;
++		CHECK(!clone3_count_delta(&now, &before, &delta, 6));
++		parent = before; parent.ksft_error++; saved = parent;
++		CHECK(!clone3_count_merge(&parent, &delta, 6));
++		CHECK(parent.ksft_pass == saved.ksft_pass + 6 - failures);
++		CHECK(parent.ksft_fail == saved.ksft_fail + failures);
++		CHECK(parent.ksft_error == saved.ksft_error);
++		CHECK(parent.ksft_xfail == before.ksft_xfail && parent.ksft_xpass == before.ksft_xpass && parent.ksft_xskip == before.ksft_xskip);
++	}
++	/* Distinguish each field so an accidental pointer-table permutation fails. */
++	for (int field = 0; field < 6; field++) {
++		struct ksft_count expected = {0};
++		unsigned int *n[] = {&now.ksft_pass, &now.ksft_fail, &now.ksft_xfail,
++			&now.ksft_xpass, &now.ksft_xskip, &now.ksft_error};
++		unsigned int *d[] = {&expected.ksft_pass, &expected.ksft_fail,
++			&expected.ksft_xfail, &expected.ksft_xpass,
++			&expected.ksft_xskip, &expected.ksft_error};
++		now = before; *n[field] += 6; *d[field] = 6;
++		CHECK(!clone3_count_delta(&now, &before, &delta, 6) && !memcmp(&delta, &expected, sizeof(delta)));
++		parent = before;
++		CHECK(!clone3_count_merge(&parent, &delta, 6) && !memcmp(&parent, &now, sizeof(now)));
++	}
++	/* Every field, including skips/expected failures/errors, crosses the pipe. */
++	delta = (struct ksft_count){1, 1, 1, 1, 1, 1};
++	CHECK(pipe(fd) == 0); child = fork(); CHECK(child >= 0);
++	if (!child) { close(fd[0]); int ret = clone3_count_write(fd[1], &delta); close(fd[1]); _exit(ret ? 1 : 0); }
++	close(fd[1]); CHECK(waitpid(child, &status, 0) == child);
++	CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0);
++	CHECK(!clone3_count_read(fd[0], &now)); close(fd[0]);
++	CHECK(!memcmp(&now, &delta, sizeof(now))); parent = before;
++	CHECK(!clone3_count_merge(&parent, &now, 6));
++	CHECK(parent.ksft_pass == 11 && parent.ksft_fail == 4 && parent.ksft_xfail == 3 && parent.ksft_xpass == 2 && parent.ksft_xskip == 5 && parent.ksft_error == 6);
++	/* Detect underflow, invalid totals and late-field overflow without partial merge. */
++	now = before; now.ksft_fail--; CHECK(clone3_count_delta(&now, &before, &delta, 6) != 0);
++	delta = (struct ksft_count){7, 0, 0, 0, 0, 0}; parent = before; saved = parent;
++	CHECK(clone3_count_merge(&parent, &delta, 6) != 0 && !memcmp(&parent, &saved, sizeof(parent)));
++	delta = (struct ksft_count){1, 0, 0, 0, 0, 5}; parent = before; parent.ksft_error = UINT_MAX; saved = parent;
++	CHECK(clone3_count_merge(&parent, &delta, 6) == -EOVERFLOW && !memcmp(&parent, &saved, sizeof(parent)));
++	/* Exit-byte truncation is deliberately irrelevant, including >255 passes. */
++	now = before; now.ksft_pass += 300; CHECK(!clone3_count_delta(&now, &before, &delta, 300));
++	parent = before; CHECK(!clone3_count_merge(&parent, &delta, 300) && parent.ksft_pass == 310 && parent.ksft_fail == 3);
++	CHECK(pipe(fd) == 0); CHECK(clone3_count_write(fd[1], &delta) == 0);
++	CHECK(clone3_count_read(fd[0], &now) == 0 && now.ksft_pass == 300); close(fd[0]); close(fd[1]);
++	/* Malformed/missing reports fail promptly, even with an inherited writer open. */
++	CHECK(pipe(fd) == 0); CHECK(clone3_count_read(fd[0], &now) != 0);
++	CHECK(write(fd[1], "x", 1) == 1); CHECK(clone3_count_read(fd[0], &now) != 0);
++	close(fd[1]); CHECK(clone3_count_read(fd[0], &now) != 0); close(fd[0]);
++	printf("PASS:%d count assertions; inherited failures, six counters, >255, real pipe/fork, malformed/missing and atomic overflow rejection\n", checks);
++}
+diff --git a/tools/testing/selftests/phoenix_upgrade/owner_model.c b/tools/testing/selftests/phoenix_upgrade/owner_model.c
+new file mode 100644
+--- /dev/null
++++ b/tools/testing/selftests/phoenix_upgrade/owner_model.c
+@@ -0,0 +1,96 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Actual fcntl owner/dispatch bodies, mocked task/RCU/LSM delivery boundary. */
++#include <assert.h>
++#include <errno.h>
++#include <limits.h>
++#include <stdbool.h>
++#include <stdio.h>
++#include <string.h>
++#include <sys/types.h>
++#define __user
++#define F_OWNER_TID 0
++#define F_OWNER_PID 1
++#define F_OWNER_PGRP 2
++#define WARN_ON(x) assert(!(x))
++enum pid_type { PIDTYPE_PID, PIDTYPE_TGID, PIDTYPE_PGID, PIDTYPE_SID, PIDTYPE_MAX };
++struct task_struct { int id; } tasks[] = { {1}, {2} };
++struct pid { int nr, live, n; } live = { 42, 1, 2 };
++struct fown_struct { struct pid *pid; enum pid_type pid_type; int lock; };
++struct file { struct fown_struct f_owner; };
++struct f_owner_ex { int type, pid; };
++static int tasklist_lock, rcu, calls, fault;
++static enum pid_type last;
++static void read_lock(int *lock) { assert(!*lock); ++*lock; }
++static void read_unlock(int *lock) { assert(*lock == 1); --*lock; }
++static void rcu_read_lock(void) { assert(!rcu); ++rcu; }
++static void rcu_read_unlock(void) { assert(rcu == 1); --rcu; }
++static struct pid *find_vpid(int nr) { assert(rcu); return nr == 42 ? &live : NULL; }
++static struct task_struct *pid_task(struct pid *pid, enum pid_type type)
++{
++	assert(rcu && type == PIDTYPE_PID);
++	return pid->live ? &tasks[0] : NULL;
++}
++static void __f_setown(struct file *f, struct pid *pid, enum pid_type type, int force)
++{
++	if (force || !f->f_owner.pid) { f->f_owner.pid = pid; f->f_owner.pid_type = type; }
++}
++static pid_t pid_vnr(struct pid *p) { return p ? p->nr : 0; }
++static int copy_from_user(void *a, const void *b, size_t n)
++{ if (fault) return 1; memcpy(a, b, n); return 0; }
++static int copy_to_user(void *a, const void *b, size_t n)
++{ return copy_from_user(a, b, n); }
++static void dispatch(struct task_struct *p, struct fown_struct *f, enum pid_type type)
++{
++	assert(p && p->id && f->lock == 1);
++	assert(type == f->pid_type);
++	assert(type <= PIDTYPE_TGID ? rcu == 1 && !tasklist_lock : !rcu && tasklist_lock == 1);
++	calls++; last = type;
++}
++static void send_sigio_to_task(struct task_struct *p, struct fown_struct *f,
++			       int fd, int band, enum pid_type type)
++{ assert(fd == 7 && band == 3); dispatch(p, f, type); }
++static void send_sigurg_to_task(struct task_struct *p, struct fown_struct *f, enum pid_type type)
++{ dispatch(p, f, type); }
++#define do_each_pid_task(pid, type, p) \
++	do { assert(type == PIDTYPE_PGID); for (int i = 0; i < (pid)->n; i++) { p = &tasks[i];
++#define while_each_pid_task(pid, type, p) } } while (0)
++/* EXTRACTED */
++int main(void)
++{
++	struct file f = {0};
++	struct f_owner_ex in, out;
++
++	for (int type = 0; type < 3; type++) {
++		in = (struct f_owner_ex){ type, 42 };
++		assert(f_setown_ex(&f, (unsigned long)&in) == 0);
++		assert(f.f_owner.pid_type == (enum pid_type)type);
++		assert(f_getown_ex(&f, (unsigned long)&out) == 0);
++		assert(out.type == type && out.pid == 42);
++		for (int dead = 0; dead < 2; dead++) {
++			live.live = !dead;
++			calls = 0; send_sigio(&f.f_owner, 7, 3);
++			assert(calls == (type == PIDTYPE_PGID ? 2 : !dead));
++			if (calls) assert(last == (enum pid_type)type);
++			calls = 0; assert(send_sigurg(&f.f_owner) == 1);
++			assert(calls == (type == PIDTYPE_PGID ? 2 : !dead));
++			assert(!rcu && !tasklist_lock && !f.f_owner.lock);
++		}
++	}
++	in = (struct f_owner_ex){ F_OWNER_PID, 999 };
++	assert(f_setown_ex(&f, (unsigned long)&in) == -ESRCH);
++	in.type = 99; assert(f_setown_ex(&f, (unsigned long)&in) == -EINVAL);
++	fault = 1; assert(f_setown_ex(&f, (unsigned long)&in) == -EFAULT);
++	assert(f_getown_ex(&f, (unsigned long)&out) == -EFAULT); fault = 0;
++	assert(f_setown(&f, INT_MIN, 1) == -EINVAL);
++	assert(f_setown(&f, 999, 1) == -ESRCH);
++	assert(f_setown(&f, 42, 1) == 0 && f.f_owner.pid_type == PIDTYPE_TGID);
++	assert(f_getown(&f) == 42);
++	assert(f_setown(&f, -42, 1) == 0 && f.f_owner.pid_type == PIDTYPE_PGID);
++	assert(f_getown(&f) == -42);
++	assert(f_setown(&f, 42, 0) == 0 && f.f_owner.pid_type == PIDTYPE_PGID);
++	f_delown(&f); assert(!f.f_owner.pid && f.f_owner.pid_type == PIDTYPE_TGID);
++	calls = 0; send_sigio(&f.f_owner, 7, 3);
++	assert(send_sigurg(&f.f_owner) == 0 && !calls);
++	assert(!rcu && !tasklist_lock && !f.f_owner.lock);
++	puts("PASS: owner TID/TGID/PGRP codec, live/dead/absent dispatch, lock balance, errors and clear");
++}
+diff --git a/tools/testing/selftests/phoenix_upgrade/test_phase01.py b/tools/testing/selftests/phoenix_upgrade/test_phase01.py
+--- a/tools/testing/selftests/phoenix_upgrade/test_phase01.py
++++ b/tools/testing/selftests/phoenix_upgrade/test_phase01.py
+@@ -75,13 +75,18 @@
+     wrapper = function(header, 'static pid_t sys_clone3(')
+     assert wrapper.index('fflush(stdout);') < wrapper.index('fflush(stderr);') < wrapper.index('return syscall(')
+     settid = (ROOT / 'tools/testing/selftests/clone3/clone3_set_tid.c').read_text()
+-    assert 'child_exit(ksft_get_fail_cnt() ? 255 : ksft_cnt.ksft_pass);' in settid
++    if 'clone3_count_delta(' in settid:
++        assert 'clone3_count_write(' in settid and 'clone3_count_read(' in settid
++        assert 'clone3_count_merge(' in settid and '!WIFEXITED(status) || WEXITSTATUS(status)' in settid
++        assert settid.count('child_exit(') == 6  # Definition + five callers.
++    else:
++        assert 'child_exit(ksft_get_fail_cnt() ? 255 : ksft_cnt.ksft_pass);' in settid
++        assert settid.count('child_exit(') == 5  # Definition + four callers.
+     assert len(re.findall(r'(?<![A-Za-z0-9_])_exit\(', settid)) == 1  # Only inside the flushing helper.
+-    assert settid.count('child_exit(') == 5  # Definition + four callers.
+     compat = (ROOT / 'kernel/compat.c').read_text()
+     assert 'COMPAT_SYSCALL_DEFINE2(sched_rr_get_interval,' not in compat
+     if verbose:
+-        print('PASS: pidfd ordering, cleanup, MGLRU, flush and failure-sentinel source guards', flush=True)
++        print('PASS: pidfd ordering, cleanup, MGLRU, flush and failure-propagation source guards', flush=True)
+ 
+ 
+ def main():
+diff --git a/tools/testing/selftests/phoenix_upgrade/test_phase02.py b/tools/testing/selftests/phoenix_upgrade/test_phase02.py
+new file mode 100644
+--- /dev/null
++++ b/tools/testing/selftests/phoenix_upgrade/test_phase02.py
+@@ -0,0 +1,202 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: GPL-2.0
++"""Extracted host regressions only: no target kernel, clone3 syscall or device."""
++import argparse
++from pathlib import Path
++import re
++import resource
++import subprocess
++import tempfile
++from test_phase01 import function, ROOT, HERE
++
++
++def compile_run(tmp, name, source, negative=False, includes=()):
++    path = tmp / (name + '.c')
++    path.write_text(source)
++    binary = tmp / name
++    subprocess.run(['gcc', '-std=gnu11', '-O2', '-g', '-Wall', '-Wextra', '-Werror',
++                    '-fsanitize=undefined', '-fno-sanitize-recover=all',
++                    *[v for p in includes for v in ('-I', str(p))],
++                    str(path), '-o', str(binary)], check=True)
++    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5,
++                            preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_CORE, (0, 0)))
++    if negative:
++        assert result.returncode, name + ' failed to reject regression'
++        print('PASS: rejected regression ' + name)
++    else:
++        assert result.returncode == 0, result.stdout + result.stderr
++        print(result.stdout.strip())
++
++
++def owner_source(negative=None):
++    text = (ROOT / 'fs/fcntl.c').read_text()
++    names = ['int f_setown(', 'void f_delown(', 'pid_t f_getown(',
++             'static int f_setown_ex(', 'static int f_getown_ex(',
++             'void send_sigio(', 'int send_sigurg(']
++    extracted = '\n'.join(function(text, n) for n in names)
++    if negative in ('sigio-null', 'sigurg-null'):
++        name = 'send_sigio_to_task' if negative == 'sigio-null' else 'send_sigurg_to_task'
++        extracted, n = re.subn(r'if \(p\)\n\s*(' + name + r'\()', r'\1', extracted)
++        assert n == 1
++    if negative == 'owner-codec':
++        extracted = extracted.replace('type = PIDTYPE_TGID;', 'type = PIDTYPE_PID;')
++    return (HERE / 'owner_model.c').read_text().replace('/* EXTRACTED */', extracted)
++
++
++def source_checks():
++    text = (ROOT / 'fs/fcntl.c').read_text()
++    # Existing int/group signal interface is preserved in this phase. Typed chain is still queued.
++    assert text.count('p, type != PIDTYPE_PID)') == 3
++    for name in ('static void send_sigio_to_task(', 'static void send_sigurg_to_task('):
++        assert 'sigio_perm(' in function(text, name)
++    producers = {
++        'drivers/net/tun.c': '__f_setown(file, task_pid(current), PIDTYPE_TGID, 0)',
++        'drivers/tty/tty_io.c': 'type = PIDTYPE_TGID;',
++        'fs/locks.c': '__f_setown(filp, task_pid(current), PIDTYPE_TGID, 0)',
++        'fs/notify/dnotify/dnotify.c': '__f_setown(filp, task_pid(current), PIDTYPE_TGID, 0)',
++    }
++    for path, fragment in producers.items():
++        assert fragment in (ROOT / path).read_text(), path
++    for arch in ('arm', 'arm64', 'x86', 'xtensa'):
++        assert 'select HAVE_COPY_THREAD_TLS' in (ROOT / f'arch/{arch}/Kconfig').read_text()
++        process = '\n'.join(p.read_text() for p in (ROOT / f'arch/{arch}/kernel').glob('process*.c'))
++        assert re.search(r'int\s+copy_thread_tls\(', process), arch
++    arm = (ROOT / 'arch/arm/kernel/process.c').read_text()
++    xtensa = (ROOT / 'arch/xtensa/kernel/process.c').read_text()
++    assert 'thread->tp_value[0] = tls;' in arm and 'childregs->threadptr = tls;' in xtensa
++    assert 'childregs->threadptr = childregs->areg[5];' not in xtensa
++    fork = (ROOT / 'kernel/fork.c').read_text()
++    assert '#ifndef CONFIG_HAVE_COPY_THREAD_TLS\n#error clone3 requires copy_thread_tls support in arch\n#endif' in fork
++    assert 'CONFIG_CLONE_BACKWARDS' in fork and 'args->tls' in fork
++    settid = (ROOT / 'tools/testing/selftests/clone3/clone3_set_tid.c').read_text()
++    assert 'ksft_set_plan(29)' in settid and '#define NESTED_TESTS 6' in settid
++    nested = settid[settid.index('if (ns_pid == 0) {'):settid.index('close(pipe_counts[1]);\n\n\tclose(pipe_1[1])')]
++    assert nested.count('test_clone3_set_tid(') == 6
++    assert nested.index('set_tid[1] = -1;') < nested.index('set_tid[1] = pid;')
++    assert nested.count('set_tid[0] = 43;') == 2
++    assert 'ksft_cnt.ksft_pass =' not in settid
++    merge = settid.index('clone3_count_merge(')
++    wait = settid.index('if (!WIFEXITED(status) || WEXITSTATUS(status))', settid.index('if (waitpid(ns_pid'))
++    assert wait < merge and 'clone3_count_read(' in settid[wait:merge]
++    print('PASS: producer/codec consistency, retained signal/LSM boundaries, ARM/Xtensa TLS source and six-child plan/exit/report integration')
++
++
++def label_model():
++    text = (ROOT / 'security/selinux/hooks.c').read_text()
++    expr = function(text, 'static int selinux_is_genfs_special_handling(struct super_block *sb)\n{')
++    expr = expr[expr.index('return'):expr.index(';', expr.index('return')) + 1]
++    mount = text[text.index('if (!strcmp(sb->s_type->name, "debugfs")'): ]
++    mount = mount[mount.index('(') + 1:mount.index('\n\t\tsbsec->flags |= SE_SBGENFS;')].strip()[:-1]
++    # Compile actual source predicates, not a reimplementation of their boolean expressions.
++    return '''#include <assert.h>
++#include <stdbool.h>
++#include <stdio.h>
++#include <string.h>
++#define selinux_policycap_cgroupseclabel() cgroups
++struct fs_type {const char *name;};
++struct super_block {struct fs_type *s_type;};
++static int cgroups;
++static bool label(struct super_block *sb) {''' + expr + '''}
++static bool mount_genfs(struct super_block *sb) {return ''' + mount + ''';}
++int main(void) {
++const char *names[] = {"sysfs","pstore","debugfs","tracefs","rootfs","cgroup","cgroup2","functionfs","securityfs","bpf","ext4","f2fs","proc","binder"};
++for(cgroups=0;cgroups<2;cgroups++) for(unsigned i=0;i<sizeof(names)/sizeof(*names);i++) {
++struct fs_type fs={names[i]};struct super_block sb={&fs};
++bool expected=i<5 || i==7 || (cgroups && (i==5 || i==6));assert(label(&sb)==expected);
++assert(mount_genfs(&sb)==(i==1 || i==2 || i==3 || i==7 || i==8 || i==9 || i==13));
++} puts("PASS:56 actual genfs predicates (cgroup policycap on/off); FunctionFS special, securityfs genfs-only");}
++'''
++
++
++def tls_model():
++    fragments = []
++    for arch in ('arm', 'xtensa'):
++        text = (ROOT / f'arch/{arch}/kernel/process.c').read_text()
++        field = r'thread->tp_value\[0\]' if arch == 'arm' else r'childregs->threadptr'
++        fragments.append(re.search(r'if \(clone_flags & CLONE_SETTLS\)\s*' + field + r' = tls;', text).group())
++    return '''#include <assert.h>
++#include <stdio.h>
++#define CLONE_SETTLS 1
++struct state {unsigned long tp_value[1], threadptr;};
++static void arm(struct state *thread, int clone_flags, unsigned long tls) {''' + fragments[0] + '''}
++static void xtensa(struct state *childregs, int clone_flags, unsigned long tls) {''' + fragments[1] + '''}
++int main(void) {for(int flags=0;flags<4;flags++) for(unsigned long tls=0;tls<64;tls++) {
++struct state t={{999},999};arm(&t,flags,tls);xtensa(&t,flags,tls);
++assert(t.tp_value[0]==((flags & CLONE_SETTLS)?tls:999));assert(t.threadptr==t.tp_value[0]);
++} puts("PASS:512 extracted ARM/Xtensa TLS assignments, distinct from legacy register/inherited value");}
++'''
++
++
++def compat_model():
++    header = (ROOT / 'include/linux/compat.h').read_text()
++    start = header.index('#define COMPAT_SYSCALL_DEFINEx(')
++    macro = header[start:header.index('\n\n', start)]
++    syscalls = (ROOT / 'include/linux/syscalls.h').read_text()
++    maps = '\n'.join(line for line in syscalls.splitlines() if line.startswith('#define __MAP'))
++    prelude = r'''#include <assert.h>
++#include <stdio.h>
++#define asmlinkage
++#define __force
++#define __SC_DECL(t,a) t a
++#define __SC_LONG(t,a) long a
++#define __SC_DELOUSE(t,a) ((t)(unsigned long)(a))
++#define stringify_inner(x) #x
++#define __stringify(x) stringify_inner(x)
++'''
++    definitions, calls = [], []
++    for n in range(1, 7):
++        args = ','.join(f'long,a{j}' for j in range(n))
++        definitions.append(f'COMPAT_SYSCALL_DEFINEx({n}, _test{n}, {args}) {{return ' + '+'.join(f'a{j}' for j in range(n)) + ';}')
++        calls.append(f'assert(compat_sys_test{n}(' + ','.join(str(j + 1) for j in range(n)) + f') == {n*(n+1)//2});')
++    return prelude + maps + '\n' + macro + '\n' + '\n'.join(definitions) + '\nint main(void) {' + ''.join(calls) + 'puts("PASS:6 actual generic compat macro arities, prototypes and callable aliases (long-argument host model)");}'
++
++
++def tls_guard_checks():
++    fork = (ROOT / 'kernel/fork.c').read_text()
++    guard = re.search(r'#ifndef CONFIG_HAVE_COPY_THREAD_TLS\n#error[^\n]+\n#endif', fork).group()
++    source = '#ifdef __ARCH_WANT_SYS_CLONE3\n' + guard + '\n#endif\n'
++    for wants, implements, expected in ((0, 0, 0), (1, 1, 0), (1, 0, 1)):
++        defines = (['-D__ARCH_WANT_SYS_CLONE3'] if wants else []) + (['-DCONFIG_HAVE_COPY_THREAD_TLS'] if implements else [])
++        result = subprocess.run(['gcc', '-E', '-P', '-x', 'c', *defines, '-'], input=source, text=True, capture_output=True)
++        assert bool(result.returncode) == bool(expected)
++    print('PASS:actual clone3 TLS preprocessing guard rejects missing implementation only when clone3 is requested')
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--self-test-negatives', action='store_true')
++    args = parser.parse_args()
++    source_checks()
++    tls_guard_checks()
++    clone = ROOT / 'tools/testing/selftests/clone3'
++    with tempfile.TemporaryDirectory(prefix='phx-phase02-') as directory:
++        tmp = Path(directory)
++        compile_run(tmp, 'owners', owner_source())
++        compile_run(tmp, 'counts', (HERE / 'count_model.c').read_text(), includes=(clone,))
++        compile_run(tmp, 'labels', label_model())
++        compile_run(tmp, 'tls', tls_model())
++        compile_run(tmp, 'compat', compat_model())
++        if args.self_test_negatives:
++            for name in ('sigio-null', 'sigurg-null', 'owner-codec'):
++                compile_run(tmp, name, owner_source(name), True)
++            compile_run(tmp, 'tls-legacy-value', tls_model().replace('= tls;', '= ((void)tls, 999);'), True)
++            labels = label_model()
++            old = '!strcmp(sb->s_type->name, "functionfs")'
++            assert labels.count(old) == 2
++            compile_run(tmp, 'functionfs-policycap-gated', labels.replace(old, '(cgroups && ' + old + ')', 1), True)
++            original = (clone / 'clone3_set_tid_counts.h').read_text()
++            # Header's relative kselftest include is resolved explicitly in scratch.
++            original = original.replace('"../kselftest.h"', '"' + str(clone.parent / 'kselftest.h') + '"')
++            for name, old, new in (
++                ('counts-overwrite-parent', '*parent_values[i] += values[i];', '*parent_values[i] = values[i];'),
++                ('counts-inherited-baseline', 'values[i] - baseline[i];', 'values[i];'),
++                ('counts-overflow', 'values[i] > UINT_MAX - *parent_values[i]', '0'),
++            ):
++                assert old in original
++                (tmp / 'clone3_set_tid_counts.h').write_text(original.replace(old, new))
++                compile_run(tmp, name, (HERE / 'count_model.c').read_text(), True, includes=(tmp,))
++    print('LIMITS: host GCC/UBSan/source predicates only; no real signal races/LSM decisions, target build, clone3 namespaces or enforcing ROM/USB/ADB proof.')
++
++
++if __name__ == '__main__':
++    main()

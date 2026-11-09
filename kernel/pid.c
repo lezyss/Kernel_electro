@@ -242,6 +242,14 @@ struct pid *alloc_pid(struct pid_namespace *ns, pid_t *set_tid,
 		tmp = tmp->parent;
 	}
 
+	/*
+	 * ENOMEM is the historical userspace ABI for failure to prepare a
+	 * PID namespace or create a process after its init/reaper has exited.
+	 * Restore it after successful explicit-PID permission checks; earlier
+	 * validation, capability and IDR errors retain their own errno.
+	 */
+	retval = -ENOMEM;
+
 	if (unlikely(is_child_reaper(pid))) {
 		if (pid_ns_prepare_proc(ns)) {
 			disable_pid_allocation(ns);

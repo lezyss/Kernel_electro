@@ -30,6 +30,8 @@ def main():
     paths = set(manifest['postimage_sha256']) | set(fina['postimage_sha256'])
     paths |= {manifest_path, fina_path, OVERLAY, BPF, PATCH,
               'fs/Makefile', 'drivers/kernelsu/Kconfig'}
+    phoenix = 'Documentation/dev-tools/phoenix-review/implementation/susfs-syscall-overlay'
+    paths |= {phoenix + '.json', phoenix + '.diff'}
     original = {name: (ROOT / name).read_bytes() for name in paths}
     with tempfile.TemporaryDirectory(prefix='susfs-overlay-') as tmp:
         root = Path(tmp)
@@ -84,6 +86,16 @@ def main():
             ('wrong reference revision', lambda: edit_json(OVERLAY, lambda d:
                 d.update(bpf_reference_commit='0' * 40))),
         ]
+        cases += [
+            ('missing Phoenix overlay', lambda: (root / (phoenix + '.json')).unlink()),
+            ('Phoenix patch tamper', lambda: append(phoenix + '.diff')),
+            ('Phoenix preimage tamper', lambda: edit_json(phoenix + '.json', lambda d:
+                d['base_sha256'].update({'fs/namei.c': '0' * 64}))),
+            ('Phoenix scope broadening', lambda: edit_json(phoenix + '.json', lambda d:
+                d['postimage_sha256'].update({'fs/susfs.c': '0' * 64}))),
+            ('unsafe Phoenix patch', lambda: edit_json(phoenix + '.json', lambda d:
+                d.update(patch='../../outside.diff'))),
+        ]
         validate()
         for name, mutate in cases:
             mutate()
@@ -96,7 +108,7 @@ def main():
             for path, data in original.items():
                 (root / path).write_bytes(data)
             validate()
-    print('PASS: reviewed overlay and all 13 provenance negative controls')
+    print('PASS: reviewed overlay and all 18 provenance negative controls')
 
 
 if __name__ == '__main__':

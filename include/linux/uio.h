@@ -111,8 +111,6 @@ static inline struct iovec iov_iter_iovec(const struct iov_iter *iter)
 	     ((iov = iov_iter_iovec(&(iter))), 1);		\
 	     iov_iter_advance(&(iter), (iov).iov_len))
 
-unsigned long iov_shorten(struct iovec *iov, unsigned long nr_segs, size_t to);
-
 size_t iov_iter_copy_from_user_atomic(struct page *page,
 		struct iov_iter *i, unsigned long offset, size_t bytes);
 void iov_iter_advance(struct iov_iter *i, size_t bytes);
@@ -263,5 +261,10 @@ int compat_import_iovec(int type, const struct compat_iovec __user * uvector,
 
 int import_single_range(int type, void __user *buf, size_t len,
 		 struct iovec *iov, struct iov_iter *i);
+
+/* Legacy module ABI; not used by the converted in-tree paths. */
+#ifdef CONFIG_MODULES
+unsigned long iov_shorten(struct iovec *iov, unsigned long nr_segs, size_t to);
+#endif
 
 #endif

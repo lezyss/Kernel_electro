@@ -1,0 +1,120 @@
+{
+  "phase": "PHX-IMPLEMENTATION-01",
+  "date": "2026-10-13",
+  "baseline": "c6de0ddbe7e159a84c4906cbbf4f2c9138521c13",
+  "approved_review_ids": [
+    "PHX-010",
+    "PHX-022",
+    "PHX-139",
+    "PHX-140",
+    "PHX-141",
+    "PHX-146",
+    "PHX-147",
+    "PHX-148"
+  ],
+  "incidental_fix": "clone3.c success path returns0; reject abnormal child exit before WEXITSTATUS; preexisting defect, no duplicate donor ID.",
+  "changes": [
+    {
+      "path": "kernel/compat.c",
+      "before_sha256": "3048b441f4d06941cb45aeb50acb50622bc67b5707eb714d38fb930702833422",
+      "after_sha256": "32dc8699d5f4b3e7ba0babbb8c1431814da1d76d6a188e695d121d1fc7cdac1a"
+    },
+    {
+      "path": "kernel/sched/core.c",
+      "before_sha256": "651f00f3740aa39e6e95d6938128d00989ec2e8d01e2e64cde0ac81f7c4ae6bd",
+      "after_sha256": "055e1a2924443abb1c3d26257cc28b682a03884a321a251d0638155d1a71c40b"
+    },
+    {
+      "path": "kernel/pid.c",
+      "before_sha256": "8c548c9a4893d593d7fa3512e5de87913fff7065a4f1e8a23c41969986c4485c",
+      "after_sha256": "7658c8ad3d79fac7a459148c0c85b9e3002903d0dd424b2bb037ed14397f092e"
+    },
+    {
+      "path": "kernel/fork.c",
+      "before_sha256": "eb72ec173b2be08338d1db7174bfaa3d408cb8f836adadd8f9090d755ce2ad26",
+      "after_sha256": "71537c856717e576e28d5fdd4a3425a1f2fb177d315c042261f327ae48be5dfb"
+    },
+    {
+      "path": "Documentation/process/adding-syscalls.rst",
+      "before_sha256": "8da95c679a43a3244727176b7678d5dc00c4e97492f8b539f0135f20e091a14d",
+      "after_sha256": "25eea1cb33bd5432709105a2232f0a3b81a22ea304063c708150c071d7a1658a"
+    },
+    {
+      "path": "include/linux/syscalls.h",
+      "before_sha256": "709c99c810c941958688c60eabd6210365501a8b0e18e04357141e86857e91c5",
+      "after_sha256": "a0fe8242419aebf5b18f8aa00a6515fc3f5a864ed543a70fce9a45565bbb91ad"
+    },
+    {
+      "path": "tools/testing/selftests/clone3/clone3_selftests.h",
+      "before_sha256": "931dc4c99ee5423c74df8e2cbb1fa108e0bf5967f547e6b9c5cfdadfc96a5b34",
+      "after_sha256": "7db523279ad416dfad3d0b9825bc466aeeca0259efaf228c4c5e22f21e7c7a46"
+    },
+    {
+      "path": "tools/testing/selftests/clone3/clone3_set_tid.c",
+      "before_sha256": "03577c7383965e46d63dba74e9fbf680ae5e8fe38cc182cf0ed5ff42f6fda199",
+      "after_sha256": "c621cde5648761bc00e62cb4d8de1138e5fc36b42d99f121660dcf2751d14d4f"
+    },
+    {
+      "path": "tools/testing/selftests/clone3/clone3.c",
+      "before_sha256": "c6c76883e53c507c19ae6194e8952e6c2a0017aa688684b62ba45aca0f3f9197",
+      "after_sha256": "559cbaccf5fc69d9ecdfe1d94938252d4ba99adb2256ff44e0681d1621d24f35"
+    }
+  ],
+  "overlay": "Documentation/dev-tools/phoenix-review/implementation/phase-01.diff",
+  "overlay_sha256": "aeab5c347acdb48f790323d1f982dd302796c11ae1b95396de23fada9735fe3c",
+  "bpf_provenance": "Historical BPF metadata/seals not rewritten. This explicit overlay supersedes current file hashes for fork.c and pid.c, and any other intersecting historical after-image, only at this phase.",
+  "validation": "host_regressions_passed_target_validation_pending",
+  "kernel_build": "not_run",
+  "device_test": "not_run",
+  "ci_runs": [],
+  "commits": [],
+  "target_build_limit": "Exact pinned AOSP Clang r614150 not installed; no kernel build attempted. Host GCC checks are not production build proof.",
+  "host_validation": {
+    "phase01": "PASS: native/compat RR error-first uaccess,16 alloc_pid cases,5 clone3 selftest outcomes; positive and5 regression controls (including pidfd source-order inverse). GCC with UBSan. Mock operations, not kernel execution.",
+    "preservation": "PASS six existing BPF suites with negative controls: JMP32, atomics, core, softirq, lockdep, timer lifetime.",
+    "headers_and_clone3": "PASS make ARCH=arm64 headers_install in temporary destination;4 host GCC -Wall -Wextra -Werror clone3 binaries against installed UAPI. None executed. No resolved kernel config; make warned about missing.config.",
+    "initial_direct_UAPI_compile": "Rejected as expected: raw source UAPI is not exported headers; corrected validation procedure used headers_install.",
+    "limits": "No real clone, PID namespaces, SMP/lockdep, target kernel build/boot/device/performance validation.",
+    "checkpatch": "PASS strict source-overlay style:0 errors/0 warnings. --no-signoff --ignore COMMIT_MESSAGE used because this is a local overlay, not a commit; no fabricated signoff.",
+    "kernel_doc": "PASS no additional kernel-doc warnings in core/fork relative to pre-phase source; RR helper doc corrected for kernel buffer."
+  },
+  "historical_bpf_seal_intersections": [
+    {
+      "path": "kernel/fork.c",
+      "historical_after_sha256": "eb72ec173b2be08338d1db7174bfaa3d408cb8f836adadd8f9090d755ce2ad26",
+      "phase01_after_sha256": "71537c856717e576e28d5fdd4a3425a1f2fb177d315c042261f327ae48be5dfb"
+    },
+    {
+      "path": "kernel/pid.c",
+      "historical_after_sha256": "8c548c9a4893d593d7fa3512e5de87913fff7065a4f1e8a23c41969986c4485c",
+      "phase01_after_sha256": "7658c8ad3d79fac7a459148c0c85b9e3002903d0dd424b2bb037ed14397f092e"
+    }
+  ],
+  "overlay_replay": "PASS exact baseline->phase01 and inverse across9 changed files; no HEAD reset or mass diff transplant.",
+  "unrelated_workspace_preservation": "PASS byte hashes of all previously visible regular files outside phase paths/ledger unchanged.",
+  "protected_sha256": {
+    "Documentation/bpf/bpf-5.15-upgrade.json": "d194c40c9e99ccaa1e8b844d0da9f9cd45a00c83f9563fef70ea885715e33b62",
+    "tools/testing/selftests/bpf_upgrade/test_runtime.c": "0510a142af10e45fbf416c0d0abe6c3c2038602b43aad75105eade3b3d6ce93c",
+    "Documentation/filesystems/susfs/UPSTREAM.json": "09da2aff8e278dbbc84dc0a145ebbf27eb6eb2b735fbb9a81adb722152ea4ae7",
+    "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig": "e734f530a1b8ec8154db34acf7ece9533bc636fd3228caa522382e47ccf0f32c",
+    ".github/workflows/build-kernel.yml": "c35a90504f92b88dc85d840483d6d4f5c9e444ea9e1aa10a2e8727a799b11ca7",
+    "security/selinux/hooks.c": "288d434f8b74d472b43c2fa35f00d432c1c40be5f7e3f650a90f8227da53c0bd",
+    "security/selinux/ss/services.c": "4b803fb1561b870d77a9125cc0f04ab0e94f948f9553a1be28b35224e0a5e37d"
+  },
+  "test_source_sha256": {
+    "tools/testing/selftests/phoenix_upgrade/README.md": "5ecb3606716453fc24a764bf86f1790092a7483c39c170e0965d4cfaa6578544",
+    "tools/testing/selftests/phoenix_upgrade/clone_model.c": "8555eea38673531129ff406a110ffa8b01b8a7903db36caa3be902a402a5f13a",
+    "tools/testing/selftests/phoenix_upgrade/pid_model.c": "db84047afd6290b29135f50d04527dea17300237133d31c47715696268fea25d",
+    "tools/testing/selftests/phoenix_upgrade/rr_model.c": "b3079856f2805ab959003ebc92e24f5268801d82fb5eacbfd1057357ce8d29be",
+    "tools/testing/selftests/phoenix_upgrade/test_phase01.py": "b8854f5424631b3c8b11fcf7faf462d6567921875a066944a4d04e460fb0c97b"
+  },
+  "regression_commands": [
+    "python3 tools/testing/selftests/phoenix_upgrade/test_phase01.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_core.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_jmp32.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_atomics.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_softirq.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_lockdep.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_timer_lifetime.py --self-test-negatives"
+  ]
+}

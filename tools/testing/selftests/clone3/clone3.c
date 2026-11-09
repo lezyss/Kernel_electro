@@ -100,10 +100,12 @@ static int call_clone3(uint64_t flags, size_t size, enum test_mode test_mode)
 		ksft_print_msg("Child returned %s\n", strerror(errno));
 		return -errno;
 	}
+	if (!WIFEXITED(status))
+		return -1;
 	if (WEXITSTATUS(status))
 		return WEXITSTATUS(status);
 
-	return -1;
+	return 0;
 }
 
 static void test_clone3(uint64_t flags, size_t size, int expected,

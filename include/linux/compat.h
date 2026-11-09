@@ -48,6 +48,7 @@
 	COMPAT_SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
 
 #define COMPAT_SYSCALL_DEFINEx(x, name, ...)				\
+	asmlinkage long compat_sys##name(__MAP(x, __SC_DECL, __VA_ARGS__));\
 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
 		__attribute__((alias(__stringify(compat_SyS##name))));  \
 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
@@ -209,7 +210,7 @@ extern int put_compat_rusage(const struct rusage *,
 
 struct compat_siginfo;
 
-extern asmlinkage long compat_sys_waitid(int, compat_pid_t,
+asmlinkage long compat_sys_waitid(int, compat_pid_t,
 		struct compat_siginfo __user *, int,
 		struct compat_rusage __user *);
 
@@ -338,9 +339,9 @@ asmlinkage long compat_sys_msgsnd(int msqid, compat_uptr_t msgp,
 		compat_ssize_t msgsz, int msgflg);
 asmlinkage long compat_sys_msgrcv(int msqid, compat_uptr_t msgp,
 		compat_ssize_t msgsz, compat_long_t msgtyp, int msgflg);
-long compat_sys_msgctl(int first, int second, void __user *uptr);
-long compat_sys_shmctl(int first, int second, void __user *uptr);
-long compat_sys_semtimedop(int semid, struct sembuf __user *tsems,
+asmlinkage long compat_sys_msgctl(int first, int second, void __user *uptr);
+asmlinkage long compat_sys_shmctl(int first, int second, void __user *uptr);
+asmlinkage long compat_sys_semtimedop(int semid, struct sembuf __user *tsems,
 		unsigned nsems, const struct compat_timespec __user *timeout);
 asmlinkage long compat_sys_keyctl(u32 option,
 			      u32 arg2, u32 arg3, u32 arg4, u32 arg5);
@@ -417,7 +418,7 @@ int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from);
 int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *from);
 int get_compat_sigevent(struct sigevent *event,
 		const struct compat_sigevent __user *u_event);
-long compat_sys_rt_tgsigqueueinfo(compat_pid_t tgid, compat_pid_t pid, int sig,
+asmlinkage long compat_sys_rt_tgsigqueueinfo(compat_pid_t tgid, compat_pid_t pid, int sig,
 				  struct compat_siginfo __user *uinfo);
 #ifdef CONFIG_COMPAT_OLD_SIGACTION
 asmlinkage long compat_sys_sigaction(int sig,
@@ -457,8 +458,9 @@ asmlinkage long compat_sys_settimeofday(struct compat_timeval __user *tv,
 
 asmlinkage long compat_sys_adjtimex(struct compat_timex __user *utp);
 
-extern void sigset_from_compat(sigset_t *set, const compat_sigset_t *compat);
-extern void sigset_to_compat(compat_sigset_t *compat, const sigset_t *set);
+extern int get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat);
+extern int put_compat_sigset(compat_sigset_t __user *compat,
+			     const sigset_t *set, unsigned int size);
 
 asmlinkage long compat_sys_migrate_pages(compat_pid_t pid,
 		compat_ulong_t maxnode, const compat_ulong_t __user *old_nodes,
@@ -778,6 +780,11 @@ static inline struct compat_timeval ns_to_compat_timeval(s64 nsec)
 
 	return ctv;
 }
+
+/* Legacy module ABI; not used by the converted in-tree paths. */
+#ifdef CONFIG_MODULES
+extern void sigset_from_compat(sigset_t *set, const compat_sigset_t *compat);
+#endif
 
 #else /* !CONFIG_COMPAT */
 

@@ -74,12 +74,34 @@ def check(root, config, profile):
         require(bpf_overlay['pre_bpf_sha256'][name] == record['before_sha256'] and
                 bpf_overlay['postimage_sha256'][name] == record['after_sha256'],
                 'broken task-header to BPF postimage chain')
+    # Phoenix helper refactors retain the original SUSFS import and add a narrow
+    # replayable after-image overlay. Never broaden the old BPF/manager overlays.
+    phoenix_base = 'Documentation/dev-tools/phoenix-review/implementation/susfs-syscall-overlay'
+    phoenix_path = root / (phoenix_base + '.json')
+    phoenix = json.loads(phoenix_path.read_text()) if phoenix_path.is_file() else None
+    phoenix_shared = set()
+    if phoenix:
+        phoenix_shared = set(phoenix['postimage_sha256'])
+        require(phoenix['schema'] == 1 and phoenix['phase'] == 'PHX-IMPLEMENTATION-03' and
+                phoenix['susfs_kernel_commit'] == PIN, 'unexpected Phoenix/SUSFS revision')
+        require(phoenix_shared == {'fs/namei.c', 'fs/namespace.c', 'fs/open.c',
+                                   'fs/readdir.c', 'fs/stat.c', 'kernel/sys.c'} and
+                set(phoenix['base_sha256']) == phoenix_shared and
+                not phoenix_shared & (shared | bpf_shared), 'unexpected Phoenix/SUSFS scope')
+        require(phoenix['patch'] == phoenix_base + '.diff', 'unsafe Phoenix/SUSFS patch path')
+        require(hashlib.sha256((root / phoenix['patch']).read_bytes()).hexdigest() ==
+                phoenix['patch_sha256'], 'Phoenix/SUSFS patch changed')
+        for name in phoenix_shared:
+            require(phoenix['base_sha256'][name] == manifest['postimage_sha256'][name],
+                    'broken SUSFS to Phoenix preimage chain')
     for name, digest in manifest['postimage_sha256'].items():
         if name in bpf_shared:
             digest = bpf_overlay['postimage_sha256'][name]
         if name in shared:
             require(overlay['base_sha256'][name] == digest, 'broken SUSFS to FinaSU preimage chain')
             digest = overlay['postimage_sha256'][name]
+        if name in phoenix_shared:
+            digest = phoenix['postimage_sha256'][name]
         require(not Path(name).is_absolute() and '..' not in Path(name).parts, 'unsafe manifest path')
         file = root / name
         require(file.is_file() and not file.is_symlink(), 'missing regular source: ' + name)

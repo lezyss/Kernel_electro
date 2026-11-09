@@ -1,0 +1,397 @@
+{
+  "phase": "PHX-IMPLEMENTATION-02",
+  "date": "2026-10-13",
+  "baseline": "PHX-IMPLEMENTATION-01 visible working tree, not stale local HEAD",
+  "baseline_evidence": "Documentation/dev-tools/phoenix-review/implementation/phase-01.json",
+  "baseline_evidence_sha256": "dee2b62180a06ecf7abf5fcc8392e4b54e182fae55c0fa151c60fe58dc707e5d",
+  "approved_review_ids": [
+    "PHX-121",
+    "PHX-124",
+    "PHX-125",
+    "PHX-142",
+    "PHX-143",
+    "PHX-144",
+    "PHX-145",
+    "PHX-149",
+    "PHX-150"
+  ],
+  "implementation_scope": {
+    "PHX-121": "Scoped generic forward prototype only. Retain all x86 compat declarations: their deletion without matching conversions is unsafe and deliberately excluded, not silently applied.",
+    "PHX-124": "Adapt local f_delown __f_setown name; map all TID/TGID/PGRP producers/decoders coherently. Add NULL guards around BOTH RCU pid_task results before SIGIO and SIGURG dispatch. Preserve group tasklist iteration, owner lock, permission hooks and SIGURG return contract.",
+    "PHX-125": "After corrected124, enum owner type reaches both helpers; retain current int/group do_send_sig_info boundary via type!=PIDTYPE_PID. Typed signal chain126-137 is NOT applied in this phase.",
+    "PHX-142": "Replace wrong donor arithmetic and old255 sentinel with dedicated atomic pipe report containing all six child-only counter deltas. Preserve parent failures, require exact test count, validate underflow/overflow, reject short/absent reports without blocking after wait, reject abnormal exits. No counts in8-bit exit status.",
+    "PHX-143": "Two nested PID43 allocation/reuse tests after invalid ancestor PID, on corrected142 interface. Six nested cases; total plan29. PID_NS config remains disabled for miatoll.",
+    "PHX-144": "Real native32-bit ARM copy_thread_tls conversion. CLONE_SETTLS consumes explicit tls; existing register/frame/kernel-thread handling preserved. Not an ARM64 compat backend replacement.",
+    "PHX-145": "Add clone3 missing-TLS compile guard only after auditing all four explicitly clone3-capable architectures. Real Xtensa copy_thread_tls prerequisite adapted from upstream c346b94f8c5d1b7d637522c908209de93305a8eb, including explicit tls rather than areg[5]. ARM64/x86 backends already implemented. No fake HAVE_COPY_THREAD_TLS selection.",
+    "PHX-149": "Actual Android donor behavior: unconditional FunctionFS special/genfs classification, no new policycap enum/array ABI entry. No userspace policy edits/blanket allow. Enforcing ROM USB/ADB and multiple-mount label tests remain mandatory.",
+    "PHX-150": "Add securityfs to existing SE_SBGENFS mount set. It is not special in-core setxattr handling and does NOT add chcon support. Per-file enforcing policy validation remains outstanding."
+  },
+  "changes": [
+    {
+      "path": "arch/arm/Kconfig",
+      "before_sha256": "bcd8ee9cdb21c1a0e701f932aaa063bbaf42898ab588674ac93cafe731beedcf",
+      "after_sha256": "02bd26fbb74462f45a135ab19c6c861efb460418c68a8776e03e0616f9abae99",
+      "new_file": false
+    },
+    {
+      "path": "arch/arm/kernel/process.c",
+      "before_sha256": "b2e1dcbef1ab34f7662c7460ee1a4df35cf1a3ba0e8361d9ef40e26baa5c0181",
+      "after_sha256": "6eaf8e974645db7db4b3ec65bded11b70f0a0faa97ce87baff0c9d961bc3e989",
+      "new_file": false
+    },
+    {
+      "path": "arch/xtensa/Kconfig",
+      "before_sha256": "20820a097bc1c5bed6e6b9cc257ca76e704863804c4351f481616c763b3b2259",
+      "after_sha256": "220e4a06c6cde1a619dee3d18d6efd2e5bed52231fe58b3af7a53973ab9bc14b",
+      "new_file": false
+    },
+    {
+      "path": "arch/xtensa/kernel/process.c",
+      "before_sha256": "631560e141066053b43eecfc4e509a53c9dd697ab8faff72bd20b0109cb64126",
+      "after_sha256": "f836e497c55dba104fde923232d327f4e856bb87704bb849235d7c091ac18fb7",
+      "new_file": false
+    },
+    {
+      "path": "drivers/net/tun.c",
+      "before_sha256": "8871a53352153e71c83e4b7ab6ae08ad7d76eff1015d75d318d93050b1112a08",
+      "after_sha256": "e11914c9570faeba8c71c22175202fd374bd0bfa67ca4c968b26c52b420228fc",
+      "new_file": false
+    },
+    {
+      "path": "drivers/tty/tty_io.c",
+      "before_sha256": "146bde4ef29aebc35cc9e90d99f0abe8ed7fd86c74f0379dedf634f40f937eda",
+      "after_sha256": "b2820f7cd84a4d918752fe16db2fa15ae3707d77f8c7e689d746120cfc6746ca",
+      "new_file": false
+    },
+    {
+      "path": "fs/fcntl.c",
+      "before_sha256": "1e9ac11f4bd74abb80914805e3d3211745bbf7db71e43d32c63f862aeb2ef3a9",
+      "after_sha256": "a1047a3e453e1d148ce82150db1f5559ef87d0fb7829654dda3d6372f342218e",
+      "new_file": false
+    },
+    {
+      "path": "fs/locks.c",
+      "before_sha256": "f6effe1807c1de5d8dea7c8f80d4616f8283a3e4043f38294eac63661beb1e0d",
+      "after_sha256": "2eeb1072f39e1ab7fa6044e4528440c4f3906e8bb15628c55faec98285df02db",
+      "new_file": false
+    },
+    {
+      "path": "fs/notify/dnotify/dnotify.c",
+      "before_sha256": "7e6eb0ee7d6e2b8904d79ba39ab19f8178bc5171521a14a473b175d2874ab63e",
+      "after_sha256": "870fd53e0c47fa80bc25c8843eb344e98d61455247b81a8398c67b9174ee9749",
+      "new_file": false
+    },
+    {
+      "path": "include/linux/compat.h",
+      "before_sha256": "551ee996838f2275fc34c5d55c63cfae7e6772f3e343d25cb3b62b9ac804018b",
+      "after_sha256": "89e51447743d5d30fbc6ac9f2c7d9bb409b248d43f7ff879a924609f320a7cad",
+      "new_file": false
+    },
+    {
+      "path": "kernel/fork.c",
+      "before_sha256": "71537c856717e576e28d5fdd4a3425a1f2fb177d315c042261f327ae48be5dfb",
+      "after_sha256": "53199e3bc9b8e978474bf016109edaf9848823214ba489d5c60d1f1bd49b5f3f",
+      "new_file": false
+    },
+    {
+      "path": "security/selinux/hooks.c",
+      "before_sha256": "288d434f8b74d472b43c2fa35f00d432c1c40be5f7e3f650a90f8227da53c0bd",
+      "after_sha256": "edae3b82e6f5b58f5da0f0d53e164af9b569fbd0402044fd9ceca3057056247d",
+      "new_file": false
+    },
+    {
+      "path": "tools/testing/selftests/clone3/clone3_set_tid.c",
+      "before_sha256": "c621cde5648761bc00e62cb4d8de1138e5fc36b42d99f121660dcf2751d14d4f",
+      "after_sha256": "9caac9724afd941b0e060f584c98166d60b1bcb8c6e91301c4dbed06bf8665d2",
+      "new_file": false
+    },
+    {
+      "path": "tools/testing/selftests/clone3/clone3_set_tid_counts.h",
+      "before_sha256": null,
+      "after_sha256": "e7d7f804c8f6120fb9264decd5cf34a691889a4e01fe43c423e6add715a559af",
+      "new_file": true
+    },
+    {
+      "path": "tools/testing/selftests/phoenix_upgrade/README.md",
+      "before_sha256": "5ecb3606716453fc24a764bf86f1790092a7483c39c170e0965d4cfaa6578544",
+      "after_sha256": "b4220be765ad222badd35599d87ad4fe04edc5349a54fe3f8db4b95e042f2e2f",
+      "new_file": false
+    },
+    {
+      "path": "tools/testing/selftests/phoenix_upgrade/count_model.c",
+      "before_sha256": null,
+      "after_sha256": "dc3d189166d6dc90b79a88718f1749d1ee770870fa3cb57557e1a5c332db90f8",
+      "new_file": true
+    },
+    {
+      "path": "tools/testing/selftests/phoenix_upgrade/owner_model.c",
+      "before_sha256": null,
+      "after_sha256": "74165317eb61ab73f37e733a984bbe1669b64b19dfcd88a3b12e4796be48b8da",
+      "new_file": true
+    },
+    {
+      "path": "tools/testing/selftests/phoenix_upgrade/test_phase01.py",
+      "before_sha256": "b8854f5424631b3c8b11fcf7faf462d6567921875a066944a4d04e460fb0c97b",
+      "after_sha256": "04b4f74a3140c54d37f0069884e71c193238e9d5718eb08839fd408f53e0ed77",
+      "new_file": false
+    },
+    {
+      "path": "tools/testing/selftests/phoenix_upgrade/test_phase02.py",
+      "before_sha256": null,
+      "after_sha256": "034f3463c1f2fa112ff60cc70d5b1fef87f20456bbeb1ed08b514006987a80fe",
+      "new_file": true
+    }
+  ],
+  "overlay": "Documentation/dev-tools/phoenix-review/implementation/phase-02.diff",
+  "overlay_sha256": "16a341f50af689a002e2abec3a9cef616f7bd8a03b12f27c29d4e442791ac49a",
+  "source_donors": [
+    {
+      "review_id": "PHX-121",
+      "commit": "f8fc059d4d35838b403ba6542913373a21e224c7",
+      "verified_files": [
+        {
+          "path": "arch/x86/ia32/ia32_signal.c",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 1,
+          "api_patch_sha256": "f2596d077ab6fbb9983659515d0ebafbcc4509350e5d94cd727935bf161cdbc4"
+        },
+        {
+          "path": "arch/x86/ia32/sys_ia32.c",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "api_patch_sha256": "15bfda7d0465621c7a6c2efdd4cee07cc7ceba176333481e93131b8f889fc7af"
+        },
+        {
+          "path": "arch/x86/include/asm/sys_ia32.h",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 64,
+          "api_patch_sha256": "686fcfd69c2db5b4881c924b3251c8c959d60e0accb94e8ab1df845204d1ebbd"
+        },
+        {
+          "path": "include/linux/compat.h",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 14,
+          "api_patch_sha256": "29e6f0c3da399d065a03e6e12bcc348f43852e8e48d3040793e5712a5bfe3433"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-124",
+      "commit": "c30a65969c59223eea1320b72bcae738b686a12e",
+      "verified_files": [
+        {
+          "path": "drivers/net/tun.c",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "api_patch_sha256": "b8430b2166f284f249221c2ff668a3d7aca078e1d1abed48b2e59b532739b63b"
+        },
+        {
+          "path": "drivers/tty/tty_io.c",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "api_patch_sha256": "0d993bff679277144849490cf52133d1967b985c8d4c7d0a98f98a63720b651e"
+        },
+        {
+          "path": "fs/fcntl.c",
+          "status": "modified",
+          "additions": 32,
+          "deletions": 22,
+          "api_patch_sha256": "c6d559168e42d05c49581c13923db0655033fdaaa1e599e32f0617b4f3bbf271"
+        },
+        {
+          "path": "fs/locks.c",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "api_patch_sha256": "6873712e61b4e39e13d1b466344d0887c890362ac4b9c97cf562ef2f7c399a99"
+        },
+        {
+          "path": "fs/notify/dnotify/dnotify.c",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "api_patch_sha256": "a89dfbbb458d8c894e9222aaa73efc64edf229efcea641812586f8934b63f3d8"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-125",
+      "commit": "aa8a3136290989e652714729f0673da9e0a28947",
+      "verified_files": [
+        {
+          "path": "fs/fcntl.c",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 17,
+          "api_patch_sha256": "4b67e099fd1aa581b7b99a6aa914a29a6e426d98fe504f4f9208f035d6ed129b"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-142",
+      "commit": "402442a82754c648578601f028aed5c89bee6159",
+      "verified_files": [
+        {
+          "path": "tools/testing/selftests/clone3/clone3_set_tid.c",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 7,
+          "api_patch_sha256": "ffa071a49684c6836328c401b691d59ef125f2eba86ea869ab3e83a090a40c1b"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-143",
+      "commit": "9f1d9277c35e2a21c0471855ad1ee0860f9adb46",
+      "verified_files": [
+        {
+          "path": "tools/testing/selftests/clone3/clone3_set_tid.c",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 2,
+          "api_patch_sha256": "ef0b85afcdffb12bcc8acdf4dca803a4bd83571420ce845a0fd43e4f8e0ab1be"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-144",
+      "commit": "bed33cdabed91806b80e1b3a1b6c8c137cbd035e",
+      "verified_files": [
+        {
+          "path": "arch/arm/Kconfig",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0,
+          "api_patch_sha256": "3d5066d655795a1f7135cc41253cb79435162b8732a93968444e93df9c7c49ae"
+        },
+        {
+          "path": "arch/arm/kernel/process.c",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "api_patch_sha256": "32c9f7125c78f394eb9f2d61b4a0f85c8d3850e37d0cac5e476a76837ca31570"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-145",
+      "commit": "45f802b4e6ffefbd3b5f1a4f39a95f0dc505add0",
+      "verified_files": [
+        {
+          "path": "kernel/fork.c",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "api_patch_sha256": "9d3be50d2edfb3c4b95b05be04b15e012491f06d3d4c5682c4fc3992d3e6ea80"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-149",
+      "commit": "b2d4ff353a189bb21c44bb0246b7a274decb84e8",
+      "verified_files": [
+        {
+          "path": "security/selinux/hooks.c",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 2,
+          "api_patch_sha256": "eccd29e23f4217bf61942ac947ecdb56c96f628e772e27baff40cf303ce0e0ac"
+        }
+      ]
+    },
+    {
+      "review_id": "PHX-150",
+      "commit": "0f1a454279f3981187f02af6ef9f5e6027549621",
+      "verified_files": [
+        {
+          "path": "security/selinux/hooks.c",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3,
+          "api_patch_sha256": "4df85677af1c7a2d1a16fa2bdf4bfc5b2874e599b11ce0e1f09df04514575ac8"
+        }
+      ]
+    }
+  ],
+  "additional_required_fix": {
+    "reason": "145 cannot merely advertise TLS support for Xtensa. Upstream real implementation required. No new review ID or broad unrelated architecture migration.",
+    "upstream_commit": "c346b94f8c5d1b7d637522c908209de93305a8eb",
+    "upstream_url": "https://github.com/torvalds/linux/commit/c346b94f8c5d1b7d637522c908209de93305a8eb",
+    "api_file_patch_sha256": {
+      "arch/xtensa/Kconfig": "6c473a7d7326743da58afb353537a161e4f7266fc4e23790a467f25fcbe88095",
+      "arch/xtensa/kernel/process.c": "22d8740d9b46ad5c97ce7418168c883cf2efb98375f989c22e88a0174e93940b"
+    },
+    "adaptation": "Local Kconfig lacks newer HAVE_ARCH_TRACEHOOK context; insert genuine HAVE_COPY_THREAD_TLS beside other HAVE selections. Local process.c lacks newer childregs->syscall context; change only signature and CLONE_SETTLS assignment, remove stale a5 comment."
+  },
+  "validation": "host_regressions_passed_target_validation_pending",
+  "host_validation": {
+    "phase01": "PASS: all original source models and5 regression controls, with explicit count-pipe evolution instead of weaker sentinel check. Exact6 callers in new interface vs original5.",
+    "phase02": "PASS:GCC/UBSan extracted owner bodies;75 counter assertions with one ordinary host fork/wait and real pipes;56 genfs predicate cases across cgroup policycap on/off;512 extracted ARM/Xtensa TLS assignments;6 actual compat macro arities/callable aliases; actual guard preprocessing. All8 regression controls rejected at runtime.",
+    "bpf": "PASS:all6 existing host suites and their negative controls.923120 JMP/JMP32,200000 atomic,3369783 core,1200895 softirq,80001 lockdep and230005 timer cases.",
+    "headers_selftests": "PASS:make O=<scratch>/obj ARCH=arm64 INSTALL_HDR_PATH=<scratch>/uapi headers_install; all4 clone3 programs host-GCC compiled -std=gnu11 -O2 -Wall -Wextra -Werror using exported ARM64 UAPI. None executed; no target kernel compilation.",
+    "production_style": "PASS:strict checkpatch on14 production/kernel+selftest paths (excluding phoenix host fixtures/docs):0errors/0warnings/0checks. Ignore COMMIT_MESSAGE (overlay, no fabricated signoff), FILE_PATH_CHANGES (new clone3 header already covered by MAINTAINERS PIDFD API F:tools/testing/selftests/clone3/).",
+    "whitespace": "PASS:git diff --check and forward overlay apply. Inverse exact restoration naturally reproduces two old fcntl whitespace-only lines; these are not new added whitespace.",
+    "replay": "PASS:exact19-file forward and inverse replay in scratch; new files absent after inverse.",
+    "chain": "PASS:every intersecting phase01 source/test hash matches before-image, unchanged phase01 paths retain after-image. Historical phase01 evidence remains byte-identical.",
+    "preservation": "PASS:all pre-existing regular-file hashes outside explicit phase02 paths, ledger and review README unchanged. Rechecked before closeout. Configs/CI/KSU/SUSFS/BPF metadata/pre-existing BPF runtime corrections/x86 declarations retained."
+  },
+  "protected_sha256": {
+    "Documentation/bpf/bpf-5.15-upgrade.json": "d194c40c9e99ccaa1e8b844d0da9f9cd45a00c83f9563fef70ea885715e33b62",
+    "tools/testing/selftests/bpf_upgrade/test_runtime.c": "0510a142af10e45fbf416c0d0abe6c3c2038602b43aad75105eade3b3d6ce93c",
+    "Documentation/filesystems/susfs/UPSTREAM.json": "09da2aff8e278dbbc84dc0a145ebbf27eb6eb2b735fbb9a81adb722152ea4ae7",
+    "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig": "e734f530a1b8ec8154db34acf7ece9533bc636fd3228caa522382e47ccf0f32c",
+    ".github/workflows/build-kernel.yml": "c35a90504f92b88dc85d840483d6d4f5c9e444ea9e1aa10a2e8727a799b11ca7",
+    "security/selinux/ss/services.c": "4b803fb1561b870d77a9125cc0f04ab0e94f948f9553a1be28b35224e0a5e37d"
+  },
+  "test_source_sha256": {
+    "tools/testing/selftests/phoenix_upgrade/README.md": "b4220be765ad222badd35599d87ad4fe04edc5349a54fe3f8db4b95e042f2e2f",
+    "tools/testing/selftests/phoenix_upgrade/count_model.c": "dc3d189166d6dc90b79a88718f1749d1ee770870fa3cb57557e1a5c332db90f8",
+    "tools/testing/selftests/phoenix_upgrade/owner_model.c": "74165317eb61ab73f37e733a984bbe1669b64b19dfcd88a3b12e4796be48b8da",
+    "tools/testing/selftests/phoenix_upgrade/test_phase01.py": "04b4f74a3140c54d37f0069884e71c193238e9d5718eb08839fd408f53e0ed77",
+    "tools/testing/selftests/phoenix_upgrade/test_phase02.py": "034f3463c1f2fa112ff60cc70d5b1fef87f20456bbeb1ed08b514006987a80fe"
+  },
+  "explicit_historical_overlay_intersections": [
+    {
+      "path": "kernel/fork.c",
+      "historical_bpf_after_sha256": "eb72ec173b2be08338d1db7174bfaa3d408cb8f836adadd8f9090d755ce2ad26",
+      "phase01_after_sha256": "71537c856717e576e28d5fdd4a3425a1f2fb177d315c042261f327ae48be5dfb",
+      "phase02_after_sha256": "53199e3bc9b8e978474bf016109edaf9848823214ba489d5c60d1f1bd49b5f3f"
+    },
+    {
+      "path": "security/selinux/hooks.c",
+      "phase01_protected_sha256": "288d434f8b74d472b43c2fa35f00d432c1c40be5f7e3f650a90f8227da53c0bd",
+      "phase02_after_sha256": "edae3b82e6f5b58f5da0f0d53e164af9b569fbd0402044fd9ceca3057056247d",
+      "reason": "Now approved149/150, explicitly superseding old protected after-image; no blanket SELinux preservation claim."
+    }
+  ],
+  "regression_commands": [
+    "python3 tools/testing/selftests/phoenix_upgrade/test_phase01.py --self-test-negatives",
+    "python3 tools/testing/selftests/phoenix_upgrade/test_phase02.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_jmp32.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_atomics.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_core.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_softirq.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_lockdep.py --self-test-negatives",
+    "python3 tools/testing/selftests/bpf_upgrade/test_timer_lifetime.py --self-test-negatives"
+  ],
+  "kernel_build": "not_run",
+  "device_test": "not_run",
+  "boot_test": "not_run",
+  "performance_test": "not_run",
+  "ci_runs": [],
+  "commits": [],
+  "publication": "not_authorized; no commit/push/CI",
+  "limits": [
+    "Exact production AOSP Clang r614150 absent; host GCC and exported-UAPI userspace compilation are not target kernel compilation.",
+    "No real kernel RCU/exit/exec/LSM/fd-sharing/realtime fallback/SMP/lockdep proof. Owner model mocks delivery and permission boundaries.",
+    "No actual clone3 nested namespaces or device execution. PID_NS profile unchanged/off.",
+    "FunctionFS/securityfs need enforcing ROM USB/ADB/per-file/multi-mount tests; securityfs has no new chcon/setxattr capability.",
+    "132 approved,17 locally applied (including121 scoped generic subset),115 remain queued.137/coherent126-137 chain remains unapplied. No whole-scope or zero-breakage claim."
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "phase": "PHX-IMPLEMENTATION-03",
+  "susfs_kernel_commit": "c931cae8ca19e4b738e3d9eda8fec4cdb7947473",
+  "scope": "Six syscall-helper refactors only; all original KSU/SUSFS hook-token inventories preserved. No manifest resealing, feature activation or runtime proof.",
+  "patch": "Documentation/dev-tools/phoenix-review/implementation/susfs-syscall-overlay.diff",
+  "patch_sha256": "6b1f8c7d6476f68132bee8d26cc28605743b702fc14b10afe3a68b857926ad64",
+  "base_sha256": {
+    "fs/namei.c": "89bb6b7de33d0bd89fd38d8971f27d3dbf9486c0495dfabaff5e8492b8a9c695",
+    "fs/namespace.c": "852c4b41dc84ae425f2cf16aaa4dac5dde6eb71f08fcce131956326e4366a205",
+    "fs/open.c": "746a0de66b71a6ea353336e6c7575b8334c3070600a900dd12182a3210eda067",
+    "fs/readdir.c": "46bbcb2cc7f3bcd9c8015004fcd2db7f09089c1c3211b3317daaf3e4975b558d",
+    "fs/stat.c": "de534e963365060c3d1a5b8afef1da3994237de88f5969953c1bd5f1fc8389c1",
+    "kernel/sys.c": "65a77d31aea97f931d6723452bdf1f6c2eb403318ba0407b185ac152dd0880f7"
+  },
+  "postimage_sha256": {
+    "fs/namei.c": "326e44ca470da8d7681e218ba4ee1f98258c0ee8a15f3492ffd90430818dfdfb",
+    "fs/namespace.c": "242281ce1db1c88573487a4061663631d2ee90e3317150240579b58502b3c222",
+    "fs/open.c": "ffb45fff9d978b337eb96720ccfd007fc6bbd073161e9ff54fcb15fe2b40e5bc",
+    "fs/readdir.c": "a38e8bf85c9e4fa44fd930d1f43652a1dbd5f26cf2ebfbe6fd4c299cd920d8c2",
+    "fs/stat.c": "6651c44c3056ba89f2ad3bf6c57e085c130bcf47ff54555ad751416f9ee65faa",
+    "kernel/sys.c": "52935e3d343e823bc97a9b88ed61385f98d51e2623e24e1190fd795d22021382"
+  }
+}
