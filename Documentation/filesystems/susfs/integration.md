@@ -1,6 +1,11 @@
-# SUSFS 2.3.0 on Electro: backslashxx KSU + NoMount
+# Historical SUSFS 2.3.0 integration: backslashxx KSU + NoMount
 
-## Status and pinned sources
+> **Current successor:** [original SUSFS 2.4.0 backport](backport-2.4.0.md).
+> This document and `UPSTREAM.json` / `integration.diff` describe the original
+> 2.3.0 import. Their seals have not been rewritten. Current-source validation
+> reverses the explicit 2.4 successor before checking these historical hashes.
+
+## Historical status and pinned sources
 
 Integrated the **full donor feature defaults** selected by the user, including
 SUS_PATH and experimental OPEN_REDIRECT. This is an adapted in-tree port, not

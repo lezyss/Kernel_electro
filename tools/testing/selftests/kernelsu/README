@@ -48,3 +48,18 @@ deliberate regressions. Not APK signature, concurrent VFS, Android or boot tests
 CI calls the FinaSU source check alongside the KSU check. See
 Documentation/dev-tools/finasu-manager.md for signing policy, single-active-manager
 behavior, commands, provenance chaining with SUSFS and runtime limitations.
+
+v3.3.1-38 update
+---------------
+
+Current source pin: feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb (104 files).
+Actual upstream KSU_VERSION: 32717; FinaSU still gets the same honest version.
+
+    python3 tools/testing/selftests/kernelsu/test_update.py --self-test-negatives
+    python3 tools/testing/selftests/susfs/test_provenance_overlays.py
+
+The update test replays/inverts the exact17-file local delta and runs1154
+extracted-source uaccess/strscpy/readonly-slot model cases with4 helper negative
+controls and2 additional FinaSU version/body negative controls. SUSFS provenance now includes24 negative controls and a strict
+Makefile/dispatch successor, preserving the immutable original import seal.
+Host models do not certify a target build, real page protections, SMP or boot.

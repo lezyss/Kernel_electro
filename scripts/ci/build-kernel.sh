@@ -79,6 +79,7 @@ fi
 if grep -qx 'CONFIG_KSU_SUSFS=y' "arch/arm64/configs/$DEFCONFIG"; then
     python3 tools/testing/selftests/susfs/test_integration.py --config out/.config
     python3 tools/testing/selftests/susfs/test_provenance_overlays.py --config out/.config
+    python3 tools/testing/selftests/susfs/test_backport_240.py --cc "$TOOLCHAIN_DIR/bin/clang" --self-test-negatives
 fi
 # A requested accelerator must survive dependency resolution; do not silently
 # report a successful C-only build as validation of the optional assembly.

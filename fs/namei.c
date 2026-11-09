@@ -39,8 +39,11 @@
 #include <linux/bitops.h>
 #include <linux/init_task.h>
 #include <linux/uaccess.h>
-#if defined(CONFIG_KSU_SUSFS_SUS_PATH) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
+#if defined(CONFIG_KSU_SUSFS_SUS_PATH) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT) || defined(CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER)
 #include <linux/susfs_def.h>
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+extern void susfs_parse_priority_app_strings(void);
+#endif
 #endif
 
 #include "internal.h"
@@ -1699,18 +1702,23 @@ retry:
 	if (unlikely(!dentry))
 		return ERR_PTR(-ENOMEM);
 
+	dentry = lookup_real(base->d_inode, dentry, flags);
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 	if (unlikely(dentry) && !IS_ERR(dentry) && dentry->d_inode && !found_sus_path && susfs_is_inode_sus_path(dentry->d_inode)) {
+		bool is_fuse = dentry->d_inode->i_sb->s_magic == FUSE_SUPER_MAGIC;
+
 		if (d_in_lookup(dentry))
 			d_lookup_done(dentry);
 		if (!(flags & LOOKUP_RCU))
 			dput(dentry);
+		if (is_fuse && (flags & (LOOKUP_CREATE | LOOKUP_EXCL)))
+			return ERR_PTR(-EACCES);
 		dentry = d_alloc(base, &susfs_fake_qstr_name);
 		found_sus_path = true;
 		goto retry;
 	}
 #endif
-	return lookup_real(base->d_inode, dentry, flags);
+	return dentry;
 }
 
 static int lookup_fast(struct nameidata *nd,
@@ -4849,6 +4857,14 @@ out:
 		}
 	}
 	release_dentry_name_snapshot(&old_name);
+
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+		/* vfs_rename has committed the rename before notifying observers. */
+		if (!error && current_uid().val == 1000 &&
+		    old_dentry->d_name.len == sizeof("packages.list") - 1 &&
+		    !memcmp(old_dentry->d_name.name, "packages.list", sizeof("packages.list") - 1))
+			susfs_parse_priority_app_strings();
+#endif
 
 	return error;
 }

@@ -7,8 +7,11 @@ import json
 from pathlib import Path
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "susfs"))
+from provenance_240 import reviewed_preimages
+
 ROOT = Path(__file__).resolve().parents[4]
-PIN = 'cbc0b49908066e9c7f778737f65a216f50b203ba'
+PIN = 'feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb'
 
 
 def require(condition, message):
@@ -17,13 +20,14 @@ def require(condition, message):
 
 
 def check(root, config, disabled):
+    previous = reviewed_preimages(root)
     driver = root / 'drivers/kernelsu'
     require(driver.is_dir() and not driver.is_symlink(), 'KSU must be real vendored files')
     require(not any(driver.rglob('.git')), 'nested .git directory/file is not vendoring')
     manifest = json.loads((driver / 'UPSTREAM.json').read_text())
     require(manifest['repository'] == 'https://github.com/backslashxx/KernelSU', 'wrong fork')
     require(manifest['commit'] == PIN, 'unexpected upstream revision; review updates explicitly')
-    require(manifest['tag'] == 'v3.3.1+36', 'unexpected tag')
+    require(manifest['tag'] == 'v3.3.1-38', 'unexpected tag')
     require(len(manifest['git_blob_sha1']) == 104, 'incomplete source manifest')
     require(set(manifest['local_sha256']) == {
         'Kconfig', 'Makefile', 'kernel_includes.h', 'ksu.c', 'feature/kernel_umount.c',
@@ -40,7 +44,7 @@ def check(root, config, disabled):
         require(not Path(name).is_absolute() and '..' not in Path(name).parts, 'unsafe path')
         file = driver / name
         require(file.is_file() and not file.is_symlink(), 'missing regular source: ' + name)
-        data = file.read_bytes()
+        data = previous.get("drivers/kernelsu/" + name, file.read_bytes())
         if name in manifest['local_sha256']:
             actual = hashlib.sha256(data).hexdigest()
             require(actual == manifest['local_sha256'][name], 'adapted source changed: ' + name)

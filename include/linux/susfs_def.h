@@ -3,6 +3,8 @@
 
 #include <linux/bits.h>
 #include <linux/cred.h>
+#include <linux/bitmap.h>
+#include <linux/string.h>
 
 /********/
 /* ENUM */
@@ -32,6 +34,7 @@
 #define CMD_SUSFS_SUS_SU 0x60000 /* deprecated */
 #define CMD_SUSFS_ENABLE_AVC_LOG_SPOOFING 0x60010
 #define CMD_SUSFS_ADD_SUS_MAP 0x60020
+#define CMD_SUSFS_SET_PRIORITY_UID_FILTER 0x60030
 
 #define SUSFS_MAX_LEN_PATHNAME 256 // 256 should address many paths already unless you are doing some strange experimental stuff, then set your own desired length
 #define SUSFS_FAKE_CMDLINE_OR_BOOTCONFIG_SIZE 8192 // 8192 is enough I guess
@@ -87,6 +90,24 @@
 #ifndef FUSE_SUPER_MAGIC
 #define FUSE_SUPER_MAGIC 0x65735546
 #endif
+
+/* Retained global helper ABI for existing 4.14 kallsyms hooks. */
+bool susfs_starts_with(const char *str, const char *prefix);
+
+static inline bool susfs_ends_with(const char *str, const char *suffix) {
+	size_t str_len, suffix_len;
+
+	if (!str || !suffix)
+		return false;
+
+	str_len = strlen(str);
+	suffix_len = strlen(suffix);
+
+	if (suffix_len > str_len)
+		return false;
+
+	return !strcmp(str + str_len - suffix_len, suffix);
+}
 
 static inline bool susfs_is_current_app_uid(void) {
 	return ((current_uid().val % 100000) >= 10000);

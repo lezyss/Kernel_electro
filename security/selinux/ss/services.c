@@ -3766,3 +3766,221 @@ int security_read_policy(struct selinux_state *state,
 	return 0;
 
 }
+
+#ifdef CONFIG_KSU_SUSFS
+/* Original SUSFS 2.4 query-only type/AV filtering, using 4.14 policy locking. */
+extern bool susfs_is_sus_type_rcu(u32 type_value);
+extern void susfs_spoof_avd_allowed_rcu(u32 s_type, u32 t_type,
+		u32 c_type, u32 *avd_allowed);
+
+static int susfs_string_to_context_struct(struct policydb *pol,
+				    struct sidtab *sidtabp,
+				    char *scontext,
+				    struct context *ctx,
+				    u32 def_sid)
+{
+	struct role_datum *role;
+	struct type_datum *typdatum;
+	struct user_datum *usrdatum;
+	char *scontextp, *p, oldc;
+	int rc = 0;
+
+	context_init(ctx);
+
+	/* Parse the security context. */
+
+	rc = -EINVAL;
+	scontextp = (char *) scontext;
+
+	/* Extract the user. */
+	p = scontextp;
+	while (*p && *p != ':')
+		p++;
+
+	if (*p == 0)
+		goto out;
+
+	*p++ = 0;
+
+	usrdatum = hashtab_search(pol->p_users.table, scontextp);
+	if (!usrdatum)
+		goto out;
+
+	ctx->user = usrdatum->value;
+
+	/* Extract role. */
+	scontextp = p;
+	while (*p && *p != ':')
+		p++;
+
+	if (*p == 0)
+		goto out;
+
+	*p++ = 0;
+
+	role = hashtab_search(pol->p_roles.table, scontextp);
+	if (!role)
+		goto out;
+	ctx->role = role->value;
+
+	/* Extract type. */
+	scontextp = p;
+	while (*p && *p != ':')
+		p++;
+	oldc = *p;
+	*p++ = 0;
+
+	typdatum = hashtab_search(pol->p_types.table, scontextp);
+	if (!typdatum || typdatum->attribute ||
+	    susfs_is_sus_type_rcu(typdatum->value))
+		goto out;
+
+	ctx->type = typdatum->value;
+
+	rc = mls_context_to_sid(pol, oldc, p, ctx, sidtabp, def_sid);
+	if (rc)
+		goto out;
+
+	/* Check the validity of the new context. */
+	rc = -EINVAL;
+	if (!policydb_context_isvalid(pol, ctx))
+		goto out;
+	rc = 0;
+out:
+	if (rc)
+		context_destroy(ctx);
+	return rc;
+}
+
+static int susfs_security_context_to_sid_core(struct selinux_state *state,
+					const char *scontext, u32 scontext_len,
+					u32 *sid, u32 def_sid, gfp_t gfp_flags,
+					int force)
+{
+	struct policydb *policydb;
+	struct sidtab *sidtab;
+	char *scontext2, *str = NULL;
+	struct context context;
+	int rc = 0;
+
+	/* An empty security context is never valid. */
+	if (!scontext_len)
+		return -EINVAL;
+
+	/* Copy the string to allow changes and ensure a NUL terminator */
+	scontext2 = kmemdup_nul(scontext, scontext_len, gfp_flags);
+	if (!scontext2)
+		return -ENOMEM;
+
+	if (!selinux_initialized(state)) {
+		int i;
+
+		for (i = 1; i < SECINITSID_NUM; i++) {
+			if (!strcmp(initial_sid_to_string[i], scontext2)) {
+				*sid = i;
+				goto out;
+			}
+		}
+		*sid = SECINITSID_KERNEL;
+		goto out;
+	}
+	*sid = SECSID_NULL;
+
+	if (force) {
+		/* Save another copy for storing in uninterpreted form */
+		rc = -ENOMEM;
+		str = kstrdup(scontext2, gfp_flags);
+		if (!str)
+			goto out;
+	}
+	read_lock(&state->ss->policy_rwlock);
+	rcu_read_lock();
+	policydb = &state->ss->policydb;
+	sidtab = state->ss->sidtab;
+	rc = susfs_string_to_context_struct(policydb, sidtab, scontext2,
+				      &context, def_sid);
+	if (rc == -EINVAL && force) {
+		context.str = str;
+		context.len = strlen(str) + 1;
+		str = NULL;
+	} else if (rc)
+		goto out_unlock;
+	rc = context_struct_to_sid(state, &context, sid);
+	context_destroy(&context);
+out_unlock:
+	rcu_read_unlock();
+	read_unlock(&state->ss->policy_rwlock);
+out:
+	kfree(scontext2);
+	kfree(str);
+	return rc;
+}
+
+int susfs_security_context_to_sid(struct selinux_state *state,
+		const char *scontext, u32 scontext_len, u32 *sid, gfp_t gfp)
+{
+	return susfs_security_context_to_sid_core(state, scontext, scontext_len,
+			sid, SECSID_NULL, gfp, 0);
+}
+
+int susfs_security_context_str_to_sid(struct selinux_state *state,
+		const char *scontext, u32 *sid, gfp_t gfp)
+{
+	return susfs_security_context_to_sid(state, scontext, strlen(scontext), sid, gfp);
+}
+
+void susfs_security_compute_av_user(struct selinux_state *state,
+			      u32 ssid,
+			      u32 tsid,
+			      u16 tclass,
+			      struct av_decision *avd)
+{
+	struct policydb *policydb;
+	struct sidtab *sidtab;
+	struct context *scontext = NULL, *tcontext = NULL;
+
+	read_lock(&state->ss->policy_rwlock);
+	rcu_read_lock();
+	avd_init(state, avd);
+	if (!selinux_initialized(state))
+		goto allow;
+
+	policydb = &state->ss->policydb;
+	sidtab = state->ss->sidtab;
+
+	scontext = sidtab_search(sidtab, ssid);
+	if (!scontext) {
+		pr_err("SELinux: %s:  unrecognized SID %d\n",
+		       __func__, ssid);
+		goto out;
+	}
+
+	/* permissive domain? */
+	if (ebitmap_get_bit(&policydb->permissive_map, scontext->type))
+		avd->flags |= AVD_FLAGS_PERMISSIVE;
+
+	tcontext = sidtab_search(sidtab, tsid);
+	if (!tcontext) {
+		pr_err("SELinux: %s:  unrecognized SID %d\n",
+		       __func__, tsid);
+		goto out;
+	}
+
+	if (unlikely(!tclass)) {
+		if (policydb->allow_unknown)
+			goto allow;
+		goto out;
+	}
+
+	context_struct_compute_av(policydb, scontext, tcontext, tclass, avd,
+				  NULL);
+	susfs_spoof_avd_allowed_rcu(scontext->type, tcontext->type, tclass, &avd->allowed);
+ out:
+	rcu_read_unlock();
+	read_unlock(&state->ss->policy_rwlock);
+	return;
+allow:
+	avd->allowed = 0xffffffff;
+	goto out;
+}
+#endif

@@ -200,6 +200,8 @@ static void avc_dump_query(struct audit_buffer *ab, struct selinux_state *state,
 			audit_log_format(ab, " tsid=%d", susfs_priv_app_sid);
 		else
 			audit_log_format(ab, " tcontext=%s", "u:r:priv_app:s0:c512,c768");
+		if (!rc)
+			kfree(scontext);
 		goto bypass_orig_flow;
 	}
 #endif

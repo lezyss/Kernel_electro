@@ -1,8 +1,8 @@
 # Vendored KernelSU driver
 
 - Fork: https://github.com/backslashxx/KernelSU
-- Tag: `v3.3.1+36`
-- Commit: `cbc0b49908066e9c7f778737f65a216f50b203ba`
+- Tag: `v3.3.1-38`
+- Commit: `feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb`
 - Imported directory: `kernel/` (104 files, including licenses and preinit runner source/data)
 - License: GPL-2.0-only; see `LICENSE` and retained component license notices.
 - Storage: ordinary files under `drivers/kernelsu/`, not a symlink, submodule,
@@ -33,7 +33,7 @@ commit fcd50c8f367c470fa8e17eb64fbb8c7ce7527061, NOT a switch to that fork.
 The original backslashxx revision, manager authentication, native/compat hooks
 and setuid handler are retained. SUSFS adds CAP_SYS_ADMIN-gated commands and
 extra unmount paths behind the existing eligibility/zygote/denylist checks.
-All 89 imported files without local overrides are byte-identical to the pinned
+At the pre-2.4 stage, all 89 imported files without local overrides were byte-identical to the pinned
 upstream Git blobs. Do not reformat them as
 part of an update without recording the resulting local changes.
 
@@ -49,10 +49,12 @@ no switch to a FinaSU kernel or new bypass of signature checks.
 The miatoll configuration builds KSU into the image, uses the fork's syscall-table
 hook implementation (recommended by that revision for 3.0--4.14), retains LSM
 hooks and 32-bit compat hooks, enables full UID checking and SU logging, and does
-not enable unconditional shell SU, the ADB-root feature, branch-link hooks,
+not enable unconditional shell SU or branch-link hooks. The ADB-root feature
+is compiled in, but its runtime toggle starts off. It does not enable
 deprecated KSU kprobes hooks, hosts redirection or KSU debug mode. Global kernel
 KPROBES, SELinux, seccomp and read-only protection settings are not disabled.
-No legacy manual hooks have been added to exec/read/stat/input/SELinux code.
+No duplicate KSU inline exec/read/stat/input hooks are added. The SUSFS 2.4
+successor has native SELinux query adapters, described below.
 
 The upstream `setup.sh` is retained for source completeness, but is **not used**
 by this vendored integration. Do not run it from here or add it to CI.
@@ -63,3 +65,19 @@ See `Documentation/dev-tools/kernelsu-vendoring.md` for commands, build checks,
 manager expectations and recovery precautions. Vendoring a root implementation
 is not a guarantee of its security, compatibility, working root or a successful
 boot. Root access intentionally changes the device's security model.
+
+Update evidence: Documentation/dev-tools/kernelsu-updates/v3.3.1-38.md.
+Historical SUSFS/FinaSU seals remain unchanged; see the explicit successor.
+
+## Subsequent original SUSFS 2.4 backport
+
+The historical 104-file upstream / 15-local-override inventory remains sealed
+in `UPSTREAM.json`. Seven KSU paths have an additional explicit SUSFS 2.4
+successor, not new upstream blobs or silently refreshed local hashes. The
+checker reverses that bounded successor before verifying this inventory.
+See `Documentation/filesystems/susfs/backport-2.4.0.{md,json,diff}` for the
+original source pin, typed SELinux query adaptation, independent mount-hiding
+eligibility and post-exec SU-only FD handling. Manager/certificate/FinaSU,
+NoMount, fork and selected hook strategy are retained. Priority filtering
+remains default-off. Combined target-build evidence is recorded separately in
+`backport-2.4.0-validation.json`; the earlier KSU update record stays historical.

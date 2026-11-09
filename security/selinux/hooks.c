@@ -6194,7 +6194,14 @@ static int selinux_setprocattr(const char *name, void *value, size_t size)
 			str[size-1] = 0;
 			size--;
 		}
-		error = security_context_to_sid(&selinux_state, value, size,
+#ifdef CONFIG_KSU_SUSFS
+		if (!strcmp(name, "current") && current_uid().val >= 10000 &&
+		    susfs_ksu_selinux_hide_active())
+			error = susfs_security_context_to_sid(&selinux_state, value, size,
+						&sid, GFP_KERNEL);
+		else
+#endif
+			error = security_context_to_sid(&selinux_state, value, size,
 						&sid, GFP_KERNEL);
 		if (error == -EINVAL && !strcmp(name, "fscreate")) {
 			if (!has_cap_mac_admin(true)) {

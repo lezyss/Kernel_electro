@@ -32,6 +32,10 @@
 #include <linux/security.h>
 #include <linux/pid_namespace.h>
 
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+extern bool susfs_is_priority_uid_filtered(uid_t uid);
+#endif
+
 int set_task_ioprio(struct task_struct *task, int ioprio)
 {
 	int err;
@@ -116,6 +120,11 @@ SYSCALL_DEFINE3(ioprio_set, int, which, int, who, int, ioprio)
 			break;
 		case IOPRIO_WHO_USER:
 			uid = make_kuid(current_user_ns(), who);
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+			if (current_uid().val >= 10000 &&
+			    susfs_is_priority_uid_filtered(who ? __kuid_val(uid) : __kuid_val(current_uid())))
+				break;
+#endif
 			if (!uid_valid(uid))
 				break;
 			if (!who)
@@ -211,6 +220,11 @@ SYSCALL_DEFINE2(ioprio_get, int, which, int, who)
 			break;
 		case IOPRIO_WHO_USER:
 			uid = make_kuid(current_user_ns(), who);
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+			if (current_uid().val >= 10000 &&
+			    susfs_is_priority_uid_filtered(who ? __kuid_val(uid) : __kuid_val(current_uid())))
+				break;
+#endif
 			if (!who)
 				user = current_user();
 			else

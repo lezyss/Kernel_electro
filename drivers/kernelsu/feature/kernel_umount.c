@@ -82,13 +82,6 @@ static inline int ksu_handle_umount(struct cred *new, const struct cred *old)
 	uid_t new_uid = ksu_get_uid_t(new->uid);
 	uid_t old_uid = ksu_get_uid_t(old->uid);
 
-	if (!ksu_kernel_umount_enabled)
-		return 0;
-
-	// if there isn't any module mounted, just ignore it!
-	if (!ksu_module_mounted)
-		return 0;
-
 	// There are 6 scenarios:
 	// 1. Normal app: zygote -> appuid
 	// 2. Isolated process forked from zygote: zygote -> isolated_process
@@ -111,6 +104,14 @@ static inline int ksu_handle_umount(struct cred *new, const struct cred *old)
 		pr_info("handle umount ignore non zygote child: %d\n", current->pid);
 		return 0;
 	}
+
+	if (!ksu_kernel_umount_enabled)
+		goto out_susfs;
+
+	// if there isn't any module mounted, just ignore it!
+	if (!ksu_module_mounted)
+		goto out_susfs;
+
 	// umount the target mnt
 	pr_info("handle umount for uid: %d, pid: %d\n", new_uid, current->pid);
 
@@ -132,8 +133,13 @@ static inline int ksu_handle_umount(struct cred *new, const struct cred *old)
 	up_read(&mount_list_lock);
 
 	revert_creds(saved);
+
+out_susfs:
 #ifdef CONFIG_KSU_SUSFS
-	/* Only mark eligible zygote children after the guarded unmount path. */
+	/* Eligibility is independent of kernel_umount/module activation.
+	 * Mark only AFTER physical unmounts: __lookup_mnt() must not hide the
+	 * very mounts that the retained KSU/NoMount path is resolving.
+	 */
 	susfs_set_current_proc_umounted();
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 	susfs_queue_extra_work();

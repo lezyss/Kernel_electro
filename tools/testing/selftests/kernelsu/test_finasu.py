@@ -35,6 +35,17 @@ def check(root):
     for name, digest in manifest['postimage_sha256'].items():
         p = root / name
         require(p.is_file() and not p.is_symlink(), 'missing regular source: ' + name)
+        if name == 'drivers/kernelsu/supercall/dispatch.c':
+            text = p.read_text()
+            require(text.count('v3.3.1-38') == 2, 'incorrect current version display')
+            # Exactly two version-label substitutions may succeed the immutable
+            # original FinaSU seal. No authorization/dispatch-body edits allowed.
+            restored = text.replace('v3.3.1-38', 'v3.3.1+36').encode()
+            require(hashlib.sha256(restored).hexdigest() == digest,
+                    'FinaSU dispatch changed beyond honest version labels')
+            update = json.loads((root / 'Documentation/dev-tools/kernelsu-updates/v3.3.1-38.json').read_text())
+            require(update['base_sha256'][name] == digest, 'broken FinaSU version successor')
+            digest = update['postimage_sha256'][name]
         require(hashlib.sha256(p.read_bytes()).hexdigest() == digest,
                 'FinaSU source changed without provenance review: ' + name)
     driver = root / 'drivers/kernelsu'
@@ -50,7 +61,7 @@ def check(root):
     sign = (driver / 'manager/apk_sign.c').read_text()
     tracker = (driver / 'manager/throne_tracker.c').read_text()
     dispatch = (driver / 'supercall/dispatch.c').read_text()
-    require(re.search(r'^CFLAGS_ksu\.o \+= -DKSU_VERSION=32716$',
+    require(re.search(r'^CFLAGS_ksu\.o \+= -DKSU_VERSION=32717$',
                       (driver / 'Makefile').read_text(), re.M), 'do not spoof the kernel version')
     require('ksu_get_manager_version' not in dispatch and '33156' not in dispatch,
             'per-manager kernel version spoofing is not supported')

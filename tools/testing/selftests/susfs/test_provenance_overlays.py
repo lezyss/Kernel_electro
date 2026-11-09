@@ -10,6 +10,7 @@ import shutil
 import tempfile
 
 from test_integration import ROOT, check
+from provenance_240 import BASE, SCOPE
 
 
 OVERLAY = 'Documentation/bpf/susfs-compat-overlay.json'
@@ -32,6 +33,9 @@ def main():
               'fs/Makefile', 'drivers/kernelsu/Kconfig'}
     phoenix = 'Documentation/dev-tools/phoenix-review/implementation/susfs-syscall-overlay'
     paths |= {phoenix + '.json', phoenix + '.diff'}
+    ksu = 'Documentation/dev-tools/kernelsu-updates/v3.3.1-38'
+    paths |= {ksu + '.json', ksu + '.diff'}
+    paths |= SCOPE | {BASE + '.json', BASE + '.diff'}
     original = {name: (ROOT / name).read_bytes() for name in paths}
     with tempfile.TemporaryDirectory(prefix='susfs-overlay-') as tmp:
         root = Path(tmp)
@@ -96,6 +100,45 @@ def main():
             ('unsafe Phoenix patch', lambda: edit_json(phoenix + '.json', lambda d:
                 d.update(patch='../../outside.diff'))),
         ]
+        cases += [
+            ('missing KSU update', lambda: (root / (ksu + '.json')).unlink()),
+            ('KSU patch tamper', lambda: append(ksu + '.diff')),
+            ('KSU preimage tamper', lambda: edit_json(ksu + '.json', lambda d:
+                d['base_sha256'].update({'drivers/kernelsu/Makefile': '0' * 64}))),
+            ('KSU postimage tamper', lambda: edit_json(ksu + '.json', lambda d:
+                d['postimage_sha256'].update({'drivers/kernelsu/Makefile': '0' * 64}))),
+            ('KSU scope broadening', lambda: edit_json(ksu + '.json', lambda d:
+                d['postimage_sha256'].update({'fs/susfs.c': '0' * 64}))),
+            ('unsafe KSU patch', lambda: edit_json(ksu + '.json', lambda d:
+                d.update(patch='../../outside.diff'))),
+        ]
+        cases += [
+            ('missing 2.4 successor', lambda: (root / (BASE + '.json')).unlink()),
+            ('2.4 patch tamper', lambda: append(BASE + '.diff')),
+            ('2.4 source tamper', lambda: append('fs/susfs.c')),
+            ('2.4 manifest reseal', lambda: edit_json(BASE + '.json', lambda d:
+                d['postimage_sha256'].update({'fs/susfs.c': '0' * 64}))),
+            ('2.4 scope broadening', lambda: edit_json(BASE + '.json', lambda d:
+                d['postimage_sha256'].update({'fs/open.c': '0' * 64}))),
+            ('unsafe 2.4 patch', lambda: edit_json(BASE + '.json', lambda d:
+                d.update(patch='../../outside.diff'))),
+        ]
+        validate()
+        # A full production build must not silently lose the approved option.
+        config_bytes = config.read_bytes()
+        config.write_bytes(config_bytes.replace(
+            b'CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER=y',
+            b'# CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER is not set'))
+        try:
+            validate()
+        except ValueError as error:
+            if 'wrong priority UID filter setting' not in str(error):
+                raise
+            print('PASS: rejected full-profile priority filter disablement')
+        else:
+            raise AssertionError('full-profile config check accepted disabled priority filter')
+        finally:
+            config.write_bytes(config_bytes)
         validate()
         for name, mutate in cases:
             mutate()
@@ -108,7 +151,7 @@ def main():
             for path, data in original.items():
                 (root / path).write_bytes(data)
             validate()
-    print('PASS: reviewed overlay and all 18 provenance negative controls')
+    print('PASS: reviewed overlay and all 30 provenance negative controls')
 
 
 if __name__ == '__main__':

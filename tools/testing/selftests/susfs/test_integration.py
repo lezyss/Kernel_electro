@@ -12,6 +12,8 @@ import subprocess
 import sys
 import tempfile
 
+from provenance_240 import reviewed_preimages
+
 ROOT = Path(__file__).resolve().parents[4]
 PIN = 'c931cae8ca19e4b738e3d9eda8fec4cdb7947473'
 BRIDGE = 'fcd50c8f367c470fa8e17eb64fbb8c7ce7527061'
@@ -26,6 +28,7 @@ def require(ok, message):
 
 
 def check(root, config, profile):
+    previous = reviewed_preimages(root)
     manifest = json.loads((root / 'Documentation/filesystems/susfs/UPSTREAM.json').read_text())
     require(manifest['kernel_commit'] == PIN and manifest['ksu_bridge_commit'] == BRIDGE,
             'unexpected SUSFS/bridge revision; review updates explicitly')
@@ -94,6 +97,25 @@ def check(root, config, profile):
         for name in phoenix_shared:
             require(phoenix['base_sha256'][name] == manifest['postimage_sha256'][name],
                     'broken SUSFS to Phoenix preimage chain')
+    # KSU tag update: Makefile plus honest version labels after the FinaSU stage.
+    ksu_base = 'Documentation/dev-tools/kernelsu-updates/v3.3.1-38'
+    ksu_update = json.loads((root / (ksu_base + '.json')).read_text())
+    ksu_shared = {'drivers/kernelsu/Makefile', 'drivers/kernelsu/supercall/dispatch.c'}
+    require(ksu_update['schema'] == 1 and ksu_update['tag'] == 'v3.3.1-38' and
+            ksu_update['old_commit'] == 'cbc0b49908066e9c7f778737f65a216f50b203ba' and
+            ksu_update['commit'] == 'feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb',
+            'unexpected KSU update revision')
+    require(set(ksu_update['base_sha256']) == ksu_shared and
+            set(ksu_update['postimage_sha256']) == ksu_shared,
+            'unexpected KSU/SUSFS overlap scope')
+    require(ksu_update['patch'] == ksu_base + '.diff', 'unsafe KSU update patch path')
+    require(hashlib.sha256((root / ksu_update['patch']).read_bytes()).hexdigest() ==
+            ksu_update['patch_sha256'], 'KSU update patch changed')
+    for name in ksu_shared:
+        expected_base = (overlay['postimage_sha256'][name] if name in shared
+                         else manifest['postimage_sha256'][name])
+        require(ksu_update['base_sha256'][name] == expected_base,
+                'broken SUSFS to KSU update preimage chain')
     for name, digest in manifest['postimage_sha256'].items():
         if name in bpf_shared:
             digest = bpf_overlay['postimage_sha256'][name]
@@ -102,10 +124,12 @@ def check(root, config, profile):
             digest = overlay['postimage_sha256'][name]
         if name in phoenix_shared:
             digest = phoenix['postimage_sha256'][name]
+        if name in ksu_shared:
+            digest = ksu_update['postimage_sha256'][name]
         require(not Path(name).is_absolute() and '..' not in Path(name).parts, 'unsafe manifest path')
         file = root / name
         require(file.is_file() and not file.is_symlink(), 'missing regular source: ' + name)
-        require(hashlib.sha256(file.read_bytes()).hexdigest() == digest,
+        require(hashlib.sha256(previous.get(name, file.read_bytes())).hexdigest() == digest,
                 'SUSFS source/hook changed without provenance review: ' + name)
     require({'fs/susfs.c', 'include/linux/susfs.h', 'include/linux/susfs_def.h'} <=
             set(manifest['postimage_sha256']), 'incomplete import')
@@ -122,6 +146,9 @@ def check(root, config, profile):
     for feature in FEATURES:
         require(values.get('CONFIG_KSU_SUSFS_' + feature, 'n') ==
                 ('y' if profile == 'full' else 'n'), 'wrong feature: ' + feature)
+    require(values.get('CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER', 'n') ==
+            ('y' if profile == 'full' else 'n'),
+            'wrong priority UID filter setting for ' + profile + ' profile')
     if profile != 'disabled':
         for feature in ['KSU', 'ARM64', 'THREAD_INFO_IN_TASK', 'FSNOTIFY']:
             # THREAD_INFO_IN_TASK is selected by ARM64, not written in defconfig.
@@ -148,7 +175,7 @@ def models(root, cc, negative):
     allow = (driver / 'policy/allowlist.h').read_text()
     reboot = extract((driver / 'supercall/supercall.c').read_text(), 'ksu_handle_sys_reboot')
     commands = re.findall(r'if \(cmd == (CMD_SUSFS_\w+)\) \{\s*(susfs_\w+)\(arg\);', reboot)
-    require(len(commands) == 16, 'incomplete SUSFS dispatch')
+    require(len(commands) == 17, 'incomplete SUSFS dispatch')
     stubs = '\n'.join('static void ' + name + '(void **arg) { payload_calls++; last_cmd = ' + cmd + '; }'
                       for name, cmd in {name: cmd for cmd, name in commands}.items())
     constants = '\n'.join(line for text in [defs, allow,
@@ -178,6 +205,9 @@ def models(root, cc, negative):
             bodies = bodies.replace('return len;', 'return 0;')
         elif negative == 'hash-collision':
             bodies = bodies.replace('if (entry->target_ino != inode->i_ino)\n\t\t\tcontinue;', '')
+        elif negative == 'early-hide':
+            bodies = bodies.replace('const struct cred *saved = override_creds(ksu_cred);',
+                                    'susfs_set_current_proc_umounted();\n\tconst struct cred *saved = override_creds(ksu_cred);')
         elif negative == 'free-borrowed-id':
             bodies = bodies.replace('if (mnt->mnt.mnt_flags & VFSMOUNT_MNT_FLAGS_KSU_UNSHARED_MNT)', 'if (false)')
         require(bodies != before, 'negative control did not mutate code')
@@ -203,7 +233,7 @@ def main():
     parser.add_argument('--host-tests', action='store_true')
     parser.add_argument('--cc', default=os.environ.get('HOSTCC', 'clang'))
     parser.add_argument('--negative', choices=['no-auth', 'no-zygote-guard', 'readlink-zero-count',
-                                             'hash-collision', 'free-borrowed-id'])
+                                             'hash-collision', 'free-borrowed-id', 'early-hide'])
     args = parser.parse_args()
     config = args.config if args.config.is_absolute() else args.source_root / args.config
     try:

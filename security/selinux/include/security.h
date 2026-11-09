@@ -441,4 +441,14 @@ extern void hashtab_cache_init(void);
 extern void selinux_nlmsg_init(void);
 extern int security_sidtab_hash_stats(struct selinux_state *state, char *page);
 
+#ifdef CONFIG_KSU_SUSFS
+int susfs_security_context_to_sid(struct selinux_state *state,
+		const char *scontext, u32 scontext_len, u32 *sid, gfp_t gfp);
+int susfs_security_context_str_to_sid(struct selinux_state *state,
+		const char *scontext, u32 *sid, gfp_t gfp);
+void susfs_security_compute_av_user(struct selinux_state *state,
+		u32 ssid, u32 tsid, u16 tclass, struct av_decision *avd);
+bool susfs_ksu_selinux_hide_active(void);
+#endif
+
 #endif /* _SELINUX_SECURITY_H_ */

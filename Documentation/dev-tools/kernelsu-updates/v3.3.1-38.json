@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "tag": "v3.3.1-38",
+  "repository": "https://github.com/backslashxx/KernelSU",
+  "old_commit": "cbc0b49908066e9c7f778737f65a216f50b203ba",
+  "commit": "feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb",
+  "numeric_version": 32717,
+  "source_files": 104,
+  "changes": [
+    {
+      "path": "drivers/kernelsu/Makefile",
+      "before_sha256": "63ced30586df16c579e8df62f4d48be13aa4858b18fb709ec06c4e8715d43666",
+      "after_sha256": "21de5e1c525b12d3f3de6595fe888112b8dd73871a176bd6beb0cd8dfc236e33",
+      "old_upstream_blob": "d7ccacf1189c50d9bb0b12e4eb2a0b35762cca32",
+      "new_upstream_blob": "62385f0b2b5db6fb267c0147d79f98932dba38c5"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/arm64_branch_insn.h",
+      "before_sha256": "fea396adfcc0a12c3fb9ac27b2fc6a38fea9216da4a702d6f1d5db5e554d4aea",
+      "after_sha256": "a7f27e27aeaefcbba7a9f79268ae3a4407f4382c5a08db5b358d9da331a23c8f",
+      "old_upstream_blob": "3ecb9af8ddfd5d7093e943941fcdee06f4cfd3d9",
+      "new_upstream_blob": "36584c0bba547cc7063540766dcdcf29c169b01b"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/deprecated/module_blacklist.h",
+      "before_sha256": "dc7cf6522a7dc782107be5d4509071c1b0b7cf82916a6e88228a38a4deca2ac9",
+      "after_sha256": "9b0b38b9418c90e45474aa260f631ffe82a6e3e64277b4cd8d6a5cd6c38ef79e",
+      "old_upstream_blob": "6396a2095bac429782b79331397e66f62ed47bbd",
+      "new_upstream_blob": "cf4f0bcf7f9e68a91cc6f3d9214d317aa99c899a"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/kallsyms_common.h",
+      "before_sha256": "9ced22617d73a7ef3b49d377ee71bfd4cc4cf8612ac9a4fb325a4a216f920fb6",
+      "after_sha256": "6d5f095ff3df6b34b02142ac585a0cb31e3385f315b97c0a08be7e7fe5617c71",
+      "old_upstream_blob": "a2ded93885e67613cad3ccb6f39fa16908ff130c",
+      "new_upstream_blob": "e987a09bf35dbe1523dd59f2fecfed555fe5a1b7"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/ksu_hostsredirect.h",
+      "before_sha256": "027c4f0c4fe5c2a91a4d490541cb87886b6290722c98f48e88e291621cdf95f3",
+      "after_sha256": "49b8c599f3ae488422627147707c244d8dbde7347a1d3514e88526e8bc4c9039",
+      "old_upstream_blob": "0b1f9a49743b43975550a682bd64c2d5e8dc42a4",
+      "new_upstream_blob": "80a0b0a95a6c7a6a2dbca5459879692872bab96b"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/vmap_patch.h",
+      "before_sha256": "d55336f8b28ed08e561daecca36241a3a52e8b30191e9c1406ac9ac87b49c133",
+      "after_sha256": "b7969958ce78e8c3c5c02adb98d5aa67818a2ac301afe44dea108fc77ce6464f",
+      "old_upstream_blob": "7c6a0a4e6c7ffac9e5add65754cdffe0ea22a218",
+      "new_upstream_blob": "fa2ac0e781a61808d3a91e41155d3feafdec6141"
+    },
+    {
+      "path": "drivers/kernelsu/feature/selinux_hide.c",
+      "before_sha256": "789b00128004e1f78f5dde9cd83f77e0e8b31699d198bc3606b328b11a500537",
+      "after_sha256": "2ef498a498fe312016e28193d30bb9b08534519e350d7c9fe0bcff0edd8e0218",
+      "old_upstream_blob": "4d634e36e41da4d7e7648bf2e7ad306619506ba5",
+      "new_upstream_blob": "98a85955c4bd657b1eddcd378079055edc2d9768"
+    },
+    {
+      "path": "drivers/kernelsu/hook/lsm_hooks_list.c",
+      "before_sha256": "c9dc1793d1d14bef2de767f63a2e7281bfa6ed0f9bd78b211fe8a4a4666c2d41",
+      "after_sha256": "dfb7fa824f8cbb631a6a7937f7c8aff25bf2885927745b4dc4ad6feab339a50b",
+      "old_upstream_blob": "3c80dd50c430263b0b47d3a14ddeccbc3577a07e",
+      "new_upstream_blob": "7330c1ce8a7c0ebc3fc9779e52d63c7a4bff09b1"
+    },
+    {
+      "path": "drivers/kernelsu/hook/syscall_table_mirror.c",
+      "before_sha256": "4f45315b046db9e2991d0afda34e781e1442ae4b93089dfb751861953d55453c",
+      "after_sha256": "3df594b8b0d9e6641214055fe914bb427a9ced2bcddefd2eaf468d62a46d7b7d",
+      "old_upstream_blob": "0a1200cc91dcf8341577cc204f3b64217f2cc306",
+      "new_upstream_blob": "3b2d7f3f3c0988f0a46e177ed646ccd5355d9834"
+    },
+    {
+      "path": "drivers/kernelsu/kernel_compat.h",
+      "before_sha256": "08e9183d300ebb1c306d4906f4f918dafbffc4baa2feefd31b00d00109034a5e",
+      "after_sha256": "56394210605ebd1cb02164f70b50d5b59bf9d9ef8c14423c40040ec13116d9a7",
+      "old_upstream_blob": "dc9c4dca3a2adaed952145ffeef8e68254d87206",
+      "new_upstream_blob": "c57fd08eff784c10a5bc75829a625014d42a4982"
+    },
+    {
+      "path": "drivers/kernelsu/kernel_includes.h",
+      "before_sha256": "3e668b9d85ba67609201f13650cb45e0f714e0f61c16ad52bcc180fa041d99f5",
+      "after_sha256": "8407ddc03825f34e24b02f0b744c698e64a1a39dc9983c18254418a159f70b51",
+      "old_upstream_blob": "862fd27e235a2983f4f3802d37674439c3c985b2",
+      "new_upstream_blob": "92832878f7b36bceb89ffe36127255100352d96e"
+    },
+    {
+      "path": "drivers/kernelsu/preinit/preinit.c",
+      "before_sha256": "0e57bad0586c834c32134228f119509e891082e4c830eafdcc532b6265e3230a",
+      "after_sha256": "81cc5aa200af83f3f222f842c5610f761ae44116d41df98d61e0a028282f1698",
+      "old_upstream_blob": "a0670c7cb3c9a1811e4d7ddcdb625d0c37e4c73f",
+      "new_upstream_blob": "7b1d7a9b2a3c9e719653fb2b58e26bf995b6b57f"
+    },
+    {
+      "path": "drivers/kernelsu/preinit/runner/runner_oot.h",
+      "before_sha256": "5e0480479c2fb49002818dbc29aa317fa7fa77b9c7f7e1df165b2ed29ea003d7",
+      "after_sha256": "7c6572a9a60daa0ce375aa1d816a8cf8d59016b75cadc634d392e7b0031bdf65",
+      "old_upstream_blob": "82d5a95099a59610d7f80738de9c5434d302cde5",
+      "new_upstream_blob": "3a9c8899fc60aad64e808d2be0f1c15f4cbec4a6"
+    },
+    {
+      "path": "drivers/kernelsu/preinit/runner/runner_xxd.h",
+      "before_sha256": "7d2a40a14b1f09ce4580ee2c99ca78b6612a28b83a37b15c19dc778c84e44835",
+      "after_sha256": "9308fe7e01d61fe6240cb45b523c157bebb78ae113bf5d65b59644265bc321ec",
+      "old_upstream_blob": "bae7d3b4fc8440881c1aab51c874b72ec5158688",
+      "new_upstream_blob": "6ab53688a96df24d2b243d8b045aeb08dbe85366"
+    },
+    {
+      "path": "drivers/kernelsu/runtime/ksud_integration.c",
+      "before_sha256": "b2396ab76e03c293791178eba8ce6b4cf9252ec0fde1e1855e85aa84f5ea6a61",
+      "after_sha256": "b3c62d1d57a733e213fc46ed8d32478e4c2766b2d1930c30482300f4ac932fe1",
+      "old_upstream_blob": "1bae31409217c66e87e93ee44136d1f376fd817d",
+      "new_upstream_blob": "3ce7dfbe97631d94ade31960c82e35416243ae43"
+    },
+    {
+      "path": "drivers/kernelsu/sulog/event.c",
+      "before_sha256": "948b95defa4cf56873f3f89e9a5a3a1484f9c75d534c9bbe777d3c438f10f15e",
+      "after_sha256": "d9f7d893e29da924c4bf0856c86c10d1181d8a746070355a2557b2a1dbd6932c",
+      "old_upstream_blob": "b5f45a67f3e19d63fa952f17fed2124f6207ee63",
+      "new_upstream_blob": "c45b97a918ef99f1bd83c74b5263e70fd8a82111"
+    },
+    {
+      "path": "drivers/kernelsu/supercall/dispatch.c",
+      "before_sha256": "181db4a8ab027257c7b955aa65f5386bf3cff5ab40fc7e9f14920356d35df721",
+      "after_sha256": "cef984f9b25701acc8dd7c3d6f218a893b3266a0e3e35643c1cc598133e23393",
+      "old_upstream_blob": "0b7ec3c1f465a524dab462ff55b0abacadb36220",
+      "new_upstream_blob": "0b7ec3c1f465a524dab462ff55b0abacadb36220"
+    }
+  ],
+  "patch": "Documentation/dev-tools/kernelsu-updates/v3.3.1-38.diff",
+  "patch_sha256": "5f52c92abcf7cfc8ab19951e0183b8fb632d19c23f39795fcd974edcde422d19",
+  "base_sha256": {
+    "drivers/kernelsu/Makefile": "63ced30586df16c579e8df62f4d48be13aa4858b18fb709ec06c4e8715d43666",
+    "drivers/kernelsu/supercall/dispatch.c": "181db4a8ab027257c7b955aa65f5386bf3cff5ab40fc7e9f14920356d35df721"
+  },
+  "postimage_sha256": {
+    "drivers/kernelsu/Makefile": "21de5e1c525b12d3f3de6595fe888112b8dd73871a176bd6beb0cd8dfc236e33",
+    "drivers/kernelsu/supercall/dispatch.c": "cef984f9b25701acc8dd7c3d6f218a893b3266a0e3e35643c1cc598133e23393"
+  },
+  "preserved": "Original SUSFS/FinaSU provenance seals, manager package/certificate, hook configuration and defconfig unchanged.16 upstream-changed files plus exactly two honest version-display substitutions in dispatch.c; local Makefile/header adjustments merged three-way. Strict successors cover only Makefile/dispatch; dispatch reconstructs its original immutable FinaSU hash.",
+  "validation": {
+    "host": "PASS104-file provenance/configuration; FinaSU/SUSFS/NoMount integration;1154 extracted helper cases/4 deliberate negatives plus2 FinaSU version/body negatives; exact17-file local replay (16 upstream + honest display labels);24 SUSFS provenance negatives. Phoenix01/02/03 regressions retained.",
+    "target_kernel_build": "not_run; exact production AOSP r614150 compiler/toolchain is not installed in this restored workspace; host GCC tests are not target proof",
+    "device": "not_run",
+    "ci": "not_dispatched",
+    "publication": "not_requested_not_pushed",
+    "portable_source_tree": "PASS complete KSU/FinaSU/SUSFS/NoMount/update suites on isolated selected Git tree rooted at published a5ab39674ff58a585a84c411d71716f7e5a487e6, without either unpublished local BPF correction; only documentation/validation fields changed afterward.",
+    "source_preservation": "PASS all17 driver preimages match published parent; original defconfig/workflow/Kconfig/SUSFS and FinaSU seals unchanged. Ordinary index remains untouched.",
+    "style": "Seven added trailing-whitespace lines retained verbatim from upstream downstream/kallsyms_common.h to preserve upstream blob identity; not a clean whitespace/checkpatch claim."
+  },
+  "authorization": "User requested Ksu update to https://github.com/backslashxx/KernelSU/tree/v3.3.1-38; no workflow dispatch or push requested.",
+  "retained_sha256": {
+    "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig": "e734f530a1b8ec8154db34acf7ece9533bc636fd3228caa522382e47ccf0f32c",
+    ".github/workflows/build-kernel.yml": "c35a90504f92b88dc85d840483d6d4f5c9e444ea9e1aa10a2e8727a799b11ca7",
+    "Documentation/filesystems/susfs/UPSTREAM.json": "09da2aff8e278dbbc84dc0a145ebbf27eb6eb2b735fbb9a81adb722152ea4ae7",
+    "Documentation/dev-tools/finasu-manager.json": "9969b5a111624d3b72b1123171c27bc3dad2e71d6ea91097e4aaa4dbd6ba79d8",
+    "drivers/kernelsu/Kconfig": "097c27a389f2d9d671fae55d74e69a7032cec03523e5ccec9f9e2013cc9ca711"
+  },
+  "upstream_changed_files": 16,
+  "local_version_display_adaptations": [
+    "drivers/kernelsu/supercall/dispatch.c"
+  ]
+}

@@ -3,8 +3,8 @@
 ## What this changes (and does not change)
 
 This adds **FinaSU as an alternative Android manager**, not the FinaSU kernel.
-The driver remains backslashxx/KernelSU **v3.3.1+36**, commit
-`cbc0b49908066e9c7f778737f65a216f50b203ba`, with its existing SUSFS 2.3.0
+The driver remains backslashxx/KernelSU **v3.3.1-38**, commit
+`feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb`, with its existing SUSFS 2.3.0
 bridge and NoMount integration. No fork replacement, installer, build-time
 fetch, extra SELinux grant or change to root/allowlist/unmount eligibility.
 
@@ -47,7 +47,7 @@ remains responsible for full APK signature/content verification and protected
 Release **v1.4.3** was also checked at its exact commit recorded in
 `finasu-manager.json`: its JNI full-version ioctl uses a 64-byte output, its
 minimum supported kernel number is **32513**, and its common UAPI is **6**.
-The retained backslashxx **32716 / UAPI 6** meets that numeric minimum without
+The retained backslashxx **32717 / UAPI 6** meets that numeric minimum without
 pretending to be a FinaSU kernel. Source-level agreement is not a device test.
 
 The addition implements these display queries without changing existing ioctl
@@ -61,8 +61,8 @@ numbers/layouts, feature enumeration or the original GET_INFO/legacy handlers:
 | Configured hook mode | `_IOC(_IOC_READ, 'K', 98, 0)`, 16-byte output | Active manager or root |
 | Configured hook type | `_IOC(_IOC_READ, 'K', 101, 0)`, 32-byte output | Active manager or root |
 
-Strings identify the actual driver: `v3.3.1+36-backslashxx-Electro`, tag
-`v3.3.1+36`, and **`Manipulated`** for the miatoll syscall-table configuration.
+Strings identify the actual driver: `v3.3.1-38-backslashxx-Electro`, tag
+`v3.3.1-38`, and **`Manipulated`** for the miatoll syscall-table configuration.
 Other configured branches report `Kprobes` or `Manual` as applicable. Buffers are
 zero-initialized/NUL-terminated; copy faults return `-EFAULT`. The original
 root-controlled version/flag override knobs are not altered by this overlay.
@@ -172,3 +172,8 @@ root prompts/profiles/modules, package-update races, actual concurrent VFS
 behavior, phone boot or overlapping SUSFS/NoMount rules. These tests use mocked
 certificate-parser results, not forged or real signed APKs. No full production
 image, flash, device test, push or CI dispatch has been performed for this change.
+
+The original FinaSU JSON/diff remains the historical +36 overlay. The
+[v3.3.1-38 KSU update](kernelsu-updates/v3.3.1-38.md) succeeds only its two
+dispatch version labels; the checker reconstructs and verifies the immutable
+old dispatch hash, prohibiting any authorization-body changes.

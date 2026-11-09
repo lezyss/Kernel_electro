@@ -793,8 +793,8 @@ out:
 }
 
 /* These describe the actual pinned backslashxx driver, not a FinaSU kernel. */
-#define KSU_COMPAT_VERSION_TAG "v3.3.1+36"
-#define KSU_COMPAT_VERSION_FULL "v3.3.1+36-backslashxx-Electro"
+#define KSU_COMPAT_VERSION_TAG "v3.3.1-38"
+#define KSU_COMPAT_VERSION_FULL "v3.3.1-38-backslashxx-Electro"
 
 static int ksu_metadata_to_user(void __user *arg, const void *data, size_t size)
 {

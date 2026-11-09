@@ -1,4 +1,4 @@
-SUSFS 2.3.0 integration tests
+SUSFS 2.4.0 integration tests
 ============================
 
 From the kernel root:
@@ -9,7 +9,8 @@ From the kernel root:
     python3 tools/testing/selftests/susfs/test_integration.py --host-tests \
         --cc 'clang -fsanitize=undefined -fno-sanitize-recover=all'
 
-Integrity-only checks require standard-library Python, no network or compiler.
+Integrity-only checks require Python 3 and local Git for patch replay, but no
+network or compiler.
 They verify pinned source/hook postimages, single wiring, platform dependencies
 and the requested full feature profile. CI runs them after olddefconfig.
 
@@ -20,11 +21,11 @@ Run KSU and NoMount selftests separately for their source/config policies.
 --host-tests extracts the current reboot dispatcher, original setuid handler,
 augmented unmount path, UID helpers, flag predicates, readlink helper, pagemap
 zero-entry helper and mount-ID release function. It runs single-threaded mocks:
-256 authorization, 1792 credential/unmount, 3010 readlink/hash/fault and 2404
+272 authorization, 1792 credential/unmount, 3010 readlink/hash/fault and 2404
 pagemap cases, plus flag/ID checks. No actual rules or kernel operations occur.
 
 --negative choices no-auth, no-zygote-guard, readlink-zero-count, hash-collision,
-free-borrowed-id deliberately change extracted code IN MEMORY, then must compile
+free-borrowed-id, early-hide deliberately change extracted code IN MEMORY, then must compile
 and fail a runtime assertion. A nonzero exit is expected, and source is unchanged.
 
 Models do not establish real VFS/RCU/fsnotify/mmap/superblock behavior, concurrent
@@ -39,6 +40,28 @@ header changes use Documentation/bpf/susfs-compat-overlay.json and its exact
 reviewed patch; only include/linux/sched.h is allowed in that chain. All
 other hooks, including the existing FinaSU overlay, remain fail-closed.
 
-Run the positive/13-negative provenance regression with:
+Run the positive/30-negative provenance regression with:
   python3 tools/testing/selftests/susfs/test_provenance_overlays.py --config out/.config
 The CI build script runs this check before compilation.
+
+Original 2.4 successor
+----------------------
+The 20-source successor is byte-replayed by provenance_240.py before older
+SUSFS/KSU seals are checked. Its manifest hash and scope are fixed; do not
+rewrite old import/FinaSU/BPF/Phoenix/KSU manifests to accept new sources.
+
+    python3 tools/testing/selftests/susfs/test_backport_240.py --cc gcc --self-test-negatives
+
+This runs extracted-production-source UBSan models for 4396 type/AV registry,
+40 post-exec FD, 33 statfs and 33 SUS_PATH lookup/lifetime cases, verifies all
+45 existing LP64 payload field offsets and sizes, and rejects five compiled
+semantic mutants. It also checks that real SELinux computation/conversion
+functions are untouched, physical-unmount safeguards remain, and all eight ARM64
+native/compat syscall-table wrappers use the post-exec result helper.
+The AOSP Clang host compiler can also run these models; they are not target
+execution. The generic priority-filter Kconfig default remains n, but the user
+approved CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER=y in the miatoll defconfig.
+Full-profile checks require it; minimal/disabled profiles require it off. The
+provenance suite also rejects accidental full-profile disablement. A matching
+privileged SUSFS tool/module must populate the UID list; no device-runtime
+validation is implied by enabling the compile option. See the implementation document and validation JSON.

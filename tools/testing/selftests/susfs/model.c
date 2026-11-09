@@ -13,6 +13,7 @@
 #define __user
 #define unlikely(x) (x)
 #define likely(x) (x)
+#define CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER 1
 #define CONFIG_KSU_SUSFS 1
 #define CONFIG_KSU_SUSFS_TRY_UMOUNT 1
 #define CONFIG_KSU_SUSFS_SUS_PATH 1
@@ -64,7 +65,7 @@ static int ksu_install_fd(void) { fd_installs++; return 5; }
 static void disable_seccomp(void) { seccomp++; }
 static const struct cred *override_creds(struct cred *cred) { assert(!overridden); overridden = true; return NULL; }
 static void revert_creds(const struct cred *cred) { assert(overridden); overridden = false; }
-static void susfs_try_umount(unsigned uid) { assert(overridden); extra_umounts++; }
+static void susfs_try_umount(unsigned uid) { assert(overridden); assert(!(task.thread_info.flags & (1ULL << TIF_PROC_UMOUNTED))); extra_umounts++; }
 static void susfs_queue_extra_work(void) { assert(!overridden); queued++; }
 struct mount_entry { const char *umountable; unsigned flags; };
 static struct mount_entry entries[2];
@@ -72,7 +73,7 @@ static int mount_list, mount_list_lock;
 #define down_read(x) ((void)(x))
 #define up_read(x) ((void)(x))
 #define list_for_each_entry(e, h, member) for (e = entries; e != entries + 2; e++)
-static void try_umount(const char *name, int flags) { assert(overridden); normal_umounts++; }
+static void try_umount(const char *name, int flags) { assert(overridden); assert(!(task.thread_info.flags & (1ULL << TIF_PROC_UMOUNTED))); normal_umounts++; }
 static int copy_to_user(void *dest, const void *src, size_t len) { if (copy_fault && len) return 1; memcpy(dest, src, len); return 0; }
 static void ksu_close_fd(int fd) {}
 static void toolkit_handle_sys_reboot(int a, int b, unsigned cmd, void **arg) {}
@@ -140,8 +141,10 @@ static void test_unmount(void)
         bool umount = !old.uid.val && !manager && !allowed && ksu_kernel_umount_enabled &&
             ksu_module_mounted && old.zygote && eligible && (want_umount || isolated);
         assert(normal_umounts == (umount ? 2 : 0));
-        assert(extra_umounts == umount && queued == umount);
-        assert(susfs_is_current_proc_umounted() == umount);
+        bool hide = !old.uid.val && !manager && !allowed && old.zygote &&
+            eligible && (want_umount || isolated);
+        assert(extra_umounts == umount && queued == hide);
+        assert(susfs_is_current_proc_umounted() == hide);
         assert(fd_installs == (!old.uid.val && manager));
         assert(seccomp == (!old.uid.val && (manager || allowed)));
         assert(!overridden);

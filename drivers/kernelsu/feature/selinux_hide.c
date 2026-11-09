@@ -33,9 +33,21 @@
 // enabled by default
 static bool ksu_selinux_hide_enabled __read_mostly = true;
 
+#ifdef CONFIG_KSU_SUSFS
+bool susfs_ksu_selinux_hide_active(void)
+{
+	return READ_ONCE(ksu_selinux_hide_enabled) && ksu_is_seccomp_enabled();
+}
+#endif
+
 // selinux_setprocattr handler
 static __always_inline int ksu_hide_setprocattr_inline(const char *name, void *value, size_t size)
 {
+#ifdef CONFIG_KSU_SUSFS
+	/* SUSFS applies the typed filter in native SELinux query/conversion code. */
+	return 0;
+#else
+
 	if (unlikely(!ksu_selinux_hide_enabled))
 		return 0;
 
@@ -75,12 +87,18 @@ static __always_inline int ksu_hide_setprocattr_inline(const char *name, void *v
 	str[1] = '1';
 
 	return 0;
+
+#endif
 }
 
 // selinux_transaction_write hijack
 static ssize_t (*selinux_transaction_write_fn)(struct file *file, const char __user *buf, size_t size, loff_t *pos) __read_mostly = nullptr;
 static __nocfi ssize_t ksu_selinux_transaction_write(struct file *file, const char __user *buf, size_t size, loff_t *pos)
 {
+#ifdef CONFIG_KSU_SUSFS
+	return selinux_transaction_write_fn(file, buf, size, pos);
+#else
+
 	if (unlikely(!ksu_selinux_hide_enabled))
 		goto skip_destroy;
 
@@ -100,7 +118,7 @@ static __nocfi ssize_t ksu_selinux_transaction_write(struct file *file, const ch
 	char kbuf[128];
 	size_t len = (size < 128) ? size : 127;
 
-	if (copy_from_user_retry(kbuf, buf, len))
+	if (!!copy_from_user(kbuf, buf, len))
 		goto skip_destroy;
 
 	kbuf[len] = '\0';
@@ -132,6 +150,8 @@ static __nocfi ssize_t ksu_selinux_transaction_write(struct file *file, const ch
 
 skip_destroy:
 	return selinux_transaction_write_fn(file, buf, size, pos);
+
+#endif
 }
 
 static void ksu_init_hook_transaction_ops_write()
@@ -163,7 +183,7 @@ static void ksu_init_hook_transaction_ops_write()
 	pr_info("selinux_hide: found transaction_ops->write at 0x%lx \n", (uintptr_t)fops->write);
 	selinux_transaction_write_fn = fops->write;
 
-	int ret = ksu_write_to_readonly_slot((uintptr_t)&fops->write, (uintptr_t)ksu_selinux_transaction_write);
+	int ret = patch_ro_slot((uintptr_t)&fops->write, (uintptr_t)ksu_selinux_transaction_write);
 	pr_info("selinux_hide: transaction_ops->write hijack ret: %d\n", ret);
 
 bail_out:
@@ -268,7 +288,7 @@ static void ksu_init_hook_sel_handle_status_ops_open()
 
 	sel_open_handle_status_fn = fops->open;
 
-	int ret = ksu_write_to_readonly_slot((uintptr_t)&fops->open, (uintptr_t)ksu_sel_open_handle_status);
+	int ret = patch_ro_slot((uintptr_t)&fops->open, (uintptr_t)ksu_sel_open_handle_status);
 	pr_info("selinux_hide: sel_handle_status_ops->open hijack ret: %d\n", ret);
 
 bail_out:
@@ -344,9 +364,9 @@ static int selinux_hide_feature_set(u64 value)
 	pr_info("selinux_hide: set to %d\n", enable);
 
 	if (enable)
-		ksu_selinux_hide_enabled = true;
+		WRITE_ONCE(ksu_selinux_hide_enabled, true);
 	else
-		ksu_selinux_hide_enabled = false;
+		WRITE_ONCE(ksu_selinux_hide_enabled, false);
 
 	return ret;
 }

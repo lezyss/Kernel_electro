@@ -123,9 +123,10 @@ check_ptr:
 	return true;
 }
 
-static __always_inline void ksu_sucompat_user_common(const char __user **filename_user, const char *syscall_name)
+static __always_inline bool ksu_sucompat_user_common(const char __user **filename_user, const char *syscall_name)
 {
 	uintptr_t buf;
+	bool su_session = false;
 	constexpr char su[16] = SU_PATH;
 
 	// sugar prep
@@ -152,35 +153,35 @@ static __always_inline void ksu_sucompat_user_common(const char __user **filenam
 
 #ifdef CONFIG_64BIT
 	if (get_user(buf, &fn_p[1]))
-		return;
+		return false;
 
 	if (likely((buf & 0x00FFFFFFFFFFFFFFUL) != (su_p[1] & 0x00FFFFFFFFFFFFFFUL)))
-		return;
+		return false;
 #else
 	if (get_user(buf, &fn_p[3]))
-		return;
+		return false;
 
 	if (likely((buf & 0x00FFFFFFUL) != (su_p[3] & 0x00FFFFFFUL)))
-		return;
+		return false;
 
 	if (unlikely(get_user(buf, &fn_p[2])))
-		return;
+		return false;
 
 	if (buf != su_p[2])
-		return;
+		return false;
 
 	if (unlikely(get_user(buf, &fn_p[1])))
-		return;
+		return false;
 
 	if (unlikely(buf != su_p[1]))
-		return;
+		return false;
 #endif
 	// last word
 	if (unlikely(get_user(buf, &fn_p[0])))
-		return;
+		return false;
 
 	if (unlikely(buf != su_p[0]))
-		return;
+		return false;
 
 	if (!__builtin_strcmp(syscall_name, "sys_faccessat"))
 		write_sulog('a');
@@ -199,9 +200,12 @@ static __always_inline void ksu_sucompat_user_common(const char __user **filenam
 	ksu_sulog_emit(KSU_SULOG_EVENT_SUCOMPAT, NULL, 0, GFP_KERNEL);
 #endif
 	if (!!escape_with_root_profile())
-		return;
+		return false;
 
+	su_session = true;
+#if !defined(CONFIG_KSU_SUSFS) || !defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE)
 	ksu_install_su_fd(); // ksu#3679
+#endif
 
 	// NOTE: we only check file existence, not exec success!
 	struct path kpath;
@@ -211,13 +215,13 @@ static __always_inline void ksu_sucompat_user_common(const char __user **filenam
 	path_put(&kpath);
 	pr_info("su_compat: %s su->ksud!%s\n", syscall_name, (is_compat_task()) ? " [compat]" : "" );
 	*filename_user = ksud_user_path();
-	return;
+	return su_session;
 
 no_ksud:
 no_escalate:
 	pr_info("su_compat: %s su->sh!%s\n", syscall_name, (is_compat_task()) ? " [compat]" : "" );
 	*filename_user = sh_user_path();
-	return;
+	return su_session;
 
 }
 
@@ -250,8 +254,7 @@ SUCOMPAT_HOOK_TYPE ksu_handle_sys_execve(const char __user **filename_user, void
 	if (!is_su_allowed((const void **)filename_user))
 		return 0;
 
-	ksu_sucompat_user_common(filename_user, "sys_execve");
-	return 0;
+	return ksu_sucompat_user_common(filename_user, "sys_execve");
 }
 
 // sys_execveat, compat_sys_execveat
@@ -263,8 +266,7 @@ SUCOMPAT_HOOK_TYPE ksu_handle_sys_execveat(int *fd, const char __user **filename
 	if (!is_su_allowed((const void **)filename_user))
 		return 0;
 
-	ksu_sucompat_user_common(filename_user, "sys_execveat");
-	return 0;
+	return ksu_sucompat_user_common(filename_user, "sys_execveat");
 }
 
 static __always_inline void ksu_sucompat_kernel_common(int *restrict fd, void **restrict filename_ptr, void *restrict argv, void *restrict envp, int *restrict flags, const char *function_name)
@@ -426,4 +428,18 @@ void __init ksu_sucompat_init()
 void __exit ksu_sucompat_exit()
 {
 	ksu_unregister_feature_handler(KSU_FEATURE_SU_COMPAT);
+}
+
+/* Original SUSFS 2.4 post-exec FD ordering, on the backslashxx syscall-table
+ * hooks (not duplicate official inline hooks). Failed/non-SU execs get no FD.
+ * Leave legacy, non-table integration modes on their upstream KSU path.
+ */
+static __always_inline long ksu_susfs_post_execve(bool su_session, long retval)
+{
+#if defined(CONFIG_KSU_SUSFS) && defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE)
+	if (su_session && !retval && uid_eq(current_uid(), GLOBAL_ROOT_UID) &&
+	    is_ksu_domain())
+		ksu_install_su_fd();
+#endif
+	return retval;
 }

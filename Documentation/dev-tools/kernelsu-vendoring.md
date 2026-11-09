@@ -3,8 +3,8 @@
 ## What is integrated
 
 - Fork: <https://github.com/backslashxx/KernelSU>
-- Selected tag: `v3.3.1+36`
-- Exact commit: `cbc0b49908066e9c7f778737f65a216f50b203ba`
+- Current selected tag: `v3.3.1-38`
+- Current exact commit: `feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb`
 - Location: `drivers/kernelsu/`, containing ordinary tracked source files.
 - Target: built-in KSU on ARM64 miatoll, Linux 4.14; native and compat hooks.
 
@@ -30,6 +30,20 @@ subsequent FinaSU-manager overlay is documented in `Documentation/dev-tools/fina
 after SUSFS when reproducing the current tree. There are now 15 local overrides
 and 89 files retaining their original upstream blob identity.
 Do not regenerate the old three-file-only manifest over the current one.
+
+## Update to v3.3.1-38
+
+See [`kernelsu-updates/v3.3.1-38.md`](kernelsu-updates/v3.3.1-38.md) and
+its replayable JSON/diff for the16-file upstream delta plus honest display update. Upstream rebased its
+history; the update compares exact104-file kernel trees, not a misleading
+three-dot commit list. Kernel version32717 is the actual upstream value.
+SUSFS/FinaSU seals remain historical and unchanged; the KSU update provides
+an explicit successor for the two overlapping SUSFS/FinaSU Makefile/dispatch records.
+
+**Sections1 onward below reproduce the historical +36 initial import**, followed
+by the SUSFS/FinaSU stages. They are not an instruction to downgrade an existing
+installation or regenerate its manifests. Apply the reviewed +38 successor only
+after those historical stages when reproducing the current source.
 
 ## 1. Download a specific revision outside the kernel tree
 
@@ -294,3 +308,11 @@ After a successful boot, check kernel version, KSU status in the manager,
 SELinux enforcing state, normal apps, 32-bit apps, reboot and recovery behavior.
 Grant root only to a trusted test shell/app, then test `su -c id`. No such device
 tests have been performed by this integration session.
+
+### Subsequent SUSFS 2.4 successor
+
+Current sources also carry the approved original SUSFS 2.4 backport. Consult
+`Documentation/filesystems/susfs/backport-2.4.0.md` and its validation receipt.
+The +38 upstream pin, old local inventory and manager seals remain unchanged;
+validation reconstructs their exact pre-2.4 bytes through a closed successor.
+This does not switch KSU forks/managers or activate the new priority filter.

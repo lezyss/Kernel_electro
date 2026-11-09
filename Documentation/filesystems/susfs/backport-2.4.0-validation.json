@@ -1,0 +1,370 @@
+{
+  "branch": "arena/e63a046d-kernel-electro",
+  "feature_matrix": {
+    "disabled": {
+      "config": {
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "n",
+        "CONFIG_LLVM_POLLY": "n"
+      },
+      "resolved_config_sha256": "03f41a0bddd3c6cb8ab092d8517a41ef8a8600d93d16ddccd0891afddf55ec29",
+      "status": "PASS (object compilation, not a full kernel link)"
+    },
+    "kstat": {
+      "config": {
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_SUSFS_ENABLE_LOG": "n",
+        "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": "n",
+        "CONFIG_KSU_SUSFS_OPEN_REDIRECT": "n",
+        "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME": "n",
+        "CONFIG_KSU_SUSFS_SUS_KSTAT": "y",
+        "CONFIG_KSU_SUSFS_SUS_MAP": "n",
+        "CONFIG_KSU_SUSFS_SUS_MOUNT": "n",
+        "CONFIG_KSU_SUSFS_SUS_PATH": "n",
+        "CONFIG_KSU_SUSFS_TRY_UMOUNT": "n",
+        "CONFIG_LLVM_POLLY": "n"
+      },
+      "resolved_config_sha256": "9af5e2bd3c2ceaf1e7a06c35498da9aec053532eb45e38ae852f365705d29736",
+      "status": "PASS (object compilation, not a full kernel link)"
+    },
+    "minimal": {
+      "config": {
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_SUSFS_ENABLE_LOG": "n",
+        "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": "n",
+        "CONFIG_KSU_SUSFS_OPEN_REDIRECT": "n",
+        "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME": "n",
+        "CONFIG_KSU_SUSFS_SUS_KSTAT": "n",
+        "CONFIG_KSU_SUSFS_SUS_MAP": "n",
+        "CONFIG_KSU_SUSFS_SUS_MOUNT": "n",
+        "CONFIG_KSU_SUSFS_SUS_PATH": "n",
+        "CONFIG_KSU_SUSFS_TRY_UMOUNT": "n",
+        "CONFIG_LLVM_POLLY": "n"
+      },
+      "resolved_config_sha256": "de436a435e41ef5016a58f3794ee3cf647f82de3e8b3d429a649c8cdf798c7eb",
+      "status": "PASS (object compilation, not a full kernel link)"
+    },
+    "mount": {
+      "config": {
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_SUSFS_ENABLE_LOG": "n",
+        "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": "n",
+        "CONFIG_KSU_SUSFS_OPEN_REDIRECT": "n",
+        "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME": "n",
+        "CONFIG_KSU_SUSFS_SUS_KSTAT": "n",
+        "CONFIG_KSU_SUSFS_SUS_MAP": "n",
+        "CONFIG_KSU_SUSFS_SUS_MOUNT": "y",
+        "CONFIG_KSU_SUSFS_SUS_PATH": "n",
+        "CONFIG_KSU_SUSFS_TRY_UMOUNT": "n",
+        "CONFIG_LLVM_POLLY": "n"
+      },
+      "resolved_config_sha256": "185b7095b6bb75f7c90ca371c588f1f23fb96d94ae65443628e6b6de78b3c3c1",
+      "status": "PASS (object compilation, not a full kernel link)"
+    },
+    "priority": {
+      "config": {
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_SUSFS_ENABLE_LOG": "n",
+        "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": "n",
+        "CONFIG_KSU_SUSFS_OPEN_REDIRECT": "n",
+        "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER": "y",
+        "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME": "n",
+        "CONFIG_KSU_SUSFS_SUS_KSTAT": "n",
+        "CONFIG_KSU_SUSFS_SUS_MAP": "n",
+        "CONFIG_KSU_SUSFS_SUS_MOUNT": "n",
+        "CONFIG_KSU_SUSFS_SUS_PATH": "n",
+        "CONFIG_KSU_SUSFS_TRY_UMOUNT": "n",
+        "CONFIG_LLVM_POLLY": "n"
+      },
+      "resolved_config_sha256": "cd7d57923d6a9fbe6647d724dbe500aafcf76caceac45edab91bdf78864842c1",
+      "status": "PASS (object compilation, not a full kernel link)"
+    },
+    "redirect": {
+      "config": {
+        "CONFIG_KSU": "y",
+        "CONFIG_KSU_SUSFS": "y",
+        "CONFIG_KSU_SUSFS_ENABLE_LOG": "n",
+        "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": "n",
+        "CONFIG_KSU_SUSFS_OPEN_REDIRECT": "y",
+        "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": "n",
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME": "n",
+        "CONFIG_KSU_SUSFS_SUS_KSTAT": "n",
+        "CONFIG_KSU_SUSFS_SUS_MAP": "n",
+        "CONFIG_KSU_SUSFS_SUS_MOUNT": "n",
+        "CONFIG_KSU_SUSFS_SUS_PATH": "n",
+        "CONFIG_KSU_SUSFS_TRY_UMOUNT": "n",
+        "CONFIG_LLVM_POLLY": "n"
+      },
+      "resolved_config_sha256": "2b060c5198290162abd1b3daa649ff0d6f0541fd5592ade1ee1215a161a6b9fb",
+      "status": "PASS (object compilation, not a full kernel link)"
+    }
+  },
+  "git_head_at_validation": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183",
+  "limits": [
+    "No device flash, boot, rooted Termux smoke or SMP/concurrency stress execution.",
+    "Feature matrix compiles objects; only the production full-feature profile was linked as a complete kernel.",
+    "Models do not prove real SELinux policy reload, FUSE/mount races, RO mapping behavior or all hook modes.",
+    "Post-exec FD change is for the selected syscall-table strategy; legacy non-table modes retain their upstream path.",
+    "Priority UID filtering is compile-tested but disabled, not activated or runtime-validated.",
+    "Existing unchanged GPU/HID/charger warnings occurred in the initial object compilation; no claim of warning-free builds. The standalone bpfilter link probe was skipped by the existing build machinery.",
+    "No commit, push, GitHub CI, release publication or manager replacement performed."
+  ],
+  "production_build": {
+    "artifact_storage": "Build outputs remain outside Git in the local cache; hashes are evidence, not published downloads.",
+    "artifacts": {
+      "arch/arm64/boot/Image": {
+        "bytes": 43202584,
+        "sha256": "3f712574dc8f05fc1ec802d7288c6921f7fbe3bbe22813c4eea0f1fc0920b1b8"
+      },
+      "arch/arm64/boot/Image.gz": {
+        "bytes": 17955518,
+        "sha256": "34e91f2893a9608cdfdd3aafa02eb912844a36ba554a6bc0ef02a2698181eb32"
+      },
+      "arch/arm64/boot/Image.gz-dtb": {
+        "bytes": 18285976,
+        "sha256": "4428fa46cc46a740e189cc75a049e433ca28191995a7596c303adcc87a4ebc70"
+      },
+      "arch/arm64/boot/dtb.img": {
+        "bytes": 330458,
+        "sha256": "6ae7105b5ad512e40af1f14e53a8c27010b2d7caf0934d53c58cfcc24cc3f239"
+      },
+      "arch/arm64/boot/dtbo.img": {
+        "bytes": 1050481,
+        "sha256": "39074126d4404b72ab59a8c17110badc814ff62b0042635bf2bf127b9f6becb7"
+      },
+      "net/ipv4/tcp_bic.ko": {
+        "bytes": 15232,
+        "sha256": "cec1bba5e35fe4f82a42214ebb9e0d99d46f4c25bb186ba91225e2fa86acae68"
+      },
+      "net/ipv4/tcp_htcp.ko": {
+        "bytes": 14136,
+        "sha256": "f2c7ed708249a0b200978b366c6a4740aa5d4eed2f81ae6165c134deabf4875c"
+      },
+      "vmlinux": {
+        "bytes": 52998768,
+        "sha256": "3bdf2fd3b1dcf5a1137a2e08c2cdab578ae7c68a9e6805d918854d61c0857f3b"
+      }
+    },
+    "configuration_note": "Generated LLVM_POLLY=n matches existing scripts/ci/build-kernel.sh; source defconfigs unchanged.",
+    "exit_code": 0,
+    "kernel_release": "4.14.357-electro",
+    "make_arguments": [
+      "O=$CACHE/out",
+      "ARCH=arm64",
+      "LLVM=1",
+      "LLVM_IAS=1",
+      "CROSS_COMPILE=aarch64-linux-gnu-",
+      "CLANG_TRIPLE=aarch64-linux-gnu-",
+      "CC=$CACHE/aosp/bin/clang",
+      "AS=$CACHE/aosp/bin/clang",
+      "LD=$CACHE/aosp/bin/ld.lld",
+      "AR=$CACHE/aosp/bin/llvm-ar",
+      "NM=$CACHE/aosp/bin/llvm-nm",
+      "STRIP=$CACHE/aosp/bin/llvm-strip",
+      "OBJCOPY=$CACHE/aosp/bin/llvm-objcopy",
+      "OBJDUMP=$CACHE/aosp/bin/llvm-objdump",
+      "READELF=$CACHE/aosp/bin/llvm-readelf",
+      "HOSTCC=$CACHE/aosp/bin/clang",
+      "HOSTCXX=$CACHE/aosp/bin/clang++",
+      "HOSTLDFLAGS=-fuse-ld=lld",
+      "HOSTCFLAGS=-I$CACHE/openssl-src/include",
+      "HOSTLDFLAGS=-fuse-ld=lld -L$CACHE/host-tools/lib"
+    ],
+    "parallel_jobs": 2,
+    "resolved_config_sha256": "833ff08df34f59ef6365099c769685e829c2237fe8e44cdedba7b002c2f00300",
+    "selected_config": {
+      "CONFIG_KSU": "y",
+      "CONFIG_KSU_SUSFS": "y",
+      "CONFIG_KSU_SUSFS_ENABLE_LOG": "y",
+      "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": "y",
+      "CONFIG_KSU_SUSFS_OPEN_REDIRECT": "y",
+      "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER": "n",
+      "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": "y",
+      "CONFIG_KSU_SUSFS_SPOOF_UNAME": "y",
+      "CONFIG_KSU_SUSFS_SUS_KSTAT": "y",
+      "CONFIG_KSU_SUSFS_SUS_MAP": "y",
+      "CONFIG_KSU_SUSFS_SUS_MOUNT": "y",
+      "CONFIG_KSU_SUSFS_SUS_PATH": "y",
+      "CONFIG_KSU_SUSFS_TRY_UMOUNT": "y",
+      "CONFIG_LLVM_POLLY": "n"
+    },
+    "status": "PASS",
+    "targets": [
+      "Image.gz-dtb",
+      "dtb.img",
+      "dtbo.img",
+      "modules"
+    ],
+    "vmlinux_elf": "ELF64 little-endian AArch64"
+  },
+  "resolved_build_issues": [
+    "Retained global susfs_starts_with() ABI for existing kernel/kallsyms.c hooks after a real full-link undefined-symbol failure.",
+    "Deferred the independent SUSFS mount marker until after physical unmount/credential restoration; a compiled early-hide mutant must fail."
+  ],
+  "schema": 1,
+  "scope_audit": {
+    "all_other_catalog_files": "SHA256 identical",
+    "approval_time_catalog_entries": 73036,
+    "changed_existing_files": [
+      "Documentation/dev-tools/kernelsu-vendoring.md",
+      "Documentation/filesystems/susfs/integration.md",
+      "Documentation/filesystems/susfs/upstream-2.4.0-review.md",
+      "block/ioprio.c",
+      "drivers/kernelsu/Kconfig",
+      "drivers/kernelsu/UPSTREAM.md",
+      "drivers/kernelsu/feature/kernel_umount.c",
+      "drivers/kernelsu/feature/selinux_hide.c",
+      "drivers/kernelsu/feature/sucompat.c",
+      "drivers/kernelsu/hook/syscall_table_hook_arm64.c",
+      "drivers/kernelsu/selinux/sepolicy.c",
+      "drivers/kernelsu/supercall/supercall.c",
+      "fs/namei.c",
+      "fs/namespace.c",
+      "fs/statfs.c",
+      "fs/susfs.c",
+      "include/linux/susfs.h",
+      "include/linux/susfs_def.h",
+      "kernel/sys.c",
+      "scripts/ci/build-kernel.sh",
+      "security/selinux/avc.c",
+      "security/selinux/hooks.c",
+      "security/selinux/include/security.h",
+      "security/selinux/selinuxfs.c",
+      "security/selinux/ss/services.c",
+      "tools/testing/selftests/kernelsu/test_integration.py",
+      "tools/testing/selftests/kernelsu/test_update.py",
+      "tools/testing/selftests/susfs/README",
+      "tools/testing/selftests/susfs/model.c",
+      "tools/testing/selftests/susfs/test_integration.py",
+      "tools/testing/selftests/susfs/test_provenance_overlays.py"
+    ],
+    "deleted_existing_files": [],
+    "index": "unchanged",
+    "new_files": [
+      "Documentation/filesystems/susfs/backport-2.4.0-validation.json",
+      "Documentation/filesystems/susfs/backport-2.4.0-validation.txt",
+      "Documentation/filesystems/susfs/backport-2.4.0.diff",
+      "Documentation/filesystems/susfs/backport-2.4.0.json",
+      "Documentation/filesystems/susfs/backport-2.4.0.md",
+      "tools/testing/selftests/susfs/provenance_240.py",
+      "tools/testing/selftests/susfs/test_backport_240.py"
+    ],
+    "preserved": "All historical seals; source defconfigs; workflow triggers; manager/package observer; NoMount source; unrelated BPF corrections; native ARM syscall-table source.",
+    "unchanged_existing_symlinks_verified_against_git_head": 29
+  },
+  "session_reference_date_utc": "2026-10-13",
+  "source": {
+    "backslashxx_ksu_revision": "feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb",
+    "branch": "gki-android12-5.10",
+    "closed_scope_sources": 20,
+    "commit": "45a057536ddba12fd59fb583a8f5375f83be703e",
+    "manifest": "Documentation/filesystems/susfs/backport-2.4.0.json",
+    "manifest_sha256": "56cb00f9efa712bbbea16ca68aa633f19264630ebe4dac4e0dce80db7432e10d",
+    "patch_sha256": "48130365518c732d6d09619963bb265628fd0e3b4844bdbcc5424004cd75f2eb",
+    "postimage_sha256": {
+      "block/ioprio.c": "7818be852a936e9687a4fdf83e7d3a4e0a7830620db7e048d45c64d859a29fdd",
+      "drivers/kernelsu/Kconfig": "43569500b5ca62ebc8d48040c110e0d6b00ec4cacf46b7a33010d2a1bf28c952",
+      "drivers/kernelsu/feature/kernel_umount.c": "623dc6ed18495b0750167aa2b41308f19702be75e449b19a228f42f783d90814",
+      "drivers/kernelsu/feature/selinux_hide.c": "a9d5498af2a12708899c7cf21387a1c9a356fae82b095bb6d32f3fdb320e9126",
+      "drivers/kernelsu/feature/sucompat.c": "dcb481463c12146d97b7430c42f6eb06e3c81d267ee6ec094f9a1f106458ebb6",
+      "drivers/kernelsu/hook/syscall_table_hook_arm64.c": "1bb3632fd9b8a2073536dd2eaa523fc3b9add91eb7984f1b3c581580e05f0724",
+      "drivers/kernelsu/selinux/sepolicy.c": "92a952aaa175d7872c3a59b794f89d6ec90adf305869d5bb1020d53061312e37",
+      "drivers/kernelsu/supercall/supercall.c": "f7352355b70c1f605319bfb255328fde60fbc7511209acda53fc8e1b30216357",
+      "fs/namei.c": "30037cadbf794323e20cb6d434543e656a0d93ab4abecc4267a042d213ea96d8",
+      "fs/namespace.c": "e88fe67b17695311fb9d432339dcca8c7b94b622a90e32a852e76b7eb46cc77a",
+      "fs/statfs.c": "46b0ae0b7d46f40bc7e1469dc921d085069496a6b585a28027530d6a4432096f",
+      "fs/susfs.c": "70501d51b64e5e733750aa971766be6880c9fb98db73b8c9e8591e416cf20f78",
+      "include/linux/susfs.h": "a012ba68c3637c171e8656c3facb73470ecd84dc359cf1ff30296ed06b444dff",
+      "include/linux/susfs_def.h": "4d64b904cc7dd73e9d8c92b8dc88f4c9253adacec96283cf0d2f7c7ba7304f87",
+      "kernel/sys.c": "503bdaf83522075beded29a1b30e638528a63ba94f9021b215017de35f0978a3",
+      "security/selinux/avc.c": "2c3a9e98b5dbed4b0bf10380eb5b2bf9d1d161dcd6075e5b2606cfcf756c3661",
+      "security/selinux/hooks.c": "b76e1ebe92f11d47ce15509c96b733abb753fd0396f7d47f81984b16420581de",
+      "security/selinux/include/security.h": "ac9fd2feeee6aa5f29ad96aedd87bc8815b1f45291fd0decbac67ec1a9c9a17d",
+      "security/selinux/selinuxfs.c": "58a9e9add45e475f234ca0b062e4989bac83af302ba89bb55301e33d5135e159",
+      "security/selinux/ss/services.c": "f9a2e9892fcd366dc6160eb0bd5f580e1148dd8aa9860dd14bc73c8f3a157062"
+    },
+    "repository": "https://gitlab.com/simonpunk/susfs4ksu",
+    "transport_mirror": "https://github.com/ShirkNeko/susfs4ksu",
+    "transport_note": "Identical original Git commit/tree objects; no mirror-specific changes.",
+    "tree": "a90aee9a6a867ce1954b89bb4dd95d77872b0193"
+  },
+  "status": "PASS: local compilation and bounded host validation; device validation pending",
+  "toolchain": {
+    "aosp_commit": "3b86e40facfff1eab4065614255d573293c10373",
+    "git_blob_verification": {
+      "bin/clang": "a37922b5518c7de12f9e6813e6634a95f7eeda3a",
+      "bin/clang++": "a37922b5518c7de12f9e6813e6634a95f7eeda3a",
+      "bin/clang-23": "5bdeae5638da6b57380da4d1d286eed31c4dd1b0",
+      "bin/clang-real": "58a2996035002836a7e3a2201aa9814454e8f255",
+      "bin/ld.lld": "02416ace5e341379e1693f750b6bee574be7f22a",
+      "bin/lld": "f421e419d4b6a17ccd9587905df7d030672abe54",
+      "bin/llvm-ar": "8a2f6ebb607f79472a1330c2da5a466f5bf2e433",
+      "bin/llvm-nm": "82e97864c9689e8660aa0b2984c2d30231b83676",
+      "bin/llvm-objcopy": "c0ea1d055aee394efb12d8b173f4cb136e1b489c",
+      "bin/llvm-objdump": "ca459671a823f9303f6dd44a6a1bee4d99fa3fad",
+      "bin/llvm-readelf": "a39a9213133b7caefbc005c5356d8e07944c118a",
+      "bin/llvm-readobj": "ba9ce0fddaf93997872c36abf29962fe46b83e50",
+      "bin/llvm-strip": "caea5a718f0a6764657322db061ba7f1d9914bd8"
+    },
+    "kernel_and_kernel_host_compiler": "Pinned AOSP Clang; no GCC target compiler",
+    "revision": "r614150",
+    "version": "Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)"
+  },
+  "validation": {
+    "aarch64_payload_abi": {
+      "compiler_flags": [
+        "--target=aarch64-linux-gnu",
+        "-ffreestanding",
+        "-nostdinc",
+        "-Werror"
+      ],
+      "elf": "ELF64 little-endian AArch64",
+      "object_sha256": "86e1cac4709c84614f8061c59c5b55720ccd7f01cceebdca1a738fa8738eaf8e",
+      "status": "PASS (compile only)"
+    },
+    "backport_models": {
+      "compiled_runtime_negatives": 5,
+      "compilers": [
+        "AOSP Clang host with UBSan",
+        "GCC host with UBSan"
+      ],
+      "lp64_field_offsets": 45,
+      "post_exec_fd": 40,
+      "post_lookup_lifetime": 33,
+      "statfs": 33,
+      "type_av_registry": 4396
+    },
+    "ci_shell_syntax": "PASS",
+    "finasu_host_cases_selected_manual_strategy": 947,
+    "ksu_update_host_cases": 1154,
+    "ksu_vendored_inventory": 104,
+    "log": "Documentation/filesystems/susfs/backport-2.4.0-validation.txt",
+    "log_sha256": "89325c37055d4e1fa2cf03a3095b60fa11352e44e546624ca62ab0a2610aa036",
+    "nomount_source_config": "PASS",
+    "original_susfs_models": {
+      "authorization": 272,
+      "compiled_runtime_negatives": 6,
+      "pagemap": 2404,
+      "readlink": 3010,
+      "unmount_guards_and_ordering": 1792
+    },
+    "phoenix_host_and_negative_suites": [
+      "phase01 PASS",
+      "phase02 PASS",
+      "phase03 PASS"
+    ],
+    "provenance_tamper_controls": 30
+  }
+}

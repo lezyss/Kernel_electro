@@ -1,3 +1,9 @@
+#ifdef CONFIG_KSU_SUSFS
+extern int susfs_add_sus_avd_allowed_by_type(u32 s_type, u32 t_type,
+		u32 c_type, u32 orig_avd_allowed);
+extern int susfs_add_sus_type(const char *secctx, u32 type_value);
+#endif
+
 #define KSU_SUPPORT_ADD_TYPE
 
 /*
@@ -338,6 +344,12 @@ static bool add_rule_raw(struct policydb *db, struct type_datum *src, struct typ
 			if (!node)
 				return false;
 		}
+
+#ifdef CONFIG_KSU_SUSFS
+		if (effect == AVTAB_ALLOWED)
+			susfs_add_sus_avd_allowed_by_type(src->value, tgt->value,
+					cls->value, node->datum.u.data);
+#endif
 
 		if (invert) {
 			if (perm)
@@ -731,6 +743,15 @@ static bool add_type(struct policydb *db, const char *type_name, bool attr)
 #ifdef KSU_SUPPORT_ADD_TYPE
 	struct type_datum *type = symtab_search(&db->p_types, type_name);
 	if (type) {
+#ifdef CONFIG_KSU_SUSFS
+		/* Backslashxx uses the ROM's su type, not official KSU's new ksu
+		 * type. Preserve hiding of its explicit SU labels when preexisting,
+		 * without hiding arbitrary existing types requested by modules.
+		 */
+		if (!attr && (!strcmp(type_name, KERNEL_SU_DOMAIN) ||
+			      !strcmp(type_name, KERNEL_SU_FILE)))
+			susfs_add_sus_type(type_name, type->value);
+#endif
 		pr_warn("Type %s already exists\n", type_name);
 		return true;
 	}
@@ -851,6 +872,11 @@ static bool add_type(struct policydb *db, const char *type_name, bool attr)
 		ebitmap_set_bit(&db->role_val_to_struct[i]->types, value - 1,
 				1);
 	}
+
+#ifdef CONFIG_KSU_SUSFS
+	if (!attr)
+		susfs_add_sus_type(type_name, type->value);
+#endif
 
 	return true;
 

@@ -75,6 +75,10 @@
 
 #include "uid16.h"
 
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+extern bool susfs_is_priority_uid_filtered(uid_t uid);
+#endif
+
 #ifndef SET_UNALIGN_CTL
 # define SET_UNALIGN_CTL(a, b)	(-EINVAL)
 #endif
@@ -233,6 +237,11 @@ SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
 		break;
 	case PRIO_USER:
 		uid = make_kuid(cred->user_ns, who);
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+		if (current_uid().val >= 10000 &&
+		    susfs_is_priority_uid_filtered(who ? __kuid_val(uid) : __kuid_val(current_uid())))
+			break;
+#endif
 		user = cred->user;
 		if (!who)
 			uid = cred->uid;
@@ -301,6 +310,11 @@ SYSCALL_DEFINE2(getpriority, int, which, int, who)
 		break;
 	case PRIO_USER:
 		uid = make_kuid(cred->user_ns, who);
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+		if (current_uid().val >= 10000 &&
+		    susfs_is_priority_uid_filtered(who ? __kuid_val(uid) : __kuid_val(current_uid())))
+			break;
+#endif
 		user = cred->user;
 		if (!who)
 			uid = cred->uid;

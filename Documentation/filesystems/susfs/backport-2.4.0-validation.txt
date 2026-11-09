@@ -1,0 +1,201 @@
+SUSFS 2.4.0 final-source local validation
+Source manifest SHA256: 56cb00f9efa712bbbea16ca68aa633f19264630ebe4dac4e0dce80db7432e10d
+
+=== AOSP Clang host suites ===
+SUSFS pinned source/hooks and full configuration: PASS
+SUSFS reboot command authorization: 272 cases PASS
+KSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS
+Readlink truncation/count/fault/hash collision: 3010 cases PASS
+Pagemap byte accounting/buffer bounds: 2404 cases PASS
+Flag negation and mount-ID ownership: PASS
+PASS: real SELinux core preserved; physical-unmount guards, 8 ARM64 native/compat ABI wrappers, atomic writers and cmdline contracts
+PASS: 4396 extracted type/AV full-key, collision, first-value and allocation cases
+PASS: 40 extracted post-exec SU-session FD authorization/result cases
+PASS: 33 extracted statfs flags/fallback/security/error cases
+PASS: 33 extracted post-lookup SUS_PATH/FUSE/create/fault/lifetime cases
+PASS: extracted LP64 command-payload sizes and 45 field offsets
+PASS: rejected type-bucket
+PASS: rejected av-tuple
+PASS: rejected pre-exec-fd
+PASS: rejected overwrite-flags
+PASS: rejected lookup-before-inode
+PASS: rejected header tamper
+PASS: rejected broken SUSFS preimage
+PASS: rejected broken pre-BPF chain
+PASS: rejected broadened overlay scope
+PASS: rejected patch tamper
+PASS: rejected unsafe patch path
+PASS: rejected missing overlay
+PASS: rejected missing BPF manifest
+PASS: rejected duplicate BPF record
+PASS: rejected changed BPF postimage
+PASS: rejected unrelated SUSFS hook tamper
+PASS: rejected FinaSU dispatch tamper
+PASS: rejected wrong reference revision
+PASS: rejected missing Phoenix overlay
+PASS: rejected Phoenix patch tamper
+PASS: rejected Phoenix preimage tamper
+PASS: rejected Phoenix scope broadening
+PASS: rejected unsafe Phoenix patch
+PASS: rejected missing KSU update
+PASS: rejected KSU patch tamper
+PASS: rejected KSU preimage tamper
+PASS: rejected KSU postimage tamper
+PASS: rejected KSU scope broadening
+PASS: rejected unsafe KSU patch
+PASS: rejected missing 2.4 successor
+PASS: rejected 2.4 patch tamper
+PASS: rejected 2.4 source tamper
+PASS: rejected 2.4 manifest reseal
+PASS: rejected 2.4 scope broadening
+PASS: rejected unsafe 2.4 patch
+PASS: reviewed overlay and all 30 provenance negative controls
+KernelSU: 104 vendored files/provenance, wiring and built-in configuration PASS
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 945 checks PASS (Kprobes)
+FinaSU extracted-source auth/UID/scanner/metadata: 947 checks PASS (Manual)
+FinaSU: pinned six-source overlay, secure package binding and honest display ABI PASS
+PASS: pinned 16-file upstream delta + honest display update, exact inverse/forward replay and source hashes
+PASS: rejected FinaSU false-version
+PASS: rejected FinaSU resealed-body
+PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases
+PASS: rejected fault-status
+PASS: rejected address-limit
+PASS: rejected fallback
+PASS: rejected zero-size
+LIMITS: host models only; not a pinned-Clang kernel build, real RO mappings, SMP, module loading or device boot proof.
+NoMount vendored-source, wiring and configuration checks: PASS
+PASS: compiled semantic negative rejected: no-auth
+PASS: compiled semantic negative rejected: no-zygote-guard
+PASS: compiled semantic negative rejected: readlink-zero-count
+PASS: compiled semantic negative rejected: hash-collision
+PASS: compiled semantic negative rejected: free-borrowed-id
+PASS: compiled semantic negative rejected: early-hide
+
+=== GCC backport cross-check ===
+PASS: real SELinux core preserved; physical-unmount guards, 8 ARM64 native/compat ABI wrappers, atomic writers and cmdline contracts
+PASS: 4396 extracted type/AV full-key, collision, first-value and allocation cases
+PASS: 40 extracted post-exec SU-session FD authorization/result cases
+PASS: 33 extracted statfs flags/fallback/security/error cases
+PASS: 33 extracted post-lookup SUS_PATH/FUSE/create/fault/lifetime cases
+PASS: extracted LP64 command-payload sizes and 45 field offsets
+PASS: rejected type-bucket
+PASS: rejected av-tuple
+PASS: rejected pre-exec-fd
+PASS: rejected overwrite-flags
+PASS: rejected lookup-before-inode
+
+=== Phoenix phase 01 ===
+PASS: pidfd ordering, cleanup, MGLRU, flush and failure-propagation source guards
+PASS: rejected regression pidfd-install-under-lock
+PASS: RR helper native/compat error-first uaccess, success, bad pointer, PID0 and zero slice (1 paths)
+PASS: rejected regression rr-native
+PASS: RR helper native/compat error-first uaccess, success, bad pointer, PID0 and zero slice (2 paths)
+PASS: rejected regression rr-compat
+PASS:16 alloc_pid error/success scenarios including partial explicit PIDs and own-namespace cleanup
+PASS: rejected regression pid-errors
+PASS:clone3 selftest helper reports success0/syscall error/wait error/child exit/signaled child
+PASS: rejected regression clone-selftest
+LIMITS: mocked kernel operations and source ordering only; no target build, real clone/PID namespace, SMP/lockdep, device or performance proof.
+
+=== Phoenix phase 02 ===
+PASS: producer/codec consistency, retained signal/LSM boundaries, ARM/Xtensa TLS source and six-child plan/exit/report integration
+PASS:actual clone3 TLS preprocessing guard rejects missing implementation only when clone3 is requested
+PASS: owner TID/TGID/PGRP codec, live/dead/absent dispatch, lock balance, errors and clear
+PASS:75 count assertions; inherited failures, six counters, >255, real pipe/fork, malformed/missing and atomic overflow rejection
+PASS:56 actual genfs predicates (cgroup policycap on/off); FunctionFS special, securityfs genfs-only
+PASS:512 extracted ARM/Xtensa TLS assignments, distinct from legacy register/inherited value
+PASS:6 actual generic compat macro arities, prototypes and callable aliases (long-argument host model)
+PASS: rejected regression sigio-null
+PASS: rejected regression sigurg-null
+PASS: rejected regression owner-codec
+PASS: rejected regression tls-legacy-value
+PASS: rejected regression functionfs-policycap-gated
+PASS: rejected regression counts-overwrite-parent
+PASS: rejected regression counts-inherited-baseline
+PASS: rejected regression counts-overflow
+LIMITS: host GCC/UBSan/source predicates only; no real signal races/LSM decisions, target build, clone3 namespaces or enforcing ROM/USB/ADB proof.
+
+=== Phoenix phase 03 ===
+PASS:218 unique weak fallbacks including clone3/BPF/legacy quota/ppc, -ENOSYS unchanged
+PASS:actual native ARM optional-clobber syntax, built-in/module-long-call variants
+PASS:fork collector registration/all-path cleanup/fatal abort/group-stop, BPF/pidfd/MGLRU order, timer lifetime and schedule-tail source guards
+PASS:160 legacy module iov_shorten count/truncation/zero/boundary cases
+PASS:106 extracted eventfd allocation/flags/cleanup/refcount/counter/semaphore/wait/signal/EFAULT/legacy-export cases
+PASS:1920 extracted multiprocess collector/private-shared queue cases
+PASS:97 actual syscall forwarding bodies: distinct arguments and negative helper return values
+PASS:compat sigsets words=1, endian=LE,100 high-bit roundtrips + uaccess failures
+PASS:compat sigsets words=1, endian=BE,100 high-bit roundtrips + uaccess failures
+PASS:compat sigsets words=2, endian=LE,100 high-bit roundtrips + uaccess failures
+PASS:compat sigsets words=2, endian=BE,100 high-bit roundtrips + uaccess failures
+PASS:compat sigsets words=3, endian=LE,100 high-bit roundtrips + uaccess failures
+PASS:compat sigsets words=3, endian=BE,100 high-bit roundtrips + uaccess failures
+PASS:compat sigsets words=4, endian=LE,100 high-bit roundtrips + uaccess failures
+PASS:compat sigsets words=4, endian=BE,100 high-bit roundtrips + uaccess failures
+PASS: rejected bad native ARM optional-clobber syntax, built-in/module-long-call variants
+PASS: rejected legacy module export removal
+PASS: rejected regression eventfd-cleanup
+PASS: rejected regression eventfd-counter
+PASS: rejected regression forwarding-arguments
+PASS: rejected regression collect-tgid
+PASS: rejected regression stop-cont
+PASS: rejected regression private-queue
+PASS: rejected regression signed-high-half
+PASS: rejected regression missing-cleanup
+PASS: rejected regression fatal-abort
+LIMITS:mock/extracted-source/host UBSan checks only, not real RCU/signal/fork/namespace/SELinux concurrency or target boot proof.
+
+=== Production image/module build (successful final run, tail) ===
+-- SUSFS_VERSION: v2.4.0
+  CC      drivers/kernelsu/ksu.o
+  AR      drivers/kernelsu/kernelsu.o
+  AR      drivers/kernelsu/built-in.a
+$SOURCE/net/Makefile:24: CC cannot link executables. Skipping bpfilter.
+  DTC     arch/arm64/boot/dts/qcom/cust-atoll-ab.dtb
+  DTC     arch/arm64/boot/dts/qcom/curtana-atoll-ab-idp-overlay.dtbo
+  DTC     arch/arm64/boot/dts/qcom/excalibur-atoll-ab-idp-overlay.dtbo
+  DTC     arch/arm64/boot/dts/qcom/gram-atoll-ab-idp-overlay.dtbo
+  DTC     arch/arm64/boot/dts/qcom/joyeuse-atoll-ab-idp-overlay.dtbo
+  DTC     arch/arm64/boot/dts/qcom/cust-atoll-ab.dtb
+  CAT     arch/arm64/boot/dtb.img
+  DTBOIMG arch/arm64/boot/dtbo.img
+  AR      drivers/built-in.a
+  GEN     .version
+  CHK     include/generated/compile.h
+  UPD     include/generated/compile.h
+  CC      init/version.o
+  AR      init/built-in.a
+  AR      built-in.a
+  LTO     vmlinux.o
+  MODPOST vmlinux.o
+  KSYM    .tmp_kallsyms1.o
+  KSYM    .tmp_kallsyms2.o
+  LD      vmlinux
+  SORTEX  vmlinux
+  SYSMAP  System.map
+  Building modules, stage 2.
+  OBJCOPY arch/arm64/boot/Image
+  LD [M]  net/ipv4/tcp_bic.lto.o
+  LD [M]  net/ipv4/tcp_htcp.lto.o
+  MODPOST 2 modules
+  CC      net/ipv4/tcp_bic.mod.o
+  GZIP    arch/arm64/boot/Image.gz
+  CC      net/ipv4/tcp_htcp.mod.o
+  LD [M]  net/ipv4/tcp_bic.ko
+  LD [M]  net/ipv4/tcp_htcp.ko
+  DTC     arch/arm64/boot/dts/qcom/cust-atoll-ab.dtb
+  CAT     arch/arm64/boot/Image.gz-dtb
+make[1]: Leaving directory '$CACHE/out'
+FULL MIATOLL BUILD PASS: exit 0
+
+=== Optional-feature object matrix ===
+MATRIX PASS: disabled
+MATRIX PASS: minimal
+MATRIX PASS: kstat
+MATRIX PASS: mount
+MATRIX PASS: redirect
+MATRIX PASS: priority
+
+Whole approval-time catalog audit: 73036 existing files checked; 31 deliberately changed; no deletions; all other files identical.
+Ordinary Git index unchanged; no commit, push, CI or device execution.
