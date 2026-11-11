@@ -1,0 +1,364 @@
+{
+  "status": "Applied user-authorized13-item selection with native corrections; locally validated; authorized normal push to same branch. No CI. Receipt is part of commit; its own commit SHA is verified after creation, not embedded recursively.",
+  "authorized_items": [
+    46,
+    47,
+    48,
+    52,
+    56,
+    57,
+    58,
+    78,
+    79,
+    92,
+    93,
+    94,
+    98
+  ],
+  "donors": [
+    {
+      "review_item": 46,
+      "commit": "dd7a5c396220c22784135cfcc755de3bb3d6f110",
+      "subject": "sched: Allow newidle balancing to bail out of load_balance",
+      "files": [
+        "kernel/sched/fair.c"
+      ],
+      "reviewed_file_patch_sha256": "a3443348c6ffc37e485288a84965aa58cb43a2c909a6ce93a1d319c6bc18b06b",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "stable_id": "A01-046",
+      "donor_patch": "--- a/kernel/sched/fair.c\n+++ b/kernel/sched/fair.c\n@@ -11237,9 +11237,20 @@ static int should_we_balance(struct lb_env *env)\n \t/*\n \t * In the newly idle case, we will allow all the cpu's\n \t * to do the newly idle load balance.\n+\t *\n+\t * However, we bail out if we already have tasks or a wakeup pending,\n+\t * to optimize wakeup latency.\n \t */\n-\tif (env->idle == CPU_NEWLY_IDLE)\n+\tif (env->idle == CPU_NEWLY_IDLE) {\n+#if SCHED_FEAT_TTWU_QUEUE\n+\t\tif (env->dst_rq->nr_running > 0 || !llist_empty(&env->dst_rq->wake_list))\n+\t\t\treturn 0;\n+#else\n+\t\tif (env->dst_rq->nr_running > 0)\n+\t\t\treturn 0;\n+#endif\n \t\treturn 1;\n+\t}\n \n \t/* Try to find first idle cpu */\n \tfor_each_cpu_and(cpu, group_balance_mask(sg), env->cpus) {\n",
+      "donor_patch_sha256": "a3443348c6ffc37e485288a84965aa58cb43a2c909a6ce93a1d319c6bc18b06b",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/dd7a5c396220c22784135cfcc755de3bb3d6f110"
+    },
+    {
+      "review_item": 47,
+      "commit": "542e7b0ac23af11146f642c4787a2b11bebf4454",
+      "subject": "cpufreq: schedutil: Inline `sugov_policy_free()`",
+      "files": [
+        "kernel/sched/cpufreq_schedutil.c"
+      ],
+      "reviewed_file_patch_sha256": "8e3f658e897afe8c3c2a85a4e9cb108b40270bd4252d83e8239d2355815a2b59",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "stable_id": "A01-047",
+      "donor_patch": "--- a/kernel/sched/cpufreq_schedutil.c\n+++ b/kernel/sched/cpufreq_schedutil.c\n@@ -645,7 +645,7 @@ static struct sugov_policy *sugov_policy_alloc(struct cpufreq_policy *policy)\n \treturn sg_policy;\n }\n \n-static void sugov_policy_free(struct sugov_policy *sg_policy)\n+static inline void sugov_policy_free(struct sugov_policy *sg_policy)\n {\n \tkfree(sg_policy);\n }\n",
+      "donor_patch_sha256": "8e3f658e897afe8c3c2a85a4e9cb108b40270bd4252d83e8239d2355815a2b59",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/542e7b0ac23af11146f642c4787a2b11bebf4454"
+    },
+    {
+      "review_item": 48,
+      "commit": "403836055eec7478e4e431828f0be0d650c39f9c",
+      "subject": "sched: Optimize __calc_delta()",
+      "files": [
+        "kernel/sched/fair.c",
+        "kernel/sched/sched.h"
+      ],
+      "reviewed_file_patch_sha256": "62dc6a0ebb5283c29894d767a07e988506ad4e4452a28116ae80e23c31a66173",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "stable_id": "A01-048",
+      "donor_patch": "--- a/kernel/sched/fair.c\n+++ b/kernel/sched/fair.c\n@@ -404,23 +404,26 @@ static void __update_inv_weight(struct load_weight *lw)\n static u64 __calc_delta(u64 delta_exec, unsigned long weight, struct load_weight *lw)\n {\n \tu64 fact = scale_load_down(weight);\n+\tu32 fact_hi = (u32)(fact >> 32);\n \tint shift = WMULT_SHIFT;\n+\tint fs;\n \n \t__update_inv_weight(lw);\n \n-\tif (unlikely(fact >> 32)) {\n-\t\twhile (fact >> 32) {\n-\t\t\tfact >>= 1;\n-\t\t\tshift--;\n-\t\t}\n+\tif (unlikely(fact_hi)) {\n+\t\tfs = fls(fact_hi);\n+\t\tshift -= fs;\n+\t\tfact >>= fs;\n \t}\n \n \t/* hint to use a 32x32->64 mul */\n \tfact = (u64)(u32)fact * lw->inv_weight;\n \n-\twhile (fact >> 32) {\n-\t\tfact >>= 1;\n-\t\tshift--;\n+\tfact_hi = (u32)(fact >> 32);\n+\tif (fact_hi) {\n+\t\tfs = fls(fact_hi);\n+\t\tshift -= fs;\n+\t\tfact >>= fs;\n \t}\n \n \treturn mul_u64_u32_shr(delta_exec, fact, shift);\n--- a/kernel/sched/sched.h\n+++ b/kernel/sched/sched.h\n@@ -25,6 +25,7 @@\n #include <linux/u64_stats_sync.h>\n #include <linux/kernel_stat.h>\n #include <linux/binfmts.h>\n+#include <linux/bitops.h>\n #include <linux/mutex.h>\n #include <linux/psi.h>\n #include <linux/spinlock.h>\n",
+      "donor_patch_sha256": "62dc6a0ebb5283c29894d767a07e988506ad4e4452a28116ae80e23c31a66173",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/403836055eec7478e4e431828f0be0d650c39f9c"
+    },
+    {
+      "review_item": 52,
+      "commit": "c0ff2a937bff4080b8be6ece6e97ec193e2edfb0",
+      "subject": "cpuidle: lpm_levels: Don't print parent clocks during suspend",
+      "files": [
+        "drivers/cpuidle/lpm-levels.c"
+      ],
+      "reviewed_file_patch_sha256": "432b93710f65c762ce49ee7b45fc21f430e421504679e85cf24b7c96f9d49785",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "stable_id": "A01-052",
+      "donor_patch": "--- a/drivers/cpuidle/lpm-levels.c\n+++ b/drivers/cpuidle/lpm-levels.c\n@@ -254,7 +254,7 @@ static int cluster_configure(struct lpm_cluster *cluster, int idx,\n \t\t * LPMs(XO and Vmin).\n \t\t */\n \t\tif (!from_idle)\n-\t\t\tclock_debug_print_enabled(true);\n+\t\t\tclock_debug_print_enabled(false);\n \n \t\tcpu = get_next_online_cpu(from_idle);\n \t\tcpumask_copy(&cpumask, cpumask_of(cpu));\n",
+      "donor_patch_sha256": "432b93710f65c762ce49ee7b45fc21f430e421504679e85cf24b7c96f9d49785",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/c0ff2a937bff4080b8be6ece6e97ec193e2edfb0"
+    },
+    {
+      "review_item": 56,
+      "commit": "69cf714073ebe9a68322e5d9041cb325220c0dcd",
+      "subject": "dm-verity: Enable WQ_HIGHPRI on verify_wq",
+      "files": [
+        "drivers/md/dm-verity-target.c"
+      ],
+      "reviewed_file_patch_sha256": "b20fb0ba17e6cb5194cf35df38f98dbcca43edc73957ac79c0c87d46aefa7a57",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "stable_id": "A01-056",
+      "donor_patch": "--- a/drivers/md/dm-verity-target.c\n+++ b/drivers/md/dm-verity-target.c\n@@ -1219,7 +1219,16 @@ int verity_ctr(struct dm_target *ti, unsigned argc, char **argv)\n \t}\n \n \t/* WQ_UNBOUND greatly improves performance when running on ramdisk */\n-\tv->verify_wq = alloc_workqueue(\"kverityd\", WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM | WQ_UNBOUND, num_online_cpus());\n+\t/*\n+\t * Using WQ_HIGHPRI improves throughput and completion latency by\n+\t * reducing wait times when reading from a dm-verity device.\n+\t *\n+\t * Also as required for the \"try_verify_in_tasklet\" feature: WQ_HIGHPRI\n+\t * allows verify_wq to preempt softirq since verification in tasklet\n+\t * will fall-back to using it for error handling (or if the bufio cache\n+\t * doesn't have required hashes).\n+\t */\n+\tv->verify_wq = alloc_workqueue(\"kverityd\", WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM | WQ_UNBOUND | WQ_HIGHPRI, num_online_cpus());\n \tif (!v->verify_wq) {\n \t\tti->error = \"Cannot allocate workqueue\";\n \t\tr = -ENOMEM;\n",
+      "donor_patch_sha256": "b20fb0ba17e6cb5194cf35df38f98dbcca43edc73957ac79c0c87d46aefa7a57",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/69cf714073ebe9a68322e5d9041cb325220c0dcd"
+    },
+    {
+      "review_item": 57,
+      "commit": "94a730ad07912c7157f227585a1a90c117e705bd",
+      "subject": "dm-verity: Stop using WQ_UNBOUND for verify_wq",
+      "files": [
+        "drivers/md/dm-verity-target.c"
+      ],
+      "reviewed_file_patch_sha256": "5cd1292638c0dfc728ab13a59cf784026f733bde25d911632a2331c5a6026520",
+      "exact_patch_check_pass": false,
+      "diagnostic": "error: patch failed: drivers/md/dm-verity-target.c:1218\nerror: drivers/md/dm-verity-target.c: patch does not apply",
+      "stable_id": "A01-057",
+      "donor_patch": "--- a/drivers/md/dm-verity-target.c\n+++ b/drivers/md/dm-verity-target.c\n@@ -1218,7 +1218,6 @@ int verity_ctr(struct dm_target *ti, unsigned argc, char **argv)\n \t\tgoto bad;\n \t}\n \n-\t/* WQ_UNBOUND greatly improves performance when running on ramdisk */\n \t/*\n \t * Using WQ_HIGHPRI improves throughput and completion latency by\n \t * reducing wait times when reading from a dm-verity device.\n@@ -1228,7 +1227,7 @@ int verity_ctr(struct dm_target *ti, unsigned argc, char **argv)\n \t * will fall-back to using it for error handling (or if the bufio cache\n \t * doesn't have required hashes).\n \t */\n-\tv->verify_wq = alloc_workqueue(\"kverityd\", WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM | WQ_UNBOUND | WQ_HIGHPRI, num_online_cpus());\n+\tv->verify_wq = alloc_workqueue(\"kverityd\", WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM | WQ_HIGHPRI, 0);\n \tif (!v->verify_wq) {\n \t\tti->error = \"Cannot allocate workqueue\";\n \t\tr = -ENOMEM;\n",
+      "donor_patch_sha256": "5cd1292638c0dfc728ab13a59cf784026f733bde25d911632a2331c5a6026520",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/94a730ad07912c7157f227585a1a90c117e705bd"
+    },
+    {
+      "review_item": 58,
+      "commit": "324bac57ebadbd785dbb0e666505b650880c4fa1",
+      "subject": "adreno: Stop reading registers just for debugging",
+      "files": [
+        "drivers/gpu/msm/adreno.c",
+        "drivers/gpu/msm/kgsl_gmu_core.c",
+        "drivers/gpu/msm/kgsl_gmu_core.h"
+      ],
+      "reviewed_file_patch_sha256": "0ed385b752005db5ca48b1e4fe9f002a0f2b95735897aea5ffbd95b2e3ccc609",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "stable_id": "A01-058",
+      "donor_patch": "--- a/drivers/gpu/msm/adreno.c\n+++ b/drivers/gpu/msm/adreno.c\n@@ -462,9 +462,6 @@ static irqreturn_t adreno_irq_handler(struct kgsl_device *device)\n \tunsigned int status = 0, fence = 0, fence_retries = 0, tmp, int_bit;\n \tunsigned int shadow_status = 0;\n \tint i;\n-\tu64 ts, ts1, ts2;\n-\n-\tts = gmu_core_dev_read_ao_counter(device);\n \n \tatomic_inc(&adreno_dev->pending_irq_refcnt);\n \t/* Ensure this increment is done before the IRQ status is updated */\n@@ -491,25 +488,21 @@ static irqreturn_t adreno_irq_handler(struct kgsl_device *device)\n \t\t\t\t&fence);\n \n \t\twhile (fence != 0) {\n-\t\t\tts1 =  gmu_core_dev_read_ao_counter(device);\n-\n \t\t\t/* Wait for small time before trying again */\n \t\t\tudelay(1);\n \t\t\tadreno_readreg(adreno_dev,\n \t\t\t\t\tADRENO_REG_GMU_AO_AHB_FENCE_CTRL,\n \t\t\t\t\t&fence);\n \n \t\t\tif (fence_retries == FENCE_RETRY_MAX && fence != 0) {\n-\t\t\t\tts2 =  gmu_core_dev_read_ao_counter(device);\n-\n \t\t\t\tadreno_readreg(adreno_dev,\n \t\t\t\t\tADRENO_REG_GMU_RBBM_INT_UNMASKED_STATUS,\n \t\t\t\t\t&shadow_status);\n \n \t\t\t\tKGSL_DRV_CRIT_RATELIMIT(device,\n-\t\t\t\t\t\"Status=0x%x Unmasked status=0x%x Timestamps:%llx %llx %llx\\n\",\n+\t\t\t\t\t\"Status=0x%x Unmasked status=0x%x\\n\",\n \t\t\t\t\tshadow_status & irq_params->mask,\n-\t\t\t\t\tshadow_status, ts, ts1, ts2);\n+\t\t\t\t\tshadow_status);\n \t\t\t\tadreno_set_gpu_fault(adreno_dev,\n \t\t\t\t\t\tADRENO_GMU_FAULT);\n \t\t\t\tadreno_dispatcher_schedule(device);\n--- a/drivers/gpu/msm/kgsl_gmu_core.c\n+++ b/drivers/gpu/msm/kgsl_gmu_core.c\n@@ -294,13 +294,3 @@ bool gmu_core_is_initialized(struct kgsl_device *device)\n \n \treturn false;\n }\n-\n-u64 gmu_core_dev_read_ao_counter(struct kgsl_device *device)\n-{\n-\tstruct gmu_dev_ops *ops = GMU_DEVICE_OPS(device);\n-\n-\tif (ops && ops->read_ao_counter)\n-\t\treturn ops->read_ao_counter(device);\n-\n-\treturn 0;\n-}\n--- a/drivers/gpu/msm/kgsl_gmu_core.h\n+++ b/drivers/gpu/msm/kgsl_gmu_core.h\n@@ -234,5 +234,4 @@ void gmu_core_regrmw(struct kgsl_device *device, unsigned int offsetwords,\n const char *gmu_core_oob_type_str(enum oob_request req);\n bool gmu_core_dev_cx_is_on(struct kgsl_device *device);\n bool gmu_core_is_initialized(struct kgsl_device *device);\n-u64 gmu_core_dev_read_ao_counter(struct kgsl_device *device);\n #endif /* __KGSL_GMU_CORE_H */\n",
+      "donor_patch_sha256": "0ed385b752005db5ca48b1e4fe9f002a0f2b95735897aea5ffbd95b2e3ccc609",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/324bac57ebadbd785dbb0e666505b650880c4fa1"
+    },
+    {
+      "review_item": 78,
+      "stable_id": "A01-078",
+      "commit": "3ea82acbb35fa12d0c3d09b0f9137240b532e536",
+      "subject": "drivers: base/arch_topology: avoid a stuck risk when cpufreq policy free",
+      "files": [
+        "drivers/base/arch_topology.c"
+      ],
+      "reviewed_patch": "--- a/drivers/base/arch_topology.c\n+++ b/drivers/base/arch_topology.c\n@@ -188,20 +188,25 @@ int detect_share_cap_flag(void)\n \t\tif (cpumask_equal(cpu_cpu_mask(cpu),\n \t\t\t\t  policy->related_cpus)) {\n \t\t\tshare_cap_level = share_cap_die;\n+\t\t\tcpufreq_cpu_put(policy);\n \t\t\tcontinue;\n \t\t}\n \n \t\tif (cpumask_equal(topology_core_cpumask(cpu),\n \t\t\t\t  policy->related_cpus)) {\n \t\t\tshare_cap_level = share_cap_core;\n+\t\t\tcpufreq_cpu_put(policy);\n \t\t\tcontinue;\n \t\t}\n \n \t\tif (cpumask_equal(topology_sibling_cpumask(cpu),\n \t\t\t\t  policy->related_cpus)) {\n \t\t\tshare_cap_level = share_cap_thread;\n+\t\t\tcpufreq_cpu_put(policy);\n \t\t\tcontinue;\n \t\t}\n+\n+\t\tcpufreq_cpu_put(policy);\n \t}\n \n \tif (share_cap != share_cap_level) {\n",
+      "reviewed_patch_sha256": "7d109076497478519cde08cc45149bc0693724ca6eea6f59c740eb61d0805fc1",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "donor_patch": "--- a/drivers/base/arch_topology.c\n+++ b/drivers/base/arch_topology.c\n@@ -188,20 +188,25 @@ int detect_share_cap_flag(void)\n \t\tif (cpumask_equal(cpu_cpu_mask(cpu),\n \t\t\t\t  policy->related_cpus)) {\n \t\t\tshare_cap_level = share_cap_die;\n+\t\t\tcpufreq_cpu_put(policy);\n \t\t\tcontinue;\n \t\t}\n \n \t\tif (cpumask_equal(topology_core_cpumask(cpu),\n \t\t\t\t  policy->related_cpus)) {\n \t\t\tshare_cap_level = share_cap_core;\n+\t\t\tcpufreq_cpu_put(policy);\n \t\t\tcontinue;\n \t\t}\n \n \t\tif (cpumask_equal(topology_sibling_cpumask(cpu),\n \t\t\t\t  policy->related_cpus)) {\n \t\t\tshare_cap_level = share_cap_thread;\n+\t\t\tcpufreq_cpu_put(policy);\n \t\t\tcontinue;\n \t\t}\n+\n+\t\tcpufreq_cpu_put(policy);\n \t}\n \n \tif (share_cap != share_cap_level) {\n",
+      "donor_patch_sha256": "7d109076497478519cde08cc45149bc0693724ca6eea6f59c740eb61d0805fc1",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/3ea82acbb35fa12d0c3d09b0f9137240b532e536"
+    },
+    {
+      "review_item": 79,
+      "stable_id": "A01-079",
+      "commit": "3e87d0295c39b2bb9d080a6db7464a0de7a8d651",
+      "subject": "drivers: iommu: silence logging",
+      "files": [
+        "drivers/iommu/iommu.c"
+      ],
+      "reviewed_patch": "--- a/drivers/iommu/iommu.c\n+++ b/drivers/iommu/iommu.c\n@@ -630,8 +630,6 @@ int iommu_group_add_device(struct iommu_group *group, struct device *dev)\n \n \ttrace_add_device_to_group(group->id, dev);\n \n-\tpr_info(\"Adding device %s to group %d\\n\", dev_name(dev), group->id);\n-\n \treturn 0;\n \n err_put_group:\n",
+      "reviewed_patch_sha256": "5ffc5861e95bb90e3b0a808040e90aa6215620ccea367dfbedf2a0177356f442",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "donor_patch": "--- a/drivers/iommu/iommu.c\n+++ b/drivers/iommu/iommu.c\n@@ -630,8 +630,6 @@ int iommu_group_add_device(struct iommu_group *group, struct device *dev)\n \n \ttrace_add_device_to_group(group->id, dev);\n \n-\tpr_info(\"Adding device %s to group %d\\n\", dev_name(dev), group->id);\n-\n \treturn 0;\n \n err_put_group:\n",
+      "donor_patch_sha256": "5ffc5861e95bb90e3b0a808040e90aa6215620ccea367dfbedf2a0177356f442",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/3e87d0295c39b2bb9d080a6db7464a0de7a8d651"
+    },
+    {
+      "review_item": 92,
+      "stable_id": "A01-092",
+      "commit": "202b3995f9ad16f01aab59847e1ab9d15afd802d",
+      "subject": "BACKPORT: block: use ktime_get_ns() instead of sched_clock() for cfq",
+      "files": [
+        "block/cfq-iosched.c",
+        "include/linux/blkdev.h"
+      ],
+      "reviewed_patch": "--- a/block/cfq-iosched.c\n+++ b/block/cfq-iosched.c\n@@ -212,9 +212,9 @@ struct cfqg_stats {\n \t/* total time with empty current active q with other requests queued */\n \tstruct blkg_stat\t\tempty_time;\n \t/* fields after this shouldn't be cleared on stat reset */\n-\tuint64_t\t\t\tstart_group_wait_time;\n-\tuint64_t\t\t\tstart_idle_time;\n-\tuint64_t\t\t\tstart_empty_time;\n+\tu64\t\t\t\tstart_group_wait_time;\n+\tu64\t\t\t\tstart_idle_time;\n+\tu64\t\t\t\tstart_empty_time;\n \tuint16_t\t\t\tflags;\n #endif\t/* CONFIG_DEBUG_BLK_CGROUP */\n #endif\t/* CONFIG_CFQ_GROUP_IOSCHED */\n@@ -495,13 +495,13 @@ CFQG_FLAG_FNS(empty)\n /* This should be called with the queue_lock held. */\n static void cfqg_stats_update_group_wait_time(struct cfqg_stats *stats)\n {\n-\tunsigned long long now;\n+\tu64 now;\n \n \tif (!cfqg_stats_waiting(stats))\n \t\treturn;\n \n-\tnow = sched_clock();\n-\tif (time_after64(now, stats->start_group_wait_time))\n+\tnow = ktime_get_ns();\n+\tif (now > stats->start_group_wait_time)\n \t\tblkg_stat_add(&stats->group_wait_time,\n \t\t\t      now - stats->start_group_wait_time);\n \tcfqg_stats_clear_waiting(stats);\n@@ -517,20 +517,20 @@ static void cfqg_stats_set_start_group_wait_time(struct cfq_group *cfqg,\n \t\treturn;\n \tif (cfqg == curr_cfqg)\n \t\treturn;\n-\tstats->start_group_wait_time = sched_clock();\n+\tstats->start_group_wait_time = ktime_get_ns();\n \tcfqg_stats_mark_waiting(stats);\n }\n \n /* This should be called with the queue_lock held. */\n static void cfqg_stats_end_empty_time(struct cfqg_stats *stats)\n {\n-\tunsigned long long now;\n+\tu64 now;\n \n \tif (!cfqg_stats_empty(stats))\n \t\treturn;\n \n-\tnow = sched_clock();\n-\tif (time_after64(now, stats->start_empty_time))\n+\tnow = ktime_get_ns();\n+\tif (now > stats->start_empty_time)\n \t\tblkg_stat_add(&stats->empty_time,\n \t\t\t      now - stats->start_empty_time);\n \tcfqg_stats_clear_empty(stats);\n@@ -556,7 +556,7 @@ static void cfqg_stats_set_start_empty_time(struct cfq_group *cfqg)\n \tif (cfqg_stats_empty(stats))\n \t\treturn;\n \n-\tstats->start_empty_time = sched_clock();\n+\tstats->start_empty_time = ktime_get_ns();\n \tcfqg_stats_mark_empty(stats);\n }\n \n@@ -565,9 +565,9 @@ static void cfqg_stats_update_idle_time(struct cfq_group *cfqg)\n \tstruct cfqg_stats *stats = &cfqg->stats;\n \n \tif (cfqg_stats_idling(stats)) {\n-\t\tunsigned long long now = sched_clock();\n+\t\tu64 now = ktime_get_ns();\n \n-\t\tif (time_after64(now, stats->start_idle_time))\n+\t\tif (now > stats->start_idle_time)\n \t\t\tblkg_stat_add(&stats->idle_time,\n \t\t\t\t      now - stats->start_idle_time);\n \t\tcfqg_stats_clear_idling(stats);\n@@ -580,7 +580,7 @@ static void cfqg_stats_set_start_idle_time(struct cfq_group *cfqg)\n \n \tBUG_ON(cfqg_stats_idling(stats));\n \n-\tstats->start_idle_time = sched_clock();\n+\tstats->start_idle_time = ktime_get_ns();\n \tcfqg_stats_mark_idling(stats);\n }\n \n@@ -709,17 +709,19 @@ static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg,\n }\n \n static inline void cfqg_stats_update_completion(struct cfq_group *cfqg,\n-\t\t\tuint64_t start_time, uint64_t io_start_time,\n-\t\t\tunsigned int op)\n+\t\t\t\t\t\tu64 start_time_ns,\n+\t\t\t\t\t\tu64 io_start_time_ns,\n+\t\t\t\t\t\tunsigned int op)\n {\n \tstruct cfqg_stats *stats = &cfqg->stats;\n-\tunsigned long long now = sched_clock();\n+\tu64 now = ktime_get_ns();\n \n-\tif (time_after64(now, io_start_time))\n-\t\tblkg_rwstat_add(&stats->service_time, op, now - io_start_time);\n-\tif (time_after64(io_start_time, start_time))\n+\tif (now > io_start_time_ns)\n+\t\tblkg_rwstat_add(&stats->service_time, op,\n+\t\t\t\tnow - io_start_time_ns);\n+\tif (io_start_time_ns > start_time_ns)\n \t\tblkg_rwstat_add(&stats->wait_time, op,\n-\t\t\t\tio_start_time - start_time);\n+\t\t\t\t\t\tio_start_time_ns - start_time_ns);\n }\n \n /* @stats = 0 */\n@@ -805,8 +807,9 @@ static inline void cfqg_stats_update_io_remove(struct cfq_group *cfqg,\n static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg,\n \t\t\tunsigned int op) { }\n static inline void cfqg_stats_update_completion(struct cfq_group *cfqg,\n-\t\t\tuint64_t start_time, uint64_t io_start_time,\n-\t\t\tunsigned int op) { }\n+\t\t\t\t\t\tu64 start_time_ns,\n+\t\t\t\t\t\tu64 io_start_time_ns,\n+\t\t\t\t\t\tunsigned int op) { }\n \n #endif\t/* CONFIG_CFQ_GROUP_IOSCHED */\n \n--- a/include/linux/blkdev.h\n+++ b/include/linux/blkdev.h\n@@ -1773,42 +1773,33 @@ int kblockd_schedule_delayed_work_on(int cpu, struct delayed_work *dwork, unsign\n int kblockd_mod_delayed_work_on(int cpu, struct delayed_work *dwork, unsigned long delay);\n \n #ifdef CONFIG_BLK_CGROUP\n-/*\n- * This should not be using sched_clock(). A real patch is in progress\n- * to fix this up, until that is in place we need to disable preemption\n- * around sched_clock() in this function and set_io_start_time_ns().\n- */\n static inline void set_start_time_ns(struct request *req)\n {\n-\tpreempt_disable();\n-\treq->start_time_ns = sched_clock();\n-\tpreempt_enable();\n+\treq->start_time_ns = ktime_get_ns();\n }\n \n static inline void set_io_start_time_ns(struct request *req)\n {\n-\tpreempt_disable();\n-\treq->io_start_time_ns = sched_clock();\n-\tpreempt_enable();\n+\treq->io_start_time_ns = ktime_get_ns();\n }\n \n-static inline uint64_t rq_start_time_ns(struct request *req)\n+static inline u64 rq_start_time_ns(struct request *req)\n {\n         return req->start_time_ns;\n }\n \n-static inline uint64_t rq_io_start_time_ns(struct request *req)\n+static inline u64 rq_io_start_time_ns(struct request *req)\n {\n         return req->io_start_time_ns;\n }\n #else\n static inline void set_start_time_ns(struct request *req) {}\n static inline void set_io_start_time_ns(struct request *req) {}\n-static inline uint64_t rq_start_time_ns(struct request *req)\n+static inline u64 rq_start_time_ns(struct request *req)\n {\n \treturn 0;\n }\n-static inline uint64_t rq_io_start_time_ns(struct request *req)\n+static inline u64 rq_io_start_time_ns(struct request *req)\n {\n \treturn 0;\n }\n",
+      "reviewed_patch_sha256": "9aa9b5526fd2505728cde86616887777f9fe1b0612eaf801862c7933b9f85422",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "donor_patch": "--- a/block/cfq-iosched.c\n+++ b/block/cfq-iosched.c\n@@ -212,9 +212,9 @@ struct cfqg_stats {\n \t/* total time with empty current active q with other requests queued */\n \tstruct blkg_stat\t\tempty_time;\n \t/* fields after this shouldn't be cleared on stat reset */\n-\tuint64_t\t\t\tstart_group_wait_time;\n-\tuint64_t\t\t\tstart_idle_time;\n-\tuint64_t\t\t\tstart_empty_time;\n+\tu64\t\t\t\tstart_group_wait_time;\n+\tu64\t\t\t\tstart_idle_time;\n+\tu64\t\t\t\tstart_empty_time;\n \tuint16_t\t\t\tflags;\n #endif\t/* CONFIG_DEBUG_BLK_CGROUP */\n #endif\t/* CONFIG_CFQ_GROUP_IOSCHED */\n@@ -495,13 +495,13 @@ CFQG_FLAG_FNS(empty)\n /* This should be called with the queue_lock held. */\n static void cfqg_stats_update_group_wait_time(struct cfqg_stats *stats)\n {\n-\tunsigned long long now;\n+\tu64 now;\n \n \tif (!cfqg_stats_waiting(stats))\n \t\treturn;\n \n-\tnow = sched_clock();\n-\tif (time_after64(now, stats->start_group_wait_time))\n+\tnow = ktime_get_ns();\n+\tif (now > stats->start_group_wait_time)\n \t\tblkg_stat_add(&stats->group_wait_time,\n \t\t\t      now - stats->start_group_wait_time);\n \tcfqg_stats_clear_waiting(stats);\n@@ -517,20 +517,20 @@ static void cfqg_stats_set_start_group_wait_time(struct cfq_group *cfqg,\n \t\treturn;\n \tif (cfqg == curr_cfqg)\n \t\treturn;\n-\tstats->start_group_wait_time = sched_clock();\n+\tstats->start_group_wait_time = ktime_get_ns();\n \tcfqg_stats_mark_waiting(stats);\n }\n \n /* This should be called with the queue_lock held. */\n static void cfqg_stats_end_empty_time(struct cfqg_stats *stats)\n {\n-\tunsigned long long now;\n+\tu64 now;\n \n \tif (!cfqg_stats_empty(stats))\n \t\treturn;\n \n-\tnow = sched_clock();\n-\tif (time_after64(now, stats->start_empty_time))\n+\tnow = ktime_get_ns();\n+\tif (now > stats->start_empty_time)\n \t\tblkg_stat_add(&stats->empty_time,\n \t\t\t      now - stats->start_empty_time);\n \tcfqg_stats_clear_empty(stats);\n@@ -556,7 +556,7 @@ static void cfqg_stats_set_start_empty_time(struct cfq_group *cfqg)\n \tif (cfqg_stats_empty(stats))\n \t\treturn;\n \n-\tstats->start_empty_time = sched_clock();\n+\tstats->start_empty_time = ktime_get_ns();\n \tcfqg_stats_mark_empty(stats);\n }\n \n@@ -565,9 +565,9 @@ static void cfqg_stats_update_idle_time(struct cfq_group *cfqg)\n \tstruct cfqg_stats *stats = &cfqg->stats;\n \n \tif (cfqg_stats_idling(stats)) {\n-\t\tunsigned long long now = sched_clock();\n+\t\tu64 now = ktime_get_ns();\n \n-\t\tif (time_after64(now, stats->start_idle_time))\n+\t\tif (now > stats->start_idle_time)\n \t\t\tblkg_stat_add(&stats->idle_time,\n \t\t\t\t      now - stats->start_idle_time);\n \t\tcfqg_stats_clear_idling(stats);\n@@ -580,7 +580,7 @@ static void cfqg_stats_set_start_idle_time(struct cfq_group *cfqg)\n \n \tBUG_ON(cfqg_stats_idling(stats));\n \n-\tstats->start_idle_time = sched_clock();\n+\tstats->start_idle_time = ktime_get_ns();\n \tcfqg_stats_mark_idling(stats);\n }\n \n@@ -709,17 +709,19 @@ static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg,\n }\n \n static inline void cfqg_stats_update_completion(struct cfq_group *cfqg,\n-\t\t\tuint64_t start_time, uint64_t io_start_time,\n-\t\t\tunsigned int op)\n+\t\t\t\t\t\tu64 start_time_ns,\n+\t\t\t\t\t\tu64 io_start_time_ns,\n+\t\t\t\t\t\tunsigned int op)\n {\n \tstruct cfqg_stats *stats = &cfqg->stats;\n-\tunsigned long long now = sched_clock();\n+\tu64 now = ktime_get_ns();\n \n-\tif (time_after64(now, io_start_time))\n-\t\tblkg_rwstat_add(&stats->service_time, op, now - io_start_time);\n-\tif (time_after64(io_start_time, start_time))\n+\tif (now > io_start_time_ns)\n+\t\tblkg_rwstat_add(&stats->service_time, op,\n+\t\t\t\tnow - io_start_time_ns);\n+\tif (io_start_time_ns > start_time_ns)\n \t\tblkg_rwstat_add(&stats->wait_time, op,\n-\t\t\t\tio_start_time - start_time);\n+\t\t\t\t\t\tio_start_time_ns - start_time_ns);\n }\n \n /* @stats = 0 */\n@@ -805,8 +807,9 @@ static inline void cfqg_stats_update_io_remove(struct cfq_group *cfqg,\n static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg,\n \t\t\tunsigned int op) { }\n static inline void cfqg_stats_update_completion(struct cfq_group *cfqg,\n-\t\t\tuint64_t start_time, uint64_t io_start_time,\n-\t\t\tunsigned int op) { }\n+\t\t\t\t\t\tu64 start_time_ns,\n+\t\t\t\t\t\tu64 io_start_time_ns,\n+\t\t\t\t\t\tunsigned int op) { }\n \n #endif\t/* CONFIG_CFQ_GROUP_IOSCHED */\n \n--- a/include/linux/blkdev.h\n+++ b/include/linux/blkdev.h\n@@ -1773,42 +1773,33 @@ int kblockd_schedule_delayed_work_on(int cpu, struct delayed_work *dwork, unsign\n int kblockd_mod_delayed_work_on(int cpu, struct delayed_work *dwork, unsigned long delay);\n \n #ifdef CONFIG_BLK_CGROUP\n-/*\n- * This should not be using sched_clock(). A real patch is in progress\n- * to fix this up, until that is in place we need to disable preemption\n- * around sched_clock() in this function and set_io_start_time_ns().\n- */\n static inline void set_start_time_ns(struct request *req)\n {\n-\tpreempt_disable();\n-\treq->start_time_ns = sched_clock();\n-\tpreempt_enable();\n+\treq->start_time_ns = ktime_get_ns();\n }\n \n static inline void set_io_start_time_ns(struct request *req)\n {\n-\tpreempt_disable();\n-\treq->io_start_time_ns = sched_clock();\n-\tpreempt_enable();\n+\treq->io_start_time_ns = ktime_get_ns();\n }\n \n-static inline uint64_t rq_start_time_ns(struct request *req)\n+static inline u64 rq_start_time_ns(struct request *req)\n {\n         return req->start_time_ns;\n }\n \n-static inline uint64_t rq_io_start_time_ns(struct request *req)\n+static inline u64 rq_io_start_time_ns(struct request *req)\n {\n         return req->io_start_time_ns;\n }\n #else\n static inline void set_start_time_ns(struct request *req) {}\n static inline void set_io_start_time_ns(struct request *req) {}\n-static inline uint64_t rq_start_time_ns(struct request *req)\n+static inline u64 rq_start_time_ns(struct request *req)\n {\n \treturn 0;\n }\n-static inline uint64_t rq_io_start_time_ns(struct request *req)\n+static inline u64 rq_io_start_time_ns(struct request *req)\n {\n \treturn 0;\n }\n",
+      "donor_patch_sha256": "9aa9b5526fd2505728cde86616887777f9fe1b0612eaf801862c7933b9f85422",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/202b3995f9ad16f01aab59847e1ab9d15afd802d"
+    },
+    {
+      "review_item": 93,
+      "stable_id": "A01-093",
+      "commit": "79431f18b1e102a6813c746be21fee0a237006d9",
+      "subject": "cfq: Annotate fall-through in a switch statement",
+      "files": [
+        "block/cfq-iosched.c"
+      ],
+      "reviewed_patch": "--- a/block/cfq-iosched.c\n+++ b/block/cfq-iosched.c\n@@ -3743,6 +3743,7 @@ static void cfq_init_prio_data(struct cfq_queue *cfqq, struct cfq_io_cq *cic)\n \tswitch (ioprio_class) {\n \tdefault:\n \t\tprintk(KERN_ERR \"cfq: bad prio %x\\n\", ioprio_class);\n+\t\t/* fall through */\n \tcase IOPRIO_CLASS_NONE:\n \t\t/*\n \t\t * no prio set, inherit CPU scheduling settings\n",
+      "reviewed_patch_sha256": "5271360ca28446218d19a5f350b001570a9469e01a32fbcb378188af2f462740",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "donor_patch": "--- a/block/cfq-iosched.c\n+++ b/block/cfq-iosched.c\n@@ -3743,6 +3743,7 @@ static void cfq_init_prio_data(struct cfq_queue *cfqq, struct cfq_io_cq *cic)\n \tswitch (ioprio_class) {\n \tdefault:\n \t\tprintk(KERN_ERR \"cfq: bad prio %x\\n\", ioprio_class);\n+\t\t/* fall through */\n \tcase IOPRIO_CLASS_NONE:\n \t\t/*\n \t\t * no prio set, inherit CPU scheduling settings\n",
+      "donor_patch_sha256": "5271360ca28446218d19a5f350b001570a9469e01a32fbcb378188af2f462740",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/79431f18b1e102a6813c746be21fee0a237006d9"
+    },
+    {
+      "review_item": 94,
+      "stable_id": "A01-094",
+      "commit": "522ab2ee25fc0c802c55ec269dc565411422c129",
+      "subject": "cfq: clear queue pointers from cfqg after unpinning them in cfq_pd_offline",
+      "files": [
+        "block/cfq-iosched.c"
+      ],
+      "reviewed_patch": "--- a/block/cfq-iosched.c\n+++ b/block/cfq-iosched.c\n@@ -1673,14 +1673,20 @@ static void cfq_pd_offline(struct blkg_policy_data *pd)\n \tint i;\n \n \tfor (i = 0; i < IOPRIO_BE_NR; i++) {\n-\t\tif (cfqg->async_cfqq[0][i])\n+\t\tif (cfqg->async_cfqq[0][i]) {\n \t\t\tcfq_put_queue(cfqg->async_cfqq[0][i]);\n-\t\tif (cfqg->async_cfqq[1][i])\n+\t\t\tcfqg->async_cfqq[0][i] = NULL;\n+\t\t}\n+\t\tif (cfqg->async_cfqq[1][i]) {\n \t\t\tcfq_put_queue(cfqg->async_cfqq[1][i]);\n+\t\t\tcfqg->async_cfqq[1][i] = NULL;\n+\t\t}\n \t}\n \n-\tif (cfqg->async_idle_cfqq)\n+\tif (cfqg->async_idle_cfqq) {\n \t\tcfq_put_queue(cfqg->async_idle_cfqq);\n+\t\tcfqg->async_idle_cfqq = NULL;\n+\t}\n \n \t/*\n \t * @blkg is going offline and will be ignored by\n",
+      "reviewed_patch_sha256": "752b47222e0317db68cf654f4d808d09c5b772e151784bf8cf7d91f3f6f2a9a1",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "donor_patch": "--- a/block/cfq-iosched.c\n+++ b/block/cfq-iosched.c\n@@ -1673,14 +1673,20 @@ static void cfq_pd_offline(struct blkg_policy_data *pd)\n \tint i;\n \n \tfor (i = 0; i < IOPRIO_BE_NR; i++) {\n-\t\tif (cfqg->async_cfqq[0][i])\n+\t\tif (cfqg->async_cfqq[0][i]) {\n \t\t\tcfq_put_queue(cfqg->async_cfqq[0][i]);\n-\t\tif (cfqg->async_cfqq[1][i])\n+\t\t\tcfqg->async_cfqq[0][i] = NULL;\n+\t\t}\n+\t\tif (cfqg->async_cfqq[1][i]) {\n \t\t\tcfq_put_queue(cfqg->async_cfqq[1][i]);\n+\t\t\tcfqg->async_cfqq[1][i] = NULL;\n+\t\t}\n \t}\n \n-\tif (cfqg->async_idle_cfqq)\n+\tif (cfqg->async_idle_cfqq) {\n \t\tcfq_put_queue(cfqg->async_idle_cfqq);\n+\t\tcfqg->async_idle_cfqq = NULL;\n+\t}\n \n \t/*\n \t * @blkg is going offline and will be ignored by\n",
+      "donor_patch_sha256": "752b47222e0317db68cf654f4d808d09c5b772e151784bf8cf7d91f3f6f2a9a1",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/522ab2ee25fc0c802c55ec269dc565411422c129"
+    },
+    {
+      "review_item": 98,
+      "stable_id": "A01-098",
+      "commit": "6bbaff1957fa023f5ff2bdb22714eab646abd689",
+      "subject": "drivers: power/irqchip: Add wakeup irq loggers",
+      "files": [
+        "drivers/base/power/wakeup.c",
+        "drivers/irqchip/irq-gic-v3.c"
+      ],
+      "reviewed_patch": "--- a/drivers/base/power/wakeup.c\n+++ b/drivers/base/power/wakeup.c\n@@ -1065,6 +1065,7 @@ void pm_system_irq_wakeup(unsigned int irq_number)\n \t\t}\n \t\tpm_wakeup_irq = irq_number;\n \t\tpm_system_wakeup();\n+\t\tlog_irq_wakeup_reason(irq_number);\n \t}\n }\n \n--- a/drivers/irqchip/irq-gic-v3.c\n+++ b/drivers/irqchip/irq-gic-v3.c\n@@ -449,9 +449,6 @@ static void gic_show_resume_irq(struct gic_chip_data *gic)\n \tif (base == NULL)\n \t\treturn;\n \n-\tif (!msm_show_resume_irq_mask)\n-\t\treturn;\n-\n \tfor (i = 0; i * 32 < gic->irq_nr; i++) {\n \t\tenabled = readl_relaxed(base + GICD_ICENABLER + i * 4);\n \t\tpending[i] = readl_relaxed(base + GICD_ISPENDR + i * 4);\n@@ -470,7 +467,9 @@ static void gic_show_resume_irq(struct gic_chip_data *gic)\n \t\telse if (desc->action && desc->action->name)\n \t\t\tname = desc->action->name;\n \n-\t\tpr_warn(\"%s: %d triggered %s\\n\", __func__, irq, name);\n+\t\tif (msm_show_resume_irq_mask)\n+\t\t\tpr_warn(\"%s: %d triggered %s\\n\", __func__, irq, name);\n+\t\tlog_irq_wakeup_reason(irq);\n \t}\n }\n \n",
+      "reviewed_patch_sha256": "783094b2e2e3013811572f90918bdc10274f7f9004c0f478d2ab856e34fbd90b",
+      "exact_patch_check_pass": true,
+      "diagnostic": "",
+      "donor_patch": "--- a/drivers/base/power/wakeup.c\n+++ b/drivers/base/power/wakeup.c\n@@ -1065,6 +1065,7 @@ void pm_system_irq_wakeup(unsigned int irq_number)\n \t\t}\n \t\tpm_wakeup_irq = irq_number;\n \t\tpm_system_wakeup();\n+\t\tlog_irq_wakeup_reason(irq_number);\n \t}\n }\n \n--- a/drivers/irqchip/irq-gic-v3.c\n+++ b/drivers/irqchip/irq-gic-v3.c\n@@ -449,9 +449,6 @@ static void gic_show_resume_irq(struct gic_chip_data *gic)\n \tif (base == NULL)\n \t\treturn;\n \n-\tif (!msm_show_resume_irq_mask)\n-\t\treturn;\n-\n \tfor (i = 0; i * 32 < gic->irq_nr; i++) {\n \t\tenabled = readl_relaxed(base + GICD_ICENABLER + i * 4);\n \t\tpending[i] = readl_relaxed(base + GICD_ISPENDR + i * 4);\n@@ -470,7 +467,9 @@ static void gic_show_resume_irq(struct gic_chip_data *gic)\n \t\telse if (desc->action && desc->action->name)\n \t\t\tname = desc->action->name;\n \n-\t\tpr_warn(\"%s: %d triggered %s\\n\", __func__, irq, name);\n+\t\tif (msm_show_resume_irq_mask)\n+\t\t\tpr_warn(\"%s: %d triggered %s\\n\", __func__, irq, name);\n+\t\tlog_irq_wakeup_reason(irq);\n \t}\n }\n \n",
+      "donor_patch_sha256": "783094b2e2e3013811572f90918bdc10274f7f9004c0f478d2ab856e34fbd90b",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/6bbaff1957fa023f5ff2bdb22714eab646abd689"
+    }
+  ],
+  "changes_to_donor": {
+    "46": "Replace undefined preprocessor guard with READ_ONCE(nr_running) plus existing llist_empty pending-list test in SMP newly-idle path; keep CPU mask guard and other balance rules. Do not enable TTWU_QUEUE.",
+    "56/57": "Ordered application, same final queue flags/admission; clean up misleading absent-tasklet comment and wrap call.",
+    "92": "Also migrate bfqg_stats_update_completion now sample to ktime_get_ns and matching greater-than comparisons; retain unrelated BFQ sched_clock statistics. Add explicit ktime.h include."
+  },
+  "preimage_sha256": {
+    "block/bfq-cgroup.c": "2513cc7379f19681b20d42a65a0fdad0af6df6f83a48dc44d640087d660f9458",
+    "block/cfq-iosched.c": "216e5364786ba068fb2f4388188b72d9b240a3058fde2892e9b966a929e737d5",
+    "drivers/base/arch_topology.c": "c62179acf8df02afbac88647242679747957560014b81d38e5cfe6fc8644ef17",
+    "drivers/base/power/wakeup.c": "06c2a5d46ca52f548c1b0e7edbd532bdb8d2ee4bb6324b3161bb8ee1ff12e405",
+    "drivers/cpuidle/lpm-levels.c": "db6266c205fe4d75b7ae5e574f177d18e66084de2fad1783a4945b807eb0c9b0",
+    "drivers/gpu/msm/adreno.c": "097ecba1a81d11e75855ab4a2920edf49658886f93cf9bada177fc88cbc1b11c",
+    "drivers/gpu/msm/kgsl_gmu_core.c": "a0fedbf99ad907f3fdf02113b949aca0eb863ab0cd73add58a47a093a084ac1e",
+    "drivers/gpu/msm/kgsl_gmu_core.h": "daabde959b05b000764f2a3287866bccfa67bc48b9d5295598872dd220bb1f11",
+    "drivers/iommu/iommu.c": "a015faa97f8d37f33f84840f10ccd277ced893e97815781dd51c568e85633286",
+    "drivers/irqchip/irq-gic-v3.c": "31e53663e83c2c042b93449a9099bd11b0a32656b5ef8bf4d4e927993c43b49f",
+    "drivers/md/dm-verity-target.c": "e08fc142a9f499497198b3163f6333ece75e52c3e42dd71ac89da004910baddd",
+    "include/linux/blkdev.h": "84732ba370305ebaf2623904bf234fee27af0e48637d8f83e71fd956cd339176",
+    "kernel/sched/cpufreq_schedutil.c": "e002ad06f26cc78b77507cadd18d2caeb64c60eac6b96654a2e24904cccaabf0",
+    "kernel/sched/fair.c": "6f3bc60fb8e478dd652336aa5e807cea3e006ead573caa6a9ba040c1f1487bf2",
+    "kernel/sched/sched.h": "b3b5ae768ecf5b7292af965ed14c7f7932775943b18a278233a679681122666d"
+  },
+  "postimage_sha256": {
+    "block/bfq-cgroup.c": "007928ee5f4de4c16849d7af8717f5147e9e8d36de2ebde081f094d3373e3949",
+    "block/cfq-iosched.c": "65accb729aa02bbcfea5fb302ed14a398b9ea110e2623845edd0046a96972ffe",
+    "drivers/base/arch_topology.c": "0d6fc8add9810cdad6966e8693e1d4e102e08df5d4c20c21a4144f43c7b9a9d9",
+    "drivers/base/power/wakeup.c": "d251dc16ea11d7eab76447d583123147bef92f58eb2ebc8647bb368d0936b093",
+    "drivers/cpuidle/lpm-levels.c": "2090ae85a97a11ce55fca9b26820700a1f868ace7b454af2521c003f5a0341b3",
+    "drivers/gpu/msm/adreno.c": "d8e564ec13b1941e9eff3af5fa7b47143591d59a79f28e76c6f5b102277be099",
+    "drivers/gpu/msm/kgsl_gmu_core.c": "90e8f0d7b5fda7177e08e541744da8056e5ca89db0b6618c1822e903147f2da2",
+    "drivers/gpu/msm/kgsl_gmu_core.h": "a1c5f17d783a87e25a07384c8ff0e3b686dfe7d3f5996d588871e28573afd34b",
+    "drivers/iommu/iommu.c": "8c852643aef396d0aa31c85fc856b4924cafda685bbea0e6289af644c564f778",
+    "drivers/irqchip/irq-gic-v3.c": "0683aa8dfd0d581ba74d6e6a2df2edf860c03c379158006f5cfd7c8044bc1ddd",
+    "drivers/md/dm-verity-target.c": "c3d15a9b86c994cd887affbfd0930fc5647bf160cb43f57a450079870d09734b",
+    "include/linux/blkdev.h": "0afb906510a6fb2ea7283b53311cec218e2b0faafc4974f3c9b974cd63b94fdd",
+    "kernel/sched/cpufreq_schedutil.c": "3f7622b229702ff73c49c526b5f8900724f7cf1931b6d0f5ac04ae861fe74847",
+    "kernel/sched/fair.c": "dbe9e2ebcddd4882f8c4d9e8773d8e689a9a53a4a647b74e324706fa4ac538bb",
+    "kernel/sched/sched.h": "388c0d4376dabf5f23a158dd3589cc22a87cec72b381745ee770058f6d38e76a"
+  },
+  "patch_sha256": "96222665e0e06c54417b311bba804304017050167858107a214b408d23f74bde",
+  "patch": "azyr-sm6250-selected.diff",
+  "preservation_checks": {
+    "approved_memlat": true,
+    "approved36_41": true,
+    "approved6": true,
+    "miatoll_defconfig": true,
+    "GPU_timeout_driver_and_DT": true
+  },
+  "tests": {
+    "balance46": "36 newly-idle/runnable/pending/hotplug/other-idle cases",
+    "balance46_negative_no_wakelist": "compiled and rejected at runtime",
+    "balance46_negative_no_nr": "compiled and rejected at runtime",
+    "delta48": "240000 old/new delta and inverse equivalence cases (modeled scale0/10)",
+    "delta48_negative_wrong_shift": "compiled and rejected at runtime",
+    "topology78": "450 topology policy reference cases",
+    "topology78_negative_no_put": "compiled and rejected at runtime",
+    "offline94": "18 CFQ slot-occupancy cases, references and statistics transfer preserved",
+    "offline94_negative_stale_slot": "compiled and rejected at runtime",
+    "clocks92": "36 shared-producer CFQ/BFQ clock-domain/boundary cases",
+    "clocks92_negative_mixed_bfq_clock": "compiled and rejected at runtime",
+    "wakeup98": "2 GIC recording cases, debug console on/off",
+    "wakeup98_negative_debug_gate": "compiled and rejected at runtime",
+    "structural": "verity flags/admission; inline; suspend parent flag; IRQ debug wrapper removal; IOMMU log removal; native wake-list guard; PM wake recorder PASS"
+  },
+  "regression_logs": {
+    "scheduler": "PASS: sanitizer runtime probes\nsmp1-thread0-nohz0:\nPASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths\nsmp1-thread0-nohz1:\nPASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths\nsmp1-thread1-nohz0:\nPASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths\nsmp1-thread1-nohz1:\nPASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths\nsmp0-thread0-nohz0:\nPASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths\nsmp0-thread0-nohz1:\nPASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths\nPASS: rejected min-margin\nPASS: rejected max-margin\nPASS: rejected plain-cpu-read\nPASS: rejected plain-cpu-write\nPASS: rejected missing-wmb\nPASS: rejected plain-migrating-read\nPASS: rejected plain-migrating-write\nPASS: rejected late-irq-disable\nPASS: rejected protected-tick\nPASS: rejected empty-cfs-source\n",
+    "suspend": "PASS: 320 extracted-predicate cases; callback guards; s2idle independence\nPASS: rejected missing-enter-check\nPASS: rejected bypass-valid-callback\n",
+    "memlat": "PASS: exact three-source inverse patch/hash provenance, unchanged ARMv8 assembly bodies and unchanged legacy workers\nPASS: public async API, completion ownership, sparse allocation, unguarded teardown and non-pinning SCM wrapper contracts\nPASS: observed idle/isolated CPUs receive no sampling IPI; idle votes clear without losing elapsed baseline, isolated epochs reset\nPASS: extracted async samples, completion orders, sparse masks, read/send faults, SCM skips, epochs, zero cycles, allocation unwind and busy teardown\nPASS: 20484 extracted u64 stall-percent cases, including overflow and zero cycles\nPASS: three extracted SCM C wrappers preserve inputs/outputs/errors and balance nested global accounting (mock secure workers)\nPASS: compiled semantic mutant rejected: skip-drain\nPASS: compiled semantic mutant rejected: skip-busy-cleanup\nPASS: compiled semantic mutant rejected: partial-publication\nPASS: compiled semantic mutant rejected: skip-creation-unwind\nPASS: compiled semantic mutant rejected: missing-hotplug-lock\nPASS: compiled semantic mutant rejected: wake-observed-idle\nPASS: compiled semantic mutant rejected: sample-isolated\n",
+    "cpufreq-ipa": "PASS: exact two-source patch/inverse hashes and reviewed preimage chain\nPASS: extracted IPA delay is integer-only 10000..12000 us; other IPA code unchanged\nPASS: 180 extracted cpufreq transition cases preserve guards, counters, last index and transition matrix\nPASS: compiled negative control rejected: changed-minimum\nPASS: compiled negative control rejected: missing-slack\nPASS: compiled negative control rejected: broken-stats-guard\nLIMITS: host mocks/UBSan only; no target build, real timer/PMU, concurrent cpufreq, modem, device or power proof\n",
+    "kernelsu": "KernelSU: 104 vendored files/provenance, wiring and built-in configuration PASS\n",
+    "nomount": "NoMount vendored-source, wiring and configuration checks: PASS\nCapability/payload-pointer gate: 44 cases PASS\nNative/compat directory-cookie roundtrips: 131072 cases PASS\nUID bloom/add/delete/isolation checks: 400384 cases PASS\nRule range/exclusion/fallback selection: 1001 cases PASS\n",
+    "susfs": "SUSFS pinned source/hooks and full configuration: PASS\nSUSFS reboot command authorization: 272 cases PASS\nKSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS\nReadlink truncation/count/fault/hash collision: 3010 cases PASS\nPagemap byte accounting/buffer bounds: 2404 cases PASS\nFlag negation and mount-ID ownership: PASS\n"
+  },
+  "host_warning_note": "Initial SUSFS host GCC compile hit pre-existing -Werror=address in mocked local inode test. Re-run with GCC -Wno-address plus UBSan passed; no kernel source change for warning.",
+  "configuration": {
+    "method": "external O=, shipped Kconfig parser ARCH=arm64 HOSTCC=gcc CC=gcc; no target compilation",
+    "source_defconfig_sha256": "62a05a0271c59709b5475a09834def4c8a600ab1548cf496cdefb93da36cd0ee",
+    "resolved_sha256": "5db6637f0914c83e5eeaf0af681180587c1653f5e5c989060d1c458ef67f1567",
+    "settings": {
+      "CONFIG_SMP": "y",
+      "CONFIG_SCHED_BORE": "y",
+      "CONFIG_DM_VERITY": "y",
+      "CONFIG_CPU_FREQ": "y",
+      "CONFIG_QCOM_KGSL": "y",
+      "CONFIG_BLK_CGROUP": "y",
+      "CONFIG_CFQ_GROUP_IOSCHED": "y",
+      "CONFIG_DEBUG_BLK_CGROUP": "n",
+      "CONFIG_IOSCHED_BFQ": "n",
+      "CONFIG_BFQ_GROUP_IOSCHED": "n",
+      "CONFIG_DEBUG_FS": "n",
+      "CONFIG_SUSPEND": "y",
+      "CONFIG_ARM_GIC_V3": "y",
+      "CONFIG_DEFAULT_IOSCHED": "\"cfq\"",
+      "CONFIG_HZ": "100"
+    }
+  },
+  "publication": {
+    "branch": "arena/e63a046d-kernel-electro",
+    "parent": "7103f1eb0f79f73d66abf4d849567c227f36e3e8",
+    "scope": "15 selected source paths plus application record/receipt/patch and two selftest files only",
+    "other_local_approved_changes": "#6/memlat/#36/#41 preserved, not included",
+    "strategy": "advance metadata from session base to already-published same-branch descendant without writing worktree, then scoped commit and normal push; no force, no other branch",
+    "CI": "not dispatched"
+  },
+  "limits": [
+    "Host GCC O2/UBSan with kernel adapters, not production AOSP r614150 fullClang/noGCC ARM64 compilation or linked image.",
+    "No device boot, runtime verity activation, verified reads/error injection/reclaim/throughput, GPU/display/fence/reset, hotplug/policy teardown, suspend/IRQ hardware, power/frame latency proof.",
+    "Modeled scale0/10 arithmetic uses widened multiplication, not32-bit execution; negative controls are bounded mock evidence, not general safety proof.",
+    "Publication snapshot and full working sources are separately checked."
+  ],
+  "publication_snapshot": {
+    "tests": {
+      "balance46": "36 newly-idle/runnable/pending/hotplug/other-idle cases",
+      "balance46_negative_no_wakelist": "compiled and rejected at runtime",
+      "balance46_negative_no_nr": "compiled and rejected at runtime",
+      "delta48": "240000 old/new delta and inverse equivalence cases (modeled scale0/10)",
+      "delta48_negative_wrong_shift": "compiled and rejected at runtime",
+      "topology78": "450 topology policy reference cases",
+      "topology78_negative_no_put": "compiled and rejected at runtime",
+      "offline94": "18 CFQ slot-occupancy cases, references and statistics transfer preserved",
+      "offline94_negative_stale_slot": "compiled and rejected at runtime",
+      "clocks92": "36 shared-producer CFQ/BFQ clock-domain/boundary cases",
+      "clocks92_negative_mixed_bfq_clock": "compiled and rejected at runtime",
+      "wakeup98": "2 GIC recording cases, debug console on/off",
+      "wakeup98_negative_debug_gate": "compiled and rejected at runtime",
+      "structural": "verity flags/admission; inline; suspend parent flag; IRQ debug wrapper removal; IOMMU log removal; native wake-list guard; PM wake recorder PASS"
+    },
+    "exact_authorized_paths": 20,
+    "staged_sources_match_tested_worktree": true,
+    "source_whitespace_check": "PASS; standalone .diff artifact excluded because its literal unified-diff context lines intentionally contain leading context spaces/tabs and blank context markers",
+    "normal_push_required": true
+  },
+  "artifact_sha256": {
+    "Documentation/dev-tools/azyr-sm6250-selected.diff": "96222665e0e06c54417b311bba804304017050167858107a214b408d23f74bde",
+    "Documentation/dev-tools/azyr-sm6250-selected.md": "9a7fa8a96f1c8b3de019b46461f7bb1ce067d679571102b5a174f710439776eb",
+    "tools/testing/selftests/azyr_selected/test_selected.py": "535a24c68b94da4ea330e72685e986a52bf674816950f02179c7209cd0e7af26",
+    "tools/testing/selftests/azyr_selected/README.md": "3cc567c0c8972eac8c7c9d2353b9cf1313d76a2a49faa3bb1e281be8e0fe12e0"
+  }
+}

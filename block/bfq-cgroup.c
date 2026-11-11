@@ -252,12 +252,12 @@ void bfqg_stats_update_completion(struct bfq_group *bfqg, uint64_t start_time,
 				  uint64_t io_start_time, unsigned int op)
 {
 	struct bfqg_stats *stats = &bfqg->stats;
-	unsigned long long now = sched_clock();
+	u64 now = ktime_get_ns();
 
-	if (time_after64(now, io_start_time))
+	if (now > io_start_time)
 		blkg_rwstat_add(&stats->service_time, op,
 				now - io_start_time);
-	if (time_after64(io_start_time, start_time))
+	if (io_start_time > start_time)
 		blkg_rwstat_add(&stats->wait_time, op,
 				io_start_time - start_time);
 }
