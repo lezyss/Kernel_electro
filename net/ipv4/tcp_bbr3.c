@@ -626,18 +626,29 @@ static u32 bbr_inflight(struct sock *sk, u32 bw, int gain)
 	return inflight;
 }
 
-/* Native 4.14 pacing has no scheduled EDT timestamp. Use the observed
- * flight as a conservative upper bound (including packets in local queues),
- * and include the prospective TSO burst while increasing flight. Do not
- * subtract fictitious deliveries between now and a nonexistent EDT.
+/* Native EDT uses CLOCK_MONOTONIC from TCP through fq. Retain the
+ * conservative estimate for initial/non-fq/internal pacing paths. Do not
+ * infer a schedule from the legacy microsecond skb transmit timestamp.
  */
 static u32 bbr_packets_in_net(struct sock *sk, u32 inflight_now)
 {
+	const struct tcp_sock *tp = tcp_sk(sk);
 	const struct bbr *bbr = inet_csk_ca(sk);
+	u64 interval_us, delivered;
+	u64 inflight = inflight_now;
 
 	if (bbr->pacing_gain > BBR_UNIT)
-		inflight_now += bbr_tso_segs_goal(sk);
-	return inflight_now;
+		inflight += bbr_tso_segs_goal(sk);
+	if (!tcp_edt_enabled(sk))
+		return min_t(u64, inflight, ~0U);
+	interval_us = div_u64(max(tp->tcp_wstamp_ns, tp->tcp_clock_cache) -
+			      tp->tcp_clock_cache, NSEC_PER_USEC);
+	/* Bound multiplication without wrapping a future flight estimate. */
+	interval_us = min_t(u64, interval_us, ~0U);
+	delivered = (u64)bbr_bw(sk) * interval_us >> BW_SCALE;
+	if (delivered >= inflight)
+		return 0;
+	return min_t(u64, inflight - delivered, ~0U);
 }
 
 /* Find the cwnd increment based on estimate of ack aggregation */
@@ -2300,7 +2311,8 @@ static void bbr_set_state(struct sock *sk, u8 new_state)
 
 
 static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
-	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_RATE_IN_FLIGHT,
+	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_RATE_IN_FLIGHT |
+			  TCP_CONG_EDT,
 	.name		= "bbr3",
 	.owner		= THIS_MODULE,
 	.init		= bbr_init,

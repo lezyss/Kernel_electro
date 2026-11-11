@@ -91,8 +91,10 @@ def main():
     assert re.search(r'default "bbrplus" if DEFAULT_BBRPLUS\n\tdefault "cubic"', kconfig)
     config = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
     assert 'CONFIG_TCP_CONG_BBRPLUS=y' in config
-    assert 'CONFIG_DEFAULT_BBRPLUS=y' in config
-    assert 'CONFIG_DEFAULT_TCP_CONG="bbrplus"' in config
+    assert 'CONFIG_DEFAULT_BBR3=y' in config
+    assert 'CONFIG_DEFAULT_BBRPLUS=y' not in config
+    assert 'bool "BBRv3" if TCP_CONG_BBR3=y' in kconfig
+    assert 'CONFIG_DEFAULT_TCP_CONG="bbr3"' in config
     assert 'CONFIG_DEFAULT_FQ_CODEL=y' in config
     print('BBRplus source/config guards: PASS')
 

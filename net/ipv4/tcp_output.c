@@ -70,9 +70,12 @@ void tcp_mstamp_refresh(struct tcp_sock *tp)
 {
 	u64 val = tcp_clock_ns();
 
-	/* departure time for next data packet */
-	if (val > tp->tcp_wstamp_ns)
-		tp->tcp_wstamp_ns = val;
+	/* EDT and the fq watchdog must share CLOCK_MONOTONIC, not local_clock.
+	 * Keep legacy RTT/rate microsecond samples in their existing domain.
+	 */
+	tp->tcp_clock_cache = ktime_get_ns();
+	if (tp->tcp_clock_cache > tp->tcp_wstamp_ns)
+		tp->tcp_wstamp_ns = tp->tcp_clock_cache;
 
 	val = div_u64(val, NSEC_PER_USEC);
 	if (val > tp->tcp_mstamp)
@@ -1210,6 +1213,47 @@ static void tcp_internal_pacing(struct sock *sk, const struct sk_buff *skb)
 		      HRTIMER_MODE_ABS_PINNED);
 }
 
+/* Prepare one real departure deadline. Do not reuse skb->tstamp: 4.14
+ * aliases it with the microsecond retransmit/rate stamp. Pure ACK/SYN/RST
+ * control packets retain their native treatment; FIN follows queued data.
+ */
+static u64 tcp_edt_prepare(struct sock *sk, const struct sk_buff *skb,
+			   unsigned int payload_len)
+{
+	struct tcp_sock *tp = tcp_sk(sk);
+	u32 rate = READ_ONCE(sk->sk_pacing_rate);
+
+	if ((!payload_len && !(TCP_SKB_CB(skb)->tcp_flags & TCPHDR_FIN)) ||
+	    (TCP_SKB_CB(skb)->tcp_flags & (TCPHDR_SYN | TCPHDR_RST)))
+		return 0;
+	/* Also stamp the first packet before fq advertises SK_PACING_FQ.
+	 * On other qdiscs the native internal timer still gates each send;
+	 * BBR must not forecast from EDT until fq has advertised support.
+	 */
+	if (!(inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_EDT) ||
+	    !smp_load_acquire(&sk->sk_pacing_status) || !rate || rate == ~0U) {
+		tp->tcp_wstamp_ns = tp->tcp_clock_cache;
+		return 0;
+	}
+	return max(tp->tcp_wstamp_ns, tp->tcp_clock_cache);
+}
+
+/* Advance only after successful handoff. Failed sends must not reserve time.
+ * As in native fq, cap one packet's serialization delay at one second.
+ * This also keeps extremely low pacing rates from creating unbounded delays.
+ */
+static void tcp_edt_advance(struct sock *sk, u64 edt, unsigned int len, u32 rate)
+{
+	struct tcp_sock *tp = tcp_sk(sk);
+	u64 delay;
+
+	if (!edt || !rate || rate == ~0U)
+		return;
+	delay = div_u64((u64)len * NSEC_PER_SEC, rate);
+	delay = min_t(u64, delay, NSEC_PER_SEC);
+	tp->tcp_wstamp_ns = edt + delay;
+}
+
 /* This routine actually transmits TCP packets queued in by
  * tcp_do_sendmsg().  This is used by both the initial
  * transmission and possible later retransmissions.
@@ -1233,6 +1277,9 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	struct sk_buff *oskb = NULL;
 	struct tcp_md5sig_key *md5;
 	struct tcphdr *th;
+	u64 edt;
+	u32 edt_rate;
+	unsigned int edt_len;
 	int err;
 
 	BUG_ON(!skb || !tcp_skb_pcount(skb));
@@ -1253,6 +1300,7 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 			return -ENOBUFS;
 	}
 	skb->skb_mstamp = tp->tcp_mstamp;
+	skb->tcp_edt_ns = 0;
 
 	inet = inet_sk(sk);
 	tcb = TCP_SKB_CB(skb);
@@ -1358,6 +1406,11 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	skb_shinfo(skb)->gso_segs = tcp_skb_pcount(skb);
 	skb_shinfo(skb)->gso_size = tcp_skb_mss(skb);
 
+	/* Keep actual send/RTT samples separate from the fq deadline. */
+	edt = tcp_edt_prepare(sk, skb, skb->len - tcp_header_size);
+	edt_rate = READ_ONCE(sk->sk_pacing_rate);
+	edt_len = skb->len;
+	skb->tcp_edt_ns = edt;
 	/* Our usage of tstamp should remain private */
 	skb->tstamp = 0;
 
@@ -1371,6 +1424,8 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 		tcp_enter_cwr(sk);
 		err = net_xmit_eval(err);
 	}
+	if (!err)
+		tcp_edt_advance(sk, edt, edt_len, edt_rate);
 	if (!err && oskb) {
 		oskb->skb_mstamp = tp->tcp_mstamp;
 		tcp_rate_skb_sent(sk, oskb);

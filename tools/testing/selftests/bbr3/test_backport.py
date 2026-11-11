@@ -13,7 +13,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[4]
 MUTANTS = ['byte-as-packets', 'no-wrap', 'no-loss-snapshot', 'no-loss-hook',
            'no-split', 'no-merge', 'no-switch-guard', 'no-loss-tag-guard',
-           'no-ce-snapshot', 'required-native-hooks', 'bpf-native-exposure', 'cached-mss', 'no-legacy-refresh']
+           'no-ce-snapshot', 'required-native-hooks', 'bpf-native-exposure', 'cached-mss', 'no-legacy-refresh', 'no-edt-forecast', 'edt-without-fq']
 
 
 def block(text, signature):
@@ -53,7 +53,8 @@ def main():
     loss = block(inp, 'static void tcp_sum_lost(')
     helpers = '\n'.join(block(h, x) for x in [
         'static inline u32 tcp_stamp32_us_delta(',
-        'static inline bool tcp_skb_tx_in_flight_is_suspicious('])
+        'static inline bool tcp_skb_tx_in_flight_is_suspicious(',
+        'static inline bool tcp_edt_enabled('])
     rate = re.sub(r'^#include.*\n', '', rate, flags=re.M)
     bbr = re.sub(r'^#include.*\n', '', bbr, flags=re.M)
     if args.mutant == 'byte-as-packets':
@@ -77,6 +78,10 @@ def main():
     elif args.mutant == 'no-ce-snapshot':
         rate = rate.replace('TCP_SKB_CB(skb)->tx.delivered_ce\t= tp->delivered_ce;',
                             'TCP_SKB_CB(skb)->tx.delivered_ce = 0;')
+    elif args.mutant == 'no-edt-forecast':
+        bbr = bbr.replace('delivered = (u64)bbr_bw(sk) * interval_us >> BW_SCALE;', 'delivered = 0;')
+    elif args.mutant == 'edt-without-fq':
+        bbr = bbr.replace('if (!tcp_edt_enabled(sk))', 'if (false)')
     elif args.mutant == 'no-legacy-refresh':
         rate = rate.replace('TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq -\n\t\t\t\t\t     tp->snd_una;',
                             'TCP_SKB_CB(skb)->tx.in_flight = 16;')
@@ -137,7 +142,7 @@ def main():
     cfg = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
     for line in ['CONFIG_TCP_CONG_BBR3=y', 'CONFIG_TCP_CONG_BBRPLUS=y',
                  'CONFIG_TCP_CONG_BBR=y', 'CONFIG_TCP_CONG_CUBIC=y',
-                 'CONFIG_DEFAULT_BBRPLUS=y', 'CONFIG_DEFAULT_TCP_CONG="bbrplus"']:
+                 'CONFIG_DEFAULT_BBR3=y', 'CONFIG_DEFAULT_TCP_CONG="bbr3"']:
         assert line in cfg.splitlines(), line
     assert 'scb->tx.in_flight_is_packets ? 0 :' in inp
     assert 'tlp_orig_data_app_limited = TCP_SKB_CB(skb)->tx.is_app_limited' in out

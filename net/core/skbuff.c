@@ -847,6 +847,7 @@ EXPORT_SYMBOL(napi_consume_skb);
 static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 {
 	new->tstamp		= old->tstamp;
+	new->tcp_edt_ns		= old->tcp_edt_ns;
 	/* We do not copy old->sk */
 	new->dev		= old->dev;
 	memcpy(new->cb, old->cb, sizeof(old->cb));
@@ -4988,6 +4989,9 @@ EXPORT_SYMBOL(skb_try_coalesce);
 void skb_scrub_packet(struct sk_buff *skb, bool xnet)
 {
 	skb->tstamp = 0;
+	/* Do not carry local transmit scheduling across a namespace boundary. */
+	if (xnet)
+		skb->tcp_edt_ns = 0;
 	skb->pkt_type = PACKET_HOST;
 	skb->skb_iif = 0;
 	skb->ignore_df = 0;

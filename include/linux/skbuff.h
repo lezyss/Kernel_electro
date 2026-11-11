@@ -686,6 +686,11 @@ struct sk_buff {
 		ktime_t		tstamp;
 		u64		skb_mstamp;
 	};
+	/* Native TCP EDT, CLOCK_MONOTONIC ns; not a receive/SO_TIMESTAMP value.
+	 * Kept separate from the 4.14 microsecond skb_mstamp/tstamp union.
+	 * Zero means no departure constraint. Clones/fragments preserve it.
+	 */
+	u64			tcp_edt_ns;
 	/*
 	 * This is the control buffer. It is free to use for every
 	 * layer. Please put your private variables there. If you

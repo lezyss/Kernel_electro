@@ -4679,6 +4679,8 @@ static int __netif_receive_skb_core(struct sk_buff *skb, bool pfmemalloc)
 	int (*embms_recv)(struct sk_buff *skb);
 	int (*fast_recv)(struct sk_buff *skb, struct packet_type *pt_temp);
 
+	/* A local TX deadline must never become a forwarded RX deadline. */
+	skb->tcp_edt_ns = 0;
 	net_timestamp_check(!netdev_tstamp_prequeue, skb);
 
 	trace_netif_receive_skb(skb);

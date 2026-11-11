@@ -1024,6 +1024,8 @@ enum tcp_ca_ack_event_flags {
 #define TCP_CONG_NEEDS_ECN	0x2
 /* Requests packet-valued transmit snapshots instead of legacy bytes. */
 #define TCP_CONG_RATE_IN_FLIGHT 0x4
+/* Native-only opt-in. Not in TCP_CONG_MASK: the old BPF ABI cannot request it. */
+#define TCP_CONG_EDT		0x8
 #define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN | \
 			 TCP_CONG_RATE_IN_FLIGHT)
 
@@ -1130,6 +1132,15 @@ void tcp_cong_avoid_ai(struct tcp_sock *tp, u32 w, u32 acked);
 u32 tcp_reno_ssthresh(struct sock *sk);
 u32 tcp_reno_undo_cwnd(struct sock *sk);
 void tcp_reno_cong_avoid(struct sock *sk, u32 ack, u32 acked);
+/* Only sch_fq advertises consumption of native TCP departure deadlines.
+ * Other qdiscs retain the existing internal hrtimer pacing path.
+ */
+static inline bool tcp_edt_enabled(const struct sock *sk)
+{
+	return (inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_EDT) &&
+	       smp_load_acquire(&sk->sk_pacing_status) == SK_PACING_FQ;
+}
+
 extern struct tcp_congestion_ops tcp_reno;
 
 struct tcp_congestion_ops *tcp_ca_find(const char *name);

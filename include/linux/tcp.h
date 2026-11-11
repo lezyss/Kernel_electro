@@ -254,7 +254,8 @@ struct tcp_sock {
 		is_cwnd_limited:1;/* forward progress limited by snd_cwnd? */
 	u32	tlp_high_seq;	/* snd_nxt at the time of TLP */
 
-	u64	tcp_wstamp_ns;	/* departure time for next sent data packet */
+	u64	tcp_wstamp_ns;	/* next TCP EDT, CLOCK_MONOTONIC ns */
+	u64	tcp_clock_cache; /* most recent CLOCK_MONOTONIC sample */
 
 /* RTT measurement */
 	u64	tcp_mstamp;	/* most recent packet received/sent */

@@ -21,7 +21,7 @@ legacy bytes vs packet-valued snapshots on CC switches; missing/reneged rate
 samples; newly counted/retransmitted loss; immediate loss-bound reaction;
 STARTUP, DRAIN, all four PROBE_BW phases, PROBE_RTT entry/exit; TLP advancing,
 ambiguous, DSACK, pure-dupack and new-data ACKs; 20/52-byte diagnostic ABI;
-NULL/unsupported native callbacks in BPF struct_ops. Thirteen mutations must
+NULL/unsupported native callbacks in BPF struct_ops. Fifteen mutations must
 compile but fail a runtime assertion. A compiler failure is not a passing
 negative control. --mutant is for intentional individual failures only.
 
@@ -33,4 +33,20 @@ supply-chain attestation or device proof. Refresh them deliberately only after
 reviewing a later edit; a hash mismatch is not permission to accept drift.
 
 See Documentation/networking/bbr3-backport.rst for port exclusions, selection
-and a sender-side phone comparison procedure. The default remains bbrplus.
+and a sender-side phone comparison procedure. Miatoll now explicitly selects bbr3 by user request; BBRplus remains selectable.
+
+Native EDT overlay checks
+-------------------------
+
+  python3 tools/testing/selftests/bbr3/test_edt.py --self-test-negatives
+
+Compiles the actual TCP EDT preparation/advance/clock functions and full fq
+queue/dequeue/throttle functions against host socket/watchdog adapters and the
+repository userspace rbtree implementation. Tests 6,400 sorted packets plus
+focused scheduling, ACK/control, earlier-head, maxrate, internal-allocation queue,
+legacy and nopacing cases. Eight compiled semantic mutants must fail assertions.
+The extended BBR model covers 120 EDT forecast combinations plus past deadline
+and rejects two additional forecast mutants (15 total). BPF cannot opt into the
+new native-only flag. No device transmission, hardware timing or target compiler
+proof: see Documentation/networking/bbr3-edt.rst. Provenance runner reverses this
+overlay in temporary copies before checking the immutable original port receipt.

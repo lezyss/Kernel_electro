@@ -46,6 +46,10 @@ static u32 ilog2(u64 v) { assert(v); return 63U - __builtin_clzll(v); }
 #define TCP_INFINITE_SSTHRESH 0x7fffffffU
 #define SK_PACING_NONE 0
 #define SK_PACING_NEEDED 1
+#define SK_PACING_FQ 2
+#define TCP_CONG_EDT 8
+#define NSEC_PER_USEC 1000U
+#define smp_load_acquire(p) (*(p))
 #define TCP_CONG_NON_RESTRICTED 1
 #define TCP_CONG_RATE_IN_FLIGHT 4
 #define TCP_CA_NAME_MAX 16
@@ -105,6 +109,7 @@ struct tcp_sock {
 	u32 delivered, delivered_ce, lost, app_limited;
 	u32 packets_out, retrans_out, lost_out, sacked_out;
 	u64 first_tx_mstamp, delivered_mstamp, tcp_mstamp;
+	u64 tcp_wstamp_ns, tcp_clock_cache;
 	u32 snd_cwnd, snd_cwnd_clamp, snd_ssthresh, prior_cwnd;
 	u32 mss_cache, srtt_us, rtt_min, rcv_nxt, snd_nxt, write_seq, snd_una;
 	u32 rate_delivered, rate_interval_us;
@@ -411,6 +416,8 @@ static void bpf_members(void)
 	m.offset=offsetof(struct tcp_congestion_ops,ssthresh);
 	assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==-EINVAL);
 	m.offset=offsetof(struct tcp_congestion_ops,flags); m.type=0;
+	in.flags=TCP_CONG_EDT;
+	assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==-EINVAL);
 	in.flags=0x8000;
 	assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==-EINVAL);
 	in.flags=TCP_CONG_NON_RESTRICTED;
@@ -445,10 +452,36 @@ static void tso_dispatch(void)
 	}
 	assert(cases==1188 && !warning_count);
 }
+static void edt_forecast(void)
+{
+ struct tcp_sock tp; struct inet_connection_sock icsk;
+ const u64 deltas[]={0,999,1000,1000000,100000000000000ULL};
+ const u32 bws[]={0,1,BW_UNIT,UINT32_MAX};
+ unsigned int cases=0;
+ setup(&tp,&icsk); struct bbr *bbr=inet_csk_ca(&tp.sk);
+ for(u32 status=0;status<=2;status++)
+ for(u32 g=0;g<2;g++)
+ for(u32 i=0;i<ARRAY_SIZE(deltas);i++)
+ for(u32 j=0;j<ARRAY_SIZE(bws);j++) {
+  tp.sk.sk_pacing_status=status;
+  tp.tcp_clock_cache=1000000000;
+  tp.tcp_wstamp_ns=tp.tcp_clock_cache+deltas[i];
+  bbr->bw_hi[0]=bbr->bw_hi[1]=bbr->bw_lo=bws[j];
+  bbr->pacing_gain=g?BBR_UNIT+1:BBR_UNIT;
+  u64 flight=100+(g?bbr_tso_segs_goal(&tp.sk):0);
+  u64 interval=min_t(u64,deltas[i]/1000,UINT32_MAX);
+  u64 delivered=(u64)bws[j]*interval/BW_UNIT;
+  u64 expected=status==SK_PACING_FQ?(delivered>=flight?0:flight-delivered):flight;
+  assert(bbr_packets_in_net(&tp.sk,100)==expected);cases++;
+ }
+ tp.tcp_wstamp_ns=tp.tcp_clock_cache-1;bbr->pacing_gain=BBR_UNIT;
+ assert(bbr_packets_in_net(&tp.sk,100)==100);
+ printf("EDT BBR forecast: %u rate/gain/fallback/horizon cases plus past deadline PASS\n",cases);
+}
 int main(void)
 {
 	assert(sizeof(((struct tcp_skb_cb *)0)->tx)==24);
-	accounting(); segmentation(); algorithm(); tail_loss(); phases(); bpf_members(); tso_dispatch();
+	accounting(); segmentation(); algorithm(); tail_loss(); phases(); bpf_members(); tso_dispatch(); edt_forecast();
 	puts("BBRv3 extracted-source models: PASS (10,000 wrap cases; 74,100 split/merge cases; 1,188 TSO cases; CC switches, loss bounds, phases, TLP, BPF and ABI)");
 	return 0;
 }

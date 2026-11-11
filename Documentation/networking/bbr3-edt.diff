@@ -1,0 +1,797 @@
+--- a/Documentation/networking/bbr3-backport.rst
++++ b/Documentation/networking/bbr3-backport.rst
+@@ -24,12 +24,13 @@
+   remains gated off, rather than being fed fabricated zero CE samples.
+ * PLB, permanent ECT retransmission policy and fast ACK mode are not
+   imported or advertised. Receiver ACK scheduling remains native 4.14.
+-* There are no EDT timestamps in this stack. ``bbr_packets_in_net()`` uses
+-  the observed flight as a conservative upper bound (including local
+-  queues), including a prospective TSO burst during increasing pacing
+-  gain. It does NOT invent timestamps or forecast deliveries to an EDT.
+-  Existing fq/internal hrtimer pacing is retained. This is not equivalent
+-  to Google's EDT-aware optimization on a modern stack.
++* The original port used conservative observed flight without EDT. A later
++  locally applied native EDT adaptation now supplies separate monotonic TCP
++  deadlines, fq enforcement and the BBRv3 forecast. See ``bbr3-edt.rst`` and
++  its validation receipt for scope, limitations and uncompleted target/device
++  validation. Native RTT/rate timestamps stay unchanged; this is not the
++  modern stack's entire RTT/ECN/PLB feature set. Historical receipts describe
++  the original port and are verified beneath the additive EDT overlay.
+ * The congestion-control callback retains this tree's two-argument ABI;
+   Google's unused ACK/flag arguments are omitted. cwnd accessors, GSO
+   constant, global min-TSO sysctl and probe randomization use native 4.14
+@@ -48,9 +49,13 @@
+ ---------------------------
+ 
+ ``CONFIG_TCP_CONG_BBR3`` builds the separate algorithm named ``bbr3``.
+-The miatoll defconfig enables it, but the default stays **bbrplus**.
+-BBR and CUBIC remain built in. TCP buffer caps stay at 16 MiB. There is no
+-``DEFAULT_BBR3`` choice or automatic migration of existing connections.
++Following explicit user approval, miatoll now selects **bbr3** through the new
++``DEFAULT_BBR3`` built-in-only choice. BBRplus, BBR and CUBIC remain built in
++and selectable. Generic Kconfig fallback remains CUBIC; other device profiles
++are not changed. TCP buffer caps stay at16MiB. Existing sockets are not migrated,
++and ROM services/sysctls may override the kernel default at runtime.
++The original historical receipt describes the prior BBRplus-default profile;
++its later EDT/default overlay is recorded separately in bbr3-edt-validation.json.
+ 
+ With BBRv3 built in or modular, congestion-control private storage grows
+ from 112 to 144 bytes: 32 additional bytes per inet connection socket.
+@@ -165,7 +170,8 @@
+ 
+ Record ``/proc/version`` and the actual built image/config provenance.
+ SUSFS may intentionally spoof ``uname``; that alone is not a wrong-image
+-failure. Confirm availability and that the default has not changed::
++failure. Confirm availability and the actual runtime default (expected ``bbr3`` unless
++ROM policy overrides it)::
+ 
+   cat /proc/sys/net/ipv4/tcp_available_congestion_control
+   cat /proc/sys/net/ipv4/tcp_congestion_control
+@@ -188,7 +194,7 @@
+ If a global setting is needed for an application without per-socket
+ selection, first record the old value. As root, set
+ ``net.ipv4.tcp_congestion_control=bbr3`` for new sockets only, and restore
+-``bbrplus`` after the experiment. Do not change TCP memory caps, qdisc,
++the value recorded before the experiment afterward. Do not change TCP memory caps, qdisc,
+ pacing, ECN, scheduler, or other tunables between trials. Existing sockets
+ do not automatically migrate when the default sysctl changes.
+ 
+--- a/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
++++ b/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
+@@ -157,8 +157,8 @@
+ CONFIG_TCP_CONG_BBRPLUS=y
+ CONFIG_TCP_CONG_BBR3=y
+ CONFIG_TCP_CONG_WESTWOOD=y
+-CONFIG_DEFAULT_BBRPLUS=y
+-CONFIG_DEFAULT_TCP_CONG="bbrplus"
++CONFIG_DEFAULT_BBR3=y
++CONFIG_DEFAULT_TCP_CONG="bbr3"
+ CONFIG_IPV6_ROUTER_PREF=y
+ CONFIG_IPV6_ROUTE_INFO=y
+ CONFIG_IPV6_OPTIMISTIC_DAD=y
+--- a/include/linux/skbuff.h
++++ b/include/linux/skbuff.h
+@@ -686,6 +686,11 @@
+ 		ktime_t		tstamp;
+ 		u64		skb_mstamp;
+ 	};
++	/* Native TCP EDT, CLOCK_MONOTONIC ns; not a receive/SO_TIMESTAMP value.
++	 * Kept separate from the 4.14 microsecond skb_mstamp/tstamp union.
++	 * Zero means no departure constraint. Clones/fragments preserve it.
++	 */
++	u64			tcp_edt_ns;
+ 	/*
+ 	 * This is the control buffer. It is free to use for every
+ 	 * layer. Please put your private variables there. If you
+--- a/include/linux/tcp.h
++++ b/include/linux/tcp.h
+@@ -254,7 +254,8 @@
+ 		is_cwnd_limited:1;/* forward progress limited by snd_cwnd? */
+ 	u32	tlp_high_seq;	/* snd_nxt at the time of TLP */
+ 
+-	u64	tcp_wstamp_ns;	/* departure time for next sent data packet */
++	u64	tcp_wstamp_ns;	/* next TCP EDT, CLOCK_MONOTONIC ns */
++	u64	tcp_clock_cache; /* most recent CLOCK_MONOTONIC sample */
+ 
+ /* RTT measurement */
+ 	u64	tcp_mstamp;	/* most recent packet received/sent */
+--- a/include/net/tcp.h
++++ b/include/net/tcp.h
+@@ -1024,6 +1024,8 @@
+ #define TCP_CONG_NEEDS_ECN	0x2
+ /* Requests packet-valued transmit snapshots instead of legacy bytes. */
+ #define TCP_CONG_RATE_IN_FLIGHT 0x4
++/* Native-only opt-in. Not in TCP_CONG_MASK: the old BPF ABI cannot request it. */
++#define TCP_CONG_EDT		0x8
+ #define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN | \
+ 			 TCP_CONG_RATE_IN_FLIGHT)
+ 
+@@ -1130,6 +1132,15 @@
+ u32 tcp_reno_ssthresh(struct sock *sk);
+ u32 tcp_reno_undo_cwnd(struct sock *sk);
+ void tcp_reno_cong_avoid(struct sock *sk, u32 ack, u32 acked);
++/* Only sch_fq advertises consumption of native TCP departure deadlines.
++ * Other qdiscs retain the existing internal hrtimer pacing path.
++ */
++static inline bool tcp_edt_enabled(const struct sock *sk)
++{
++	return (inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_EDT) &&
++	       smp_load_acquire(&sk->sk_pacing_status) == SK_PACING_FQ;
++}
++
+ extern struct tcp_congestion_ops tcp_reno;
+ 
+ struct tcp_congestion_ops *tcp_ca_find(const char *name);
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -4679,6 +4679,8 @@
+ 	int (*embms_recv)(struct sk_buff *skb);
+ 	int (*fast_recv)(struct sk_buff *skb, struct packet_type *pt_temp);
+ 
++	/* A local TX deadline must never become a forwarded RX deadline. */
++	skb->tcp_edt_ns = 0;
+ 	net_timestamp_check(!netdev_tstamp_prequeue, skb);
+ 
+ 	trace_netif_receive_skb(skb);
+--- a/net/core/skbuff.c
++++ b/net/core/skbuff.c
+@@ -847,6 +847,7 @@
+ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
+ {
+ 	new->tstamp		= old->tstamp;
++	new->tcp_edt_ns		= old->tcp_edt_ns;
+ 	/* We do not copy old->sk */
+ 	new->dev		= old->dev;
+ 	memcpy(new->cb, old->cb, sizeof(old->cb));
+@@ -4988,6 +4989,9 @@
+ void skb_scrub_packet(struct sk_buff *skb, bool xnet)
+ {
+ 	skb->tstamp = 0;
++	/* Do not carry local transmit scheduling across a namespace boundary. */
++	if (xnet)
++		skb->tcp_edt_ns = 0;
+ 	skb->pkt_type = PACKET_HOST;
+ 	skb->skb_iif = 0;
+ 	skb->ignore_df = 0;
+--- a/net/ipv4/Kconfig
++++ b/net/ipv4/Kconfig
+@@ -744,6 +744,9 @@
+ 
+ 	config DEFAULT_BBRPLUS
+ 		bool "BBRplus" if TCP_CONG_BBRPLUS=y
++
++	config DEFAULT_BBR3
++		bool "BBRv3" if TCP_CONG_BBR3=y
+ 
+ 	config DEFAULT_RENO
+ 		bool "Reno"
+@@ -769,6 +772,7 @@
+ 	default "dctcp" if DEFAULT_DCTCP
+ 	default "cdg" if DEFAULT_CDG
+ 	default "bbr" if DEFAULT_BBR
++	default "bbr3" if DEFAULT_BBR3
+ 	default "bbrplus" if DEFAULT_BBRPLUS
+ 	default "cubic"
+ 
+--- a/net/ipv4/ip_output.c
++++ b/net/ipv4/ip_output.c
+@@ -521,6 +521,7 @@
+ 
+ static void ip_copy_metadata(struct sk_buff *to, struct sk_buff *from)
+ {
++	to->tcp_edt_ns = from->tcp_edt_ns;
+ 	to->pkt_type = from->pkt_type;
+ 	to->priority = from->priority;
+ 	to->protocol = from->protocol;
+--- a/net/ipv4/tcp_bbr3.c
++++ b/net/ipv4/tcp_bbr3.c
+@@ -626,18 +626,29 @@
+ 	return inflight;
+ }
+ 
+-/* Native 4.14 pacing has no scheduled EDT timestamp. Use the observed
+- * flight as a conservative upper bound (including packets in local queues),
+- * and include the prospective TSO burst while increasing flight. Do not
+- * subtract fictitious deliveries between now and a nonexistent EDT.
++/* Native EDT uses CLOCK_MONOTONIC from TCP through fq. Retain the
++ * conservative estimate for initial/non-fq/internal pacing paths. Do not
++ * infer a schedule from the legacy microsecond skb transmit timestamp.
+  */
+ static u32 bbr_packets_in_net(struct sock *sk, u32 inflight_now)
+ {
++	const struct tcp_sock *tp = tcp_sk(sk);
+ 	const struct bbr *bbr = inet_csk_ca(sk);
++	u64 interval_us, delivered;
++	u64 inflight = inflight_now;
+ 
+ 	if (bbr->pacing_gain > BBR_UNIT)
+-		inflight_now += bbr_tso_segs_goal(sk);
+-	return inflight_now;
++		inflight += bbr_tso_segs_goal(sk);
++	if (!tcp_edt_enabled(sk))
++		return min_t(u64, inflight, ~0U);
++	interval_us = div_u64(max(tp->tcp_wstamp_ns, tp->tcp_clock_cache) -
++			      tp->tcp_clock_cache, NSEC_PER_USEC);
++	/* Bound multiplication without wrapping a future flight estimate. */
++	interval_us = min_t(u64, interval_us, ~0U);
++	delivered = (u64)bbr_bw(sk) * interval_us >> BW_SCALE;
++	if (delivered >= inflight)
++		return 0;
++	return min_t(u64, inflight - delivered, ~0U);
+ }
+ 
+ /* Find the cwnd increment based on estimate of ack aggregation */
+@@ -2300,7 +2311,8 @@
+ 
+ 
+ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
+-	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_RATE_IN_FLIGHT,
++	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_RATE_IN_FLIGHT |
++			  TCP_CONG_EDT,
+ 	.name		= "bbr3",
+ 	.owner		= THIS_MODULE,
+ 	.init		= bbr_init,
+--- a/net/ipv4/tcp_output.c
++++ b/net/ipv4/tcp_output.c
+@@ -70,9 +70,12 @@
+ {
+ 	u64 val = tcp_clock_ns();
+ 
+-	/* departure time for next data packet */
+-	if (val > tp->tcp_wstamp_ns)
+-		tp->tcp_wstamp_ns = val;
++	/* EDT and the fq watchdog must share CLOCK_MONOTONIC, not local_clock.
++	 * Keep legacy RTT/rate microsecond samples in their existing domain.
++	 */
++	tp->tcp_clock_cache = ktime_get_ns();
++	if (tp->tcp_clock_cache > tp->tcp_wstamp_ns)
++		tp->tcp_wstamp_ns = tp->tcp_clock_cache;
+ 
+ 	val = div_u64(val, NSEC_PER_USEC);
+ 	if (val > tp->tcp_mstamp)
+@@ -1210,6 +1213,47 @@
+ 		      HRTIMER_MODE_ABS_PINNED);
+ }
+ 
++/* Prepare one real departure deadline. Do not reuse skb->tstamp: 4.14
++ * aliases it with the microsecond retransmit/rate stamp. Pure ACK/SYN/RST
++ * control packets retain their native treatment; FIN follows queued data.
++ */
++static u64 tcp_edt_prepare(struct sock *sk, const struct sk_buff *skb,
++			   unsigned int payload_len)
++{
++	struct tcp_sock *tp = tcp_sk(sk);
++	u32 rate = READ_ONCE(sk->sk_pacing_rate);
++
++	if ((!payload_len && !(TCP_SKB_CB(skb)->tcp_flags & TCPHDR_FIN)) ||
++	    (TCP_SKB_CB(skb)->tcp_flags & (TCPHDR_SYN | TCPHDR_RST)))
++		return 0;
++	/* Also stamp the first packet before fq advertises SK_PACING_FQ.
++	 * On other qdiscs the native internal timer still gates each send;
++	 * BBR must not forecast from EDT until fq has advertised support.
++	 */
++	if (!(inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_EDT) ||
++	    !smp_load_acquire(&sk->sk_pacing_status) || !rate || rate == ~0U) {
++		tp->tcp_wstamp_ns = tp->tcp_clock_cache;
++		return 0;
++	}
++	return max(tp->tcp_wstamp_ns, tp->tcp_clock_cache);
++}
++
++/* Advance only after successful handoff. Failed sends must not reserve time.
++ * As in native fq, cap one packet's serialization delay at one second.
++ * This also keeps extremely low pacing rates from creating unbounded delays.
++ */
++static void tcp_edt_advance(struct sock *sk, u64 edt, unsigned int len, u32 rate)
++{
++	struct tcp_sock *tp = tcp_sk(sk);
++	u64 delay;
++
++	if (!edt || !rate || rate == ~0U)
++		return;
++	delay = div_u64((u64)len * NSEC_PER_SEC, rate);
++	delay = min_t(u64, delay, NSEC_PER_SEC);
++	tp->tcp_wstamp_ns = edt + delay;
++}
++
+ /* This routine actually transmits TCP packets queued in by
+  * tcp_do_sendmsg().  This is used by both the initial
+  * transmission and possible later retransmissions.
+@@ -1233,6 +1277,9 @@
+ 	struct sk_buff *oskb = NULL;
+ 	struct tcp_md5sig_key *md5;
+ 	struct tcphdr *th;
++	u64 edt;
++	u32 edt_rate;
++	unsigned int edt_len;
+ 	int err;
+ 
+ 	BUG_ON(!skb || !tcp_skb_pcount(skb));
+@@ -1253,6 +1300,7 @@
+ 			return -ENOBUFS;
+ 	}
+ 	skb->skb_mstamp = tp->tcp_mstamp;
++	skb->tcp_edt_ns = 0;
+ 
+ 	inet = inet_sk(sk);
+ 	tcb = TCP_SKB_CB(skb);
+@@ -1358,6 +1406,11 @@
+ 	skb_shinfo(skb)->gso_segs = tcp_skb_pcount(skb);
+ 	skb_shinfo(skb)->gso_size = tcp_skb_mss(skb);
+ 
++	/* Keep actual send/RTT samples separate from the fq deadline. */
++	edt = tcp_edt_prepare(sk, skb, skb->len - tcp_header_size);
++	edt_rate = READ_ONCE(sk->sk_pacing_rate);
++	edt_len = skb->len;
++	skb->tcp_edt_ns = edt;
+ 	/* Our usage of tstamp should remain private */
+ 	skb->tstamp = 0;
+ 
+@@ -1371,6 +1424,8 @@
+ 		tcp_enter_cwr(sk);
+ 		err = net_xmit_eval(err);
+ 	}
++	if (!err)
++		tcp_edt_advance(sk, edt, edt_len, edt_rate);
+ 	if (!err && oskb) {
+ 		oskb->skb_mstamp = tp->tcp_mstamp;
+ 		tcp_rate_skb_sent(sk, oskb);
+--- a/net/ipv6/ip6_output.c
++++ b/net/ipv6/ip6_output.c
+@@ -608,6 +608,7 @@
+ 
+ static void ip6_copy_metadata(struct sk_buff *to, struct sk_buff *from)
+ {
++	to->tcp_edt_ns = from->tcp_edt_ns;
+ 	to->pkt_type = from->pkt_type;
+ 	to->priority = from->priority;
+ 	to->protocol = from->protocol;
+--- a/net/sched/sch_fq.c
++++ b/net/sched/sch_fq.c
+@@ -71,7 +71,8 @@
+ 	struct fq_flow *next;		/* next pointer in RR lists, or &detached */
+ 
+ 	struct rb_node  rate_node;	/* anchor in q->delayed tree */
+-	u64		time_next_packet;
++	u64		time_next_packet; /* fq maxrate / legacy socket rate */
++	u64		time_next_delayed; /* effective head EDT/rate wakeup */
+ };
+ 
+ struct fq_flow_head {
+@@ -159,7 +160,7 @@
+ 
+ 		parent = *p;
+ 		aux = rb_entry(parent, struct fq_flow, rate_node);
+-		if (f->time_next_packet >= aux->time_next_packet)
++		if (f->time_next_delayed >= aux->time_next_delayed)
+ 			p = &parent->rb_right;
+ 		else
+ 			p = &parent->rb_left;
+@@ -170,8 +171,8 @@
+ 	q->stat_throttled++;
+ 
+ 	f->next = &throttled;
+-	if (q->time_next_delayed_flow > f->time_next_packet)
+-		q->time_next_delayed_flow = f->time_next_packet;
++	if (q->time_next_delayed_flow > f->time_next_delayed)
++		q->time_next_delayed_flow = f->time_next_delayed;
+ }
+ 
+ 
+@@ -236,7 +237,8 @@
+ 	struct fq_flow *f;
+ 
+ 	/* warning: no starvation prevention... */
+-	if (unlikely((skb->priority & TC_PRIO_MAX) == TC_PRIO_CONTROL))
++	if (unlikely((skb->priority & TC_PRIO_MAX) == TC_PRIO_CONTROL) &&
++	    !skb->tcp_edt_ns)
+ 		return &q->internal;
+ 
+ 	/* SYNACK messages are attached to a TCP_NEW_SYN_RECV request socket
+@@ -334,62 +336,39 @@
+ 	return skb;
+ }
+ 
+-/* We might add in the future detection of retransmits
+- * For the time being, just return false
+- */
+-static bool skb_is_retransmit(struct sk_buff *skb)
+-{
+-	return false;
+-}
+-
+-/* add skb to flow queue
+- * flow queue is a linked list, kind of FIFO, except for TCP retransmits
+- * We special case tcp retransmits to be transmitted before other packets.
+- * We rely on fact that TCP retransmits are unlikely, so we do not waste
+- * a separate queue or a pointer.
+- * head->  [retrans pkt 1]
+- *         [retrans pkt 2]
+- *         [ normal pkt 1]
+- *         [ normal pkt 2]
+- *         [ normal pkt 3]
+- * tail->  [ normal pkt 4]
++/* Native TCP EDT is separate from receive/software timestamps. Immediate
++ * pure ACKs must not sit behind future data. Normal monotonic
++ * TCP deadlines append in O(1); exceptional earlier arrivals insert stably.
+  */
+ static void flow_queue_add(struct fq_flow *flow, struct sk_buff *skb)
+ {
+-	struct sk_buff *prev, *head = flow->head;
++	struct sk_buff *prev, *next;
+ 
+ 	skb->next = NULL;
+-	if (!head) {
+-		flow->head = skb;
+-		flow->tail = skb;
++	if (!flow->head) {
++		flow->head = flow->tail = skb;
+ 		return;
+ 	}
+-	if (likely(!skb_is_retransmit(skb))) {
++	/* Untagged data retains FIFO order, including live CC switches.
++	 * Only immediate pure ACKs may pass data waiting for a deadline.
++	 */
++	if ((!skb->tcp_edt_ns && !skb_is_tcp_pure_ack(skb)) ||
++	    skb->tcp_edt_ns >= flow->tail->tcp_edt_ns) {
+ 		flow->tail->next = skb;
+ 		flow->tail = skb;
+ 		return;
+ 	}
+-
+-	/* This skb is a tcp retransmit,
+-	 * find the last retrans packet in the queue
+-	 */
+ 	prev = NULL;
+-	while (skb_is_retransmit(head)) {
+-		prev = head;
+-		head = head->next;
+-		if (!head)
+-			break;
+-	}
+-	if (!prev) { /* no rtx packet in queue, become the new head */
+-		skb->next = flow->head;
++	next = flow->head;
++	while (next && next->tcp_edt_ns <= skb->tcp_edt_ns) {
++		prev = next;
++		next = next->next;
++	}
++	skb->next = next;
++	if (prev)
++		prev->next = skb;
++	else
+ 		flow->head = skb;
+-	} else {
+-		if (prev == flow->tail)
+-			flow->tail = skb;
+-		else
+-			skb->next = prev->next;
+-		prev->next = skb;
+-	}
+ }
+ 
+ static int fq_enqueue(struct sk_buff *skb, struct Qdisc *sch,
+@@ -408,8 +387,6 @@
+ 	}
+ 
+ 	f->qlen++;
+-	if (skb_is_retransmit(skb))
+-		q->stat_tcp_retrans++;
+ 	qdisc_qstats_backlog_inc(sch, skb);
+ 	if (fq_flow_is_detached(f)) {
+ 		fq_flow_add_tail(&q->new_flows, f);
+@@ -420,6 +397,10 @@
+ 
+ 	/* Note: this overwrites f->age */
+ 	flow_queue_add(f, skb);
++	if (fq_flow_is_throttled(f) &&
++	    (!f->head->tcp_edt_ns ||
++	     f->head->tcp_edt_ns < f->time_next_delayed))
++		fq_flow_unset_throttled(q, f);
+ 
+ 	if (unlikely(f == &q->internal)) {
+ 		q->stat_internal_packets++;
+@@ -448,8 +429,8 @@
+ 	while ((p = rb_first(&q->delayed)) != NULL) {
+ 		struct fq_flow *f = rb_entry(p, struct fq_flow, rate_node);
+ 
+-		if (f->time_next_packet > now) {
+-			q->time_next_delayed_flow = f->time_next_packet;
++		if (f->time_next_delayed > now) {
++			q->time_next_delayed_flow = f->time_next_delayed;
+ 			break;
+ 		}
+ 		fq_flow_unset_throttled(q, f);
+@@ -465,18 +446,25 @@
+ 	struct fq_flow *f;
+ 	u32 rate, plen;
+ 
+-	skb = fq_dequeue_head(sch, &q->internal);
+-	if (skb)
++	skb = q->internal.head;
++	if (skb && (!q->rate_enable || !skb->tcp_edt_ns ||
++		    skb->tcp_edt_ns <= now)) {
++		skb = fq_dequeue_head(sch, &q->internal);
+ 		goto out;
++	}
+ 	fq_check_throttled(q, now);
+ begin:
+ 	head = &q->new_flows;
+ 	if (!head->first) {
+ 		head = &q->old_flows;
+ 		if (!head->first) {
+-			if (q->time_next_delayed_flow != ~0ULL)
+-				qdisc_watchdog_schedule_ns(&q->watchdog,
+-							   q->time_next_delayed_flow);
++			u64 deadline = q->time_next_delayed_flow;
++
++			if (q->internal.head && q->rate_enable)
++				deadline = min(deadline,
++					       q->internal.head->tcp_edt_ns);
++			if (deadline != ~0ULL)
++				qdisc_watchdog_schedule_ns(&q->watchdog, deadline);
+ 			return NULL;
+ 		}
+ 	}
+@@ -490,11 +478,17 @@
+ 	}
+ 
+ 	skb = f->head;
+-	if (unlikely(skb && now < f->time_next_packet &&
+-		     !skb_is_tcp_pure_ack(skb))) {
+-		head->first = f->next;
+-		fq_flow_set_throttled(q, f);
+-		goto begin;
++	if (skb) {
++		u64 deadline = f->time_next_packet;
++
++		if (q->rate_enable)
++			deadline = max(deadline, skb->tcp_edt_ns);
++		if (unlikely(now < deadline && !skb_is_tcp_pure_ack(skb))) {
++			head->first = f->next;
++			f->time_next_delayed = deadline;
++			fq_flow_set_throttled(q, f);
++			goto begin;
++		}
+ 	}
+ 
+ 	skb = fq_dequeue_head(sch, f);
+@@ -520,7 +514,11 @@
+ 		goto out;
+ 
+ 	rate = q->flow_max_rate;
+-	if (skb->sk)
++	/* TCP already serialized EDT packets at the socket pacing rate.
++	 * Still enforce an explicitly configured fq maxrate (upstream fix
++	 * 08e14fe429a0); never double-charge the socket's rate.
++	 */
++	if (!skb->tcp_edt_ns && skb->sk)
+ 		rate = min(skb->sk->sk_pacing_rate, rate);
+ 
+ 	if (rate <= q->low_rate_threshold) {
+@@ -548,7 +546,7 @@
+ 		 * f->time_next_packet was set when prior packet was sent,
+ 		 * and current time (@now) can be too late by tens of us.
+ 		 */
+-		if (f->time_next_packet)
++		if (f->time_next_packet && now > f->time_next_packet)
+ 			len -= min(len/2, now - f->time_next_packet);
+ 		f->time_next_packet = now + len;
+ 	}
+--- a/tools/testing/selftests/bbr3/README
++++ b/tools/testing/selftests/bbr3/README
+@@ -21,7 +21,7 @@
+ samples; newly counted/retransmitted loss; immediate loss-bound reaction;
+ STARTUP, DRAIN, all four PROBE_BW phases, PROBE_RTT entry/exit; TLP advancing,
+ ambiguous, DSACK, pure-dupack and new-data ACKs; 20/52-byte diagnostic ABI;
+-NULL/unsupported native callbacks in BPF struct_ops. Thirteen mutations must
++NULL/unsupported native callbacks in BPF struct_ops. Fifteen mutations must
+ compile but fail a runtime assertion. A compiler failure is not a passing
+ negative control. --mutant is for intentional individual failures only.
+ 
+@@ -33,4 +33,20 @@
+ reviewing a later edit; a hash mismatch is not permission to accept drift.
+ 
+ See Documentation/networking/bbr3-backport.rst for port exclusions, selection
+-and a sender-side phone comparison procedure. The default remains bbrplus.
++and a sender-side phone comparison procedure. Miatoll now explicitly selects bbr3 by user request; BBRplus remains selectable.
++
++Native EDT overlay checks
++-------------------------
++
++  python3 tools/testing/selftests/bbr3/test_edt.py --self-test-negatives
++
++Compiles the actual TCP EDT preparation/advance/clock functions and full fq
++queue/dequeue/throttle functions against host socket/watchdog adapters and the
++repository userspace rbtree implementation. Tests 6,400 sorted packets plus
++focused scheduling, ACK/control, earlier-head, maxrate, internal-allocation queue,
++legacy and nopacing cases. Eight compiled semantic mutants must fail assertions.
++The extended BBR model covers 120 EDT forecast combinations plus past deadline
++and rejects two additional forecast mutants (15 total). BPF cannot opt into the
++new native-only flag. No device transmission, hardware timing or target compiler
++proof: see Documentation/networking/bbr3-edt.rst. Provenance runner reverses this
++overlay in temporary copies before checking the immutable original port receipt.
+--- a/tools/testing/selftests/bbr3/model.c
++++ b/tools/testing/selftests/bbr3/model.c
+@@ -46,6 +46,10 @@
+ #define TCP_INFINITE_SSTHRESH 0x7fffffffU
+ #define SK_PACING_NONE 0
+ #define SK_PACING_NEEDED 1
++#define SK_PACING_FQ 2
++#define TCP_CONG_EDT 8
++#define NSEC_PER_USEC 1000U
++#define smp_load_acquire(p) (*(p))
+ #define TCP_CONG_NON_RESTRICTED 1
+ #define TCP_CONG_RATE_IN_FLIGHT 4
+ #define TCP_CA_NAME_MAX 16
+@@ -105,6 +109,7 @@
+ 	u32 delivered, delivered_ce, lost, app_limited;
+ 	u32 packets_out, retrans_out, lost_out, sacked_out;
+ 	u64 first_tx_mstamp, delivered_mstamp, tcp_mstamp;
++	u64 tcp_wstamp_ns, tcp_clock_cache;
+ 	u32 snd_cwnd, snd_cwnd_clamp, snd_ssthresh, prior_cwnd;
+ 	u32 mss_cache, srtt_us, rtt_min, rcv_nxt, snd_nxt, write_seq, snd_una;
+ 	u32 rate_delivered, rate_interval_us;
+@@ -411,6 +416,8 @@
+ 	m.offset=offsetof(struct tcp_congestion_ops,ssthresh);
+ 	assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==-EINVAL);
+ 	m.offset=offsetof(struct tcp_congestion_ops,flags); m.type=0;
++	in.flags=TCP_CONG_EDT;
++	assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==-EINVAL);
+ 	in.flags=0x8000;
+ 	assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==-EINVAL);
+ 	in.flags=TCP_CONG_NON_RESTRICTED;
+@@ -445,10 +452,36 @@
+ 	}
+ 	assert(cases==1188 && !warning_count);
+ }
++static void edt_forecast(void)
++{
++ struct tcp_sock tp; struct inet_connection_sock icsk;
++ const u64 deltas[]={0,999,1000,1000000,100000000000000ULL};
++ const u32 bws[]={0,1,BW_UNIT,UINT32_MAX};
++ unsigned int cases=0;
++ setup(&tp,&icsk); struct bbr *bbr=inet_csk_ca(&tp.sk);
++ for(u32 status=0;status<=2;status++)
++ for(u32 g=0;g<2;g++)
++ for(u32 i=0;i<ARRAY_SIZE(deltas);i++)
++ for(u32 j=0;j<ARRAY_SIZE(bws);j++) {
++  tp.sk.sk_pacing_status=status;
++  tp.tcp_clock_cache=1000000000;
++  tp.tcp_wstamp_ns=tp.tcp_clock_cache+deltas[i];
++  bbr->bw_hi[0]=bbr->bw_hi[1]=bbr->bw_lo=bws[j];
++  bbr->pacing_gain=g?BBR_UNIT+1:BBR_UNIT;
++  u64 flight=100+(g?bbr_tso_segs_goal(&tp.sk):0);
++  u64 interval=min_t(u64,deltas[i]/1000,UINT32_MAX);
++  u64 delivered=(u64)bws[j]*interval/BW_UNIT;
++  u64 expected=status==SK_PACING_FQ?(delivered>=flight?0:flight-delivered):flight;
++  assert(bbr_packets_in_net(&tp.sk,100)==expected);cases++;
++ }
++ tp.tcp_wstamp_ns=tp.tcp_clock_cache-1;bbr->pacing_gain=BBR_UNIT;
++ assert(bbr_packets_in_net(&tp.sk,100)==100);
++ printf("EDT BBR forecast: %u rate/gain/fallback/horizon cases plus past deadline PASS\n",cases);
++}
+ int main(void)
+ {
+ 	assert(sizeof(((struct tcp_skb_cb *)0)->tx)==24);
+-	accounting(); segmentation(); algorithm(); tail_loss(); phases(); bpf_members(); tso_dispatch();
++	accounting(); segmentation(); algorithm(); tail_loss(); phases(); bpf_members(); tso_dispatch(); edt_forecast();
+ 	puts("BBRv3 extracted-source models: PASS (10,000 wrap cases; 74,100 split/merge cases; 1,188 TSO cases; CC switches, loss bounds, phases, TLP, BPF and ABI)");
+ 	return 0;
+ }
+--- a/tools/testing/selftests/bbr3/test_backport.py
++++ b/tools/testing/selftests/bbr3/test_backport.py
+@@ -13,7 +13,7 @@
+ ROOT = Path(__file__).resolve().parents[4]
+ MUTANTS = ['byte-as-packets', 'no-wrap', 'no-loss-snapshot', 'no-loss-hook',
+            'no-split', 'no-merge', 'no-switch-guard', 'no-loss-tag-guard',
+-           'no-ce-snapshot', 'required-native-hooks', 'bpf-native-exposure', 'cached-mss', 'no-legacy-refresh']
++           'no-ce-snapshot', 'required-native-hooks', 'bpf-native-exposure', 'cached-mss', 'no-legacy-refresh', 'no-edt-forecast', 'edt-without-fq']
+ 
+ 
+ def block(text, signature):
+@@ -53,7 +53,8 @@
+     loss = block(inp, 'static void tcp_sum_lost(')
+     helpers = '\n'.join(block(h, x) for x in [
+         'static inline u32 tcp_stamp32_us_delta(',
+-        'static inline bool tcp_skb_tx_in_flight_is_suspicious('])
++        'static inline bool tcp_skb_tx_in_flight_is_suspicious(',
++        'static inline bool tcp_edt_enabled('])
+     rate = re.sub(r'^#include.*\n', '', rate, flags=re.M)
+     bbr = re.sub(r'^#include.*\n', '', bbr, flags=re.M)
+     if args.mutant == 'byte-as-packets':
+@@ -77,6 +78,10 @@
+     elif args.mutant == 'no-ce-snapshot':
+         rate = rate.replace('TCP_SKB_CB(skb)->tx.delivered_ce\t= tp->delivered_ce;',
+                             'TCP_SKB_CB(skb)->tx.delivered_ce = 0;')
++    elif args.mutant == 'no-edt-forecast':
++        bbr = bbr.replace('delivered = (u64)bbr_bw(sk) * interval_us >> BW_SCALE;', 'delivered = 0;')
++    elif args.mutant == 'edt-without-fq':
++        bbr = bbr.replace('if (!tcp_edt_enabled(sk))', 'if (false)')
+     elif args.mutant == 'no-legacy-refresh':
+         rate = rate.replace('TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq -\n\t\t\t\t\t     tp->snd_una;',
+                             'TCP_SKB_CB(skb)->tx.in_flight = 16;')
+@@ -137,7 +142,7 @@
+     cfg = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
+     for line in ['CONFIG_TCP_CONG_BBR3=y', 'CONFIG_TCP_CONG_BBRPLUS=y',
+                  'CONFIG_TCP_CONG_BBR=y', 'CONFIG_TCP_CONG_CUBIC=y',
+-                 'CONFIG_DEFAULT_BBRPLUS=y', 'CONFIG_DEFAULT_TCP_CONG="bbrplus"']:
++                 'CONFIG_DEFAULT_BBR3=y', 'CONFIG_DEFAULT_TCP_CONG="bbr3"']:
+         assert line in cfg.splitlines(), line
+     assert 'scb->tx.in_flight_is_packets ? 0 :' in inp
+     assert 'tlp_orig_data_app_limited = TCP_SKB_CB(skb)->tx.is_app_limited' in out
+--- a/tools/testing/selftests/bbr3/test_provenance.py
++++ b/tools/testing/selftests/bbr3/test_provenance.py
+@@ -15,7 +15,8 @@
+     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+ 
+ 
+-def main():
++def check_base(root):
++    ROOT = root
+     m = json.loads((ROOT / 'Documentation/networking/bbr3-validation.json').read_text())
+     patch = ROOT / m['source_delta_patch']['path']
+     assert sha(patch) == m['source_delta_patch']['sha256'], 'delta patch drift'
+@@ -57,5 +58,47 @@
+           '3 historical BPF chains intact; protected BBR/BBRplus/TCP caps unchanged')
+ 
+ 
++def main():
++    overlay = ROOT / 'Documentation/networking/bbr3-edt-validation.json'
++    if not overlay.exists():
++        check_base(ROOT)
++        return
++    edt = json.loads(overlay.read_text())
++    patch = ROOT / edt['patch']['path']
++    assert sha(patch) == edt['patch']['sha256'], 'EDT patch drift'
++    for r in edt['source_records']:
++        assert sha(ROOT / r['path']) == r['after_sha256'], r['path']
++    for path, digest in edt['protected_sha256'].items():
++        assert sha(ROOT / path) == digest, 'EDT protected source drift: ' + path
++    old = json.loads((ROOT / 'Documentation/networking/bbr3-validation.json').read_text())
++    paths = {r['path'] for r in old['source_delta_records']} | set(old['protected_source_sha256'])
++    paths |= {r['path'] for r in edt['source_records']}
++    paths |= {'Documentation/networking/bbr3-validation.json',
++              old['source_delta_patch']['path'], 'Documentation/bpf/bpf-5.15-upgrade.json'}
++    with tempfile.TemporaryDirectory(prefix='bbr3-edt-chain-') as td:
++        root = Path(td)
++        for path in paths:
++            dst = root / path
++            dst.parent.mkdir(parents=True, exist_ok=True)
++            shutil.copyfile(ROOT / path, dst)
++        subprocess.run(['git', '-C', td, 'apply', '--reverse', str(patch)], check=True)
++        for r in edt['source_records']:
++            assert sha(root / r['path']) == r['before_sha256'], r['path']
++        # SUSFS/KSU configuration followups predate EDT and changed only the
++        # config endpoint of the historical BBR receipt. Verify its exact
++        # original endpoint on copies; never overwrite the working defconfig.
++        cfg = root / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig'
++        current_cfg = cfg.read_bytes()
++        historic = edt['historical_config_prerequisite']
++        cfg.write_text(historic['content'])
++        assert sha(cfg) == historic['sha256']
++        check_base(root)
++        cfg.write_bytes(current_cfg)
++        subprocess.run(['git', '-C', td, 'apply', str(patch)], check=True)
++        for r in edt['source_records']:
++            assert sha(root / r['path']) == r['after_sha256'], r['path']
++    print('PASS: EDT overlay reverse/forward endpoints and immutable historical BBRv3/BPF chain')
++
++
+ if __name__ == '__main__':
+     main()
+--- a/tools/testing/selftests/bbrplus/test_backport.py
++++ b/tools/testing/selftests/bbrplus/test_backport.py
+@@ -91,8 +91,10 @@
+     assert re.search(r'default "bbrplus" if DEFAULT_BBRPLUS\n\tdefault "cubic"', kconfig)
+     config = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
+     assert 'CONFIG_TCP_CONG_BBRPLUS=y' in config
+-    assert 'CONFIG_DEFAULT_BBRPLUS=y' in config
+-    assert 'CONFIG_DEFAULT_TCP_CONG="bbrplus"' in config
++    assert 'CONFIG_DEFAULT_BBR3=y' in config
++    assert 'CONFIG_DEFAULT_BBRPLUS=y' not in config
++    assert 'bool "BBRv3" if TCP_CONG_BBR3=y' in kconfig
++    assert 'CONFIG_DEFAULT_TCP_CONG="bbr3"' in config
+     assert 'CONFIG_DEFAULT_FQ_CODEL=y' in config
+     print('BBRplus source/config guards: PASS')
+ 

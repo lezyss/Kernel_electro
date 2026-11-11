@@ -24,12 +24,13 @@ The native 4.14 API and pacing facilities require explicit adaptations:
   remains gated off, rather than being fed fabricated zero CE samples.
 * PLB, permanent ECT retransmission policy and fast ACK mode are not
   imported or advertised. Receiver ACK scheduling remains native 4.14.
-* There are no EDT timestamps in this stack. ``bbr_packets_in_net()`` uses
-  the observed flight as a conservative upper bound (including local
-  queues), including a prospective TSO burst during increasing pacing
-  gain. It does NOT invent timestamps or forecast deliveries to an EDT.
-  Existing fq/internal hrtimer pacing is retained. This is not equivalent
-  to Google's EDT-aware optimization on a modern stack.
+* The original port used conservative observed flight without EDT. A later
+  locally applied native EDT adaptation now supplies separate monotonic TCP
+  deadlines, fq enforcement and the BBRv3 forecast. See ``bbr3-edt.rst`` and
+  its validation receipt for scope, limitations and uncompleted target/device
+  validation. Native RTT/rate timestamps stay unchanged; this is not the
+  modern stack's entire RTT/ECN/PLB feature set. Historical receipts describe
+  the original port and are verified beneath the additive EDT overlay.
 * The congestion-control callback retains this tree's two-argument ABI;
   Google's unused ACK/flag arguments are omitted. cwnd accessors, GSO
   constant, global min-TSO sysctl and probe randomization use native 4.14
@@ -48,9 +49,13 @@ Selection and compatibility
 ---------------------------
 
 ``CONFIG_TCP_CONG_BBR3`` builds the separate algorithm named ``bbr3``.
-The miatoll defconfig enables it, but the default stays **bbrplus**.
-BBR and CUBIC remain built in. TCP buffer caps stay at 16 MiB. There is no
-``DEFAULT_BBR3`` choice or automatic migration of existing connections.
+Following explicit user approval, miatoll now selects **bbr3** through the new
+``DEFAULT_BBR3`` built-in-only choice. BBRplus, BBR and CUBIC remain built in
+and selectable. Generic Kconfig fallback remains CUBIC; other device profiles
+are not changed. TCP buffer caps stay at16MiB. Existing sockets are not migrated,
+and ROM services/sysctls may override the kernel default at runtime.
+The original historical receipt describes the prior BBRplus-default profile;
+its later EDT/default overlay is recorded separately in bbr3-edt-validation.json.
 
 With BBRv3 built in or modular, congestion-control private storage grows
 from 112 to 144 bytes: 32 additional bytes per inet connection socket.
@@ -165,7 +170,8 @@ Phone A/B procedure (after a validated image is installed)
 
 Record ``/proc/version`` and the actual built image/config provenance.
 SUSFS may intentionally spoof ``uname``; that alone is not a wrong-image
-failure. Confirm availability and that the default has not changed::
+failure. Confirm availability and the actual runtime default (expected ``bbr3`` unless
+ROM policy overrides it)::
 
   cat /proc/sys/net/ipv4/tcp_available_congestion_control
   cat /proc/sys/net/ipv4/tcp_congestion_control
@@ -188,7 +194,7 @@ CPU/battery cost and coexistence in mind, not just the highest speed result.
 If a global setting is needed for an application without per-socket
 selection, first record the old value. As root, set
 ``net.ipv4.tcp_congestion_control=bbr3`` for new sockets only, and restore
-``bbrplus`` after the experiment. Do not change TCP memory caps, qdisc,
+the value recorded before the experiment afterward. Do not change TCP memory caps, qdisc,
 pacing, ECN, scheduler, or other tunables between trials. Existing sockets
 do not automatically migrate when the default sysctl changes.
 

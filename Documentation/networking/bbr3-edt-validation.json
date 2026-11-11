@@ -1,0 +1,251 @@
+{
+  "status": "User authorized normal same-branch publication of EDT adaptation and default switch to BBRv3. Locally validated including resolved configuration. No production ARM64 image/device proof; no CI. Commit/remote SHA verified externally after commit creation.",
+  "source_records": [
+    {
+      "path": "Documentation/networking/bbr3-backport.rst",
+      "before_sha256": "ae6895a02664702a8533c5ef87cf28802e69dbda8456fb5991c04ec086bd638a",
+      "after_sha256": "b1ac3ef4da5fa2ac5554ecd1a99ca8aa34590d16b92c41e02028a501d67f1928"
+    },
+    {
+      "path": "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig",
+      "before_sha256": "62a05a0271c59709b5475a09834def4c8a600ab1548cf496cdefb93da36cd0ee",
+      "after_sha256": "ae49cc2a358ad59041b411a6823c7160c9b39c7a42e6d38645f52c8d11ce97f1"
+    },
+    {
+      "path": "include/linux/skbuff.h",
+      "before_sha256": "f42f2d38c1fe21730f20d1cde3ca3e759d048d061917015133b22d81782b0c79",
+      "after_sha256": "8f35df85c5a86efa1b1ba65837a886ab755a5541f97898494c397daa4c91f7da"
+    },
+    {
+      "path": "include/linux/tcp.h",
+      "before_sha256": "15e88602cdb32c45d502fa6eb142d8fa8391a9715a03b8d5bff90ad971c080cb",
+      "after_sha256": "79dc70183f4a28d0fd1faa9da62e90854f0a64fe67eb4c5636ee4618b0da5fd1"
+    },
+    {
+      "path": "include/net/tcp.h",
+      "before_sha256": "7e128d928db883bdba94c95540473fef231d860f3b128c83dc7d57c848e90a0c",
+      "after_sha256": "cb043af56428b8d803d844ac0b2adcdf531a0913abffb39596d1edf4a1bd5336"
+    },
+    {
+      "path": "net/core/dev.c",
+      "before_sha256": "8b6265fc119d33ae29f7b2e09a5921598667ecc7372f2640a3388a4dcff36afb",
+      "after_sha256": "1fa303f16195ff924146fab748eb65eaf95bd58cd6772a1714cecd9d60f75d69"
+    },
+    {
+      "path": "net/core/skbuff.c",
+      "before_sha256": "fdf1a2d3656b332ff8800e8d0be14d5418912c593bcd0204fe661a447abf5756",
+      "after_sha256": "f33e30325d574847e2e14efcedf1a5bd7d6ec673e153fb75a40f0816bf21b8f6"
+    },
+    {
+      "path": "net/ipv4/Kconfig",
+      "before_sha256": "771ea29a3d116004ecdcbd5e642d95e81cd454eb3d29cfba2b9fe2554065ca41",
+      "after_sha256": "95d6b417762642f86717f8b7a2df46f548913ab8c7caf319fa3b886ade946313"
+    },
+    {
+      "path": "net/ipv4/ip_output.c",
+      "before_sha256": "cd98ba7e6b83227d1e8b14901f2d90021e4fdc7a24307ef8a97897c8da390f5f",
+      "after_sha256": "9b5f80cfa869576b561e119cdd0fd54dc6bb110c499111b6030bb827c0e7381b"
+    },
+    {
+      "path": "net/ipv4/tcp_bbr3.c",
+      "before_sha256": "96023ce77dd1ddcb1a4fc7ee90b9d97ae29d68247bbe1494a74715e5395c8548",
+      "after_sha256": "f1486393609416e3076b5e567ae27093f7563442fcb59c0b4ebfb8b59deb1f86"
+    },
+    {
+      "path": "net/ipv4/tcp_output.c",
+      "before_sha256": "d5dde73fe48d09b1df7e8db644430380c214bec052d3beb0a300b871cb4c975a",
+      "after_sha256": "4fd046f2fef41d291ad34f278497a288c7841601fd110f59d2ed7531c9be9580"
+    },
+    {
+      "path": "net/ipv6/ip6_output.c",
+      "before_sha256": "d28d3096e14ecc1ae8524a4df0904bf0a02aaecee1440a71c15f3a02e8c3132f",
+      "after_sha256": "f1e45b20dd14e71138902b61e63539c72e5ef040da1731a86b8656281ea8384a"
+    },
+    {
+      "path": "net/sched/sch_fq.c",
+      "before_sha256": "01d2887060757bb0290dc94b63980c40626724eb6ead3d677ab8c858c32260fe",
+      "after_sha256": "4f4f70b5bb8997fa8fe356b90295ccbde7b06b84491aa4776f411ff06982a43a"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/README",
+      "before_sha256": "5ffb0b2e3ef028fded473755ab80ade6cb843fde94b864dce3e09d2076858b4a",
+      "after_sha256": "57ca6b55f702ae02c432b97f8c2696fc121773a008dd19739f6f10d26cfc7ea8"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/model.c",
+      "before_sha256": "45fb8ea37941a77fc1366db1359505b13beef3b4231c79e85316b3a9d5e46f4b",
+      "after_sha256": "48ce2f15694878510498c472ed7c998f55710dd2f15b9338583b01e08074f02e"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/test_backport.py",
+      "before_sha256": "eed393943aaa09fe8c6855e749002a37005d2d2bb29a8103b6f0967e82ada747",
+      "after_sha256": "a3854ea54a3f61b869c2650e9c0e08b1138f06e12edf6aaaa45f1a3b76196fea"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/test_provenance.py",
+      "before_sha256": "cd48bd6812bd2be96ba6aa7dfa84980512c11ddb140ab9997bbe545a2cf79c4b",
+      "after_sha256": "648a1fb46e26f62ca6fc0e9cd8cab02a1d00717d7e1ad539d1f4b066d154ae10"
+    },
+    {
+      "path": "tools/testing/selftests/bbrplus/test_backport.py",
+      "before_sha256": "f4599476ba3cc05780e1d7d490cd0e2431eb4497f9d14ad34774af58c5316f4f",
+      "after_sha256": "5017d85eae8f3522ab97dd7605c3398e2768ce0b51947c53529a5458d195bfb8"
+    }
+  ],
+  "patch": {
+    "path": "Documentation/networking/bbr3-edt.diff",
+    "sha256": "14037ab008695f279643a0be1b9e9865553638bb07704878aa1fa96d44d46037"
+  },
+  "protected_sha256": {
+    "net/ipv4/tcp_bbr.c": "a088ab3975a386a39596db0a580e93a26a8030d60580d374c934f24d233669c4",
+    "net/ipv4/tcp_bbrplus.c": "8239e81c402601ddc1519af9bd90f45a4e2eb4b910bb3cd830612a4232bd2f6a",
+    "net/ipv4/tcp.c": "629250ac69e05cd76884b12e0e8ddab70608278cfe10b28f3776f2d896d03a1a",
+    "net/ipv4/tcp_rate.c": "642639bf29088ae318f1408172eacd7e3a99e29fb9c8f648c6b7d93406f5aac4",
+    "net/ipv4/bpf_tcp_ca.c": "3b07b120f3a6e4bbb6f5ad016b434cc9dc66af1f10a5688b696e33bf66d9a9dd",
+    "drivers/gpu/msm/kgsl_pwrctrl.c": "819557770426b6727f5d8c7c9d682af688a30284e603d2e87270cce4cffc0867",
+    "arch/arm64/Kconfig": "017ebc1342b1ea78c6cd9462f30ab863c06609291637b3f19511b492672f33bd",
+    "drivers/devfreq/arm-memlat-mon.c": "bfca49d2d67161deed60b229c8d36415c8b777cd098ecb83967bbb20e8ccdd20",
+    "drivers/soc/qcom/scm.c": "db33cb2916ed7fbebe6c09b18756a80e592002c459ac6879384bb18be14eb439",
+    "include/soc/qcom/scm.h": "17dd25138048b6a7b3ce243152449047503198e1024af35e7c5229c3198c0060",
+    "drivers/cpufreq/cpufreq_stats.c": "44a615d5d376c1e9d6c5387b85a0698623fefcd569adc7e769bc37ef5b1b3026",
+    "drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c": "57da1c95b3d78c8bd4f02ab4012aa4fc1f0cc170874027e902987c54104d45f4"
+  },
+  "selected_azyr_preserved_sha256": {
+    "block/bfq-cgroup.c": "007928ee5f4de4c16849d7af8717f5147e9e8d36de2ebde081f094d3373e3949",
+    "block/cfq-iosched.c": "65accb729aa02bbcfea5fb302ed14a398b9ea110e2623845edd0046a96972ffe",
+    "drivers/base/arch_topology.c": "0d6fc8add9810cdad6966e8693e1d4e102e08df5d4c20c21a4144f43c7b9a9d9",
+    "drivers/base/power/wakeup.c": "d251dc16ea11d7eab76447d583123147bef92f58eb2ebc8647bb368d0936b093",
+    "drivers/cpuidle/lpm-levels.c": "2090ae85a97a11ce55fca9b26820700a1f868ace7b454af2521c003f5a0341b3",
+    "drivers/gpu/msm/adreno.c": "d8e564ec13b1941e9eff3af5fa7b47143591d59a79f28e76c6f5b102277be099",
+    "drivers/gpu/msm/kgsl_gmu_core.c": "90e8f0d7b5fda7177e08e541744da8056e5ca89db0b6618c1822e903147f2da2",
+    "drivers/gpu/msm/kgsl_gmu_core.h": "a1c5f17d783a87e25a07384c8ff0e3b686dfe7d3f5996d588871e28573afd34b",
+    "drivers/iommu/iommu.c": "8c852643aef396d0aa31c85fc856b4924cafda685bbea0e6289af644c564f778",
+    "drivers/irqchip/irq-gic-v3.c": "0683aa8dfd0d581ba74d6e6a2df2edf860c03c379158006f5cfd7c8044bc1ddd",
+    "drivers/md/dm-verity-target.c": "c3d15a9b86c994cd887affbfd0930fc5647bf160cb43f57a450079870d09734b",
+    "include/linux/blkdev.h": "0afb906510a6fb2ea7283b53311cec218e2b0faafc4974f3c9b974cd63b94fdd",
+    "kernel/sched/cpufreq_schedutil.c": "3f7622b229702ff73c49c526b5f8900724f7cf1931b6d0f5ac04ae861fe74847",
+    "kernel/sched/fair.c": "dbe9e2ebcddd4882f8c4d9e8773d8e689a9a53a4a647b74e324706fa4ac538bb",
+    "kernel/sched/sched.h": "388c0d4376dabf5f23a158dd3589cc22a87cec72b381745ee770058f6d38e76a"
+  },
+  "provenance": [
+    {
+      "sha": "ab408b6dc7449c0f791e9e5f8de72fa7428584f2",
+      "url": "https://github.com/torvalds/linux/commit/ab408b6dc7449c0f791e9e5f8de72fa7428584f2",
+      "use": "TCP/fq EDT model; adapted, not wholesale patch applied"
+    },
+    {
+      "sha": "08e14fe429a07475ee9f29a283945d602e4a6d92",
+      "url": "https://github.com/torvalds/linux/commit/08e14fe429a07475ee9f29a283945d602e4a6d92",
+      "use": "EDT packets must still honor fq maxrate"
+    },
+    {
+      "sha": "90210de4b779d40496dee0b89081780eeddf2a60",
+      "url": "https://github.com/google/bbr/blob/90210de4b779d40496dee0b89081780eeddf2a60/net/ipv4/tcp_bbr.c",
+      "use": "BBRv3 flight forecast at EDT"
+    }
+  ],
+  "design": {
+    "clock": "CLOCK_MONOTONIC ns for new scheduling path, same clock as fq watchdog",
+    "timestamp": "dedicated skb tcp_edt_ns; keep actual native microsecond skb_mstamp and legacy RTT/RTO/rate behavior",
+    "opt_in": "TCP_CONG_EDT native flag, BBRv3 only; excluded from older BPF user flag mask",
+    "metadata_cost": "8bytes/skb,8bytes/tcp_sock,8bytes/fq_flow before allocator/layout rounding",
+    "ordering": "ordinary monotonic append O1; stable exceptional linear insert; untagged data retains FIFO across CC transitions; ACKs may bypass future EDT data; FIN uses data frontier",
+    "fallback": "internal timer unchanged; forecasting only after FQ advertisement; live qdisc replace/nopacing transitions still need fresh connections and device validation",
+    "maxrate": "skip duplicate socket-rate serialization but retain fq flow_max_rate",
+    "failure": "only advance after successful handoff; outgoing clone stamped, retransmit queue original timestamps unchanged",
+    "copy": "clone/GSO header copy plus IPv4/v6 fragment metadata; RX clears; cross-net scrub clears",
+    "deferred": "No modern RTT subtraction, ECN_LOW,PLB,fast ACK,SO_TXTIME/UDP/NIC EDT offload or runtime qdisc replacement fix",
+    "control_and_CC_ordering": "Pure ACK/SYN/RST no EDT; FIN follows data frontier. Untagged data retains FIFO when switching CC; initial NEEDED packet tagged before fq capability advertisement."
+  },
+  "tests": {
+    "edt_gcc_ubsan": "EDT actual TCP/FQ bodies: clocks, commit/failure, controls, ordering, rearm, maxrate, allocation fallback, legacy/nopacing; 6400 sorted packets PASS\nPASS: compiled semantic mutant rejected: no-deadline\nPASS: compiled semantic mutant rejected: double-socket-rate\nPASS: compiled semantic mutant rejected: no-maxrate\nPASS: compiled semantic mutant rejected: ack-erases-frontier\nPASS: compiled semantic mutant rejected: clock-domain\nPASS: compiled semantic mutant rejected: no-sort\nPASS: compiled semantic mutant rejected: no-rearm\nPASS: compiled semantic mutant rejected: internal-bypass\nPASS: send/clone/GSO-header/IPv4+IPv6-fragment/RX/scrub/BPF/legacy opt-in wiring\n",
+    "bbr3_regressions_and15_negatives": "EDT BBR forecast: 120 rate/gain/fallback/horizon cases plus past deadline PASS\nBBRv3 extracted-source models: PASS (10,000 wrap cases; 74,100 split/merge cases; 1,188 TSO cases; CC switches, loss bounds, phases, TLP, BPF and ABI)\nBBRv3 source/config/ABI guards: PASS\nPASS: runtime assertion rejected byte-as-packets\nPASS: runtime assertion rejected no-wrap\nPASS: runtime assertion rejected no-loss-snapshot\nPASS: runtime assertion rejected no-loss-hook\nPASS: runtime assertion rejected no-split\nPASS: runtime assertion rejected no-merge\nPASS: runtime assertion rejected no-switch-guard\nPASS: runtime assertion rejected no-loss-tag-guard\nPASS: runtime assertion rejected no-ce-snapshot\nPASS: runtime assertion rejected required-native-hooks\nPASS: runtime assertion rejected bpf-native-exposure\nPASS: runtime assertion rejected cached-mss\nPASS: runtime assertion rejected no-legacy-refresh\nPASS: runtime assertion rejected no-edt-forecast\nPASS: runtime assertion rejected edt-without-fq\n",
+    "bbr3_ubsan": "EDT BBR forecast: 120 rate/gain/fallback/horizon cases plus past deadline PASS\nBBRv3 extracted-source models: PASS (10,000 wrap cases; 74,100 split/merge cases; 1,188 TSO cases; CC switches, loss bounds, phases, TLP, BPF and ABI)\nBBRv3 source/config/ABI guards: PASS\nPASS: runtime assertion rejected byte-as-packets\nPASS: runtime assertion rejected no-wrap\nPASS: runtime assertion rejected no-loss-snapshot\nPASS: runtime assertion rejected no-loss-hook\nPASS: runtime assertion rejected no-split\nPASS: runtime assertion rejected no-merge\nPASS: runtime assertion rejected no-switch-guard\nPASS: runtime assertion rejected no-loss-tag-guard\nPASS: runtime assertion rejected no-ce-snapshot\nPASS: runtime assertion rejected required-native-hooks\nPASS: runtime assertion rejected bpf-native-exposure\nPASS: runtime assertion rejected cached-mss\nPASS: runtime assertion rejected no-legacy-refresh\nPASS: runtime assertion rejected no-edt-forecast\nPASS: runtime assertion rejected edt-without-fq\n",
+    "bbrplus_ubsan": "BBRplus extracted-source models: PASS (1080 TSO cases, probe phases, ACK aggregation, memory limits; private state 112 bytes)\nBBRplus source/config guards: PASS\n",
+    "provenance": "PASS: 20 BBRv3 source endpoints, reverse/forward replay; 3 historical BPF chains intact; protected BBR/BBRplus/TCP caps unchanged\nPASS: EDT overlay reverse/forward endpoints and immutable historical BBRv3/BPF chain\n",
+    "cpufreq-ipa": "PASS: exact two-source patch/inverse hashes and reviewed preimage chain\nPASS: extracted IPA delay is integer-only 10000..12000 us; other IPA code unchanged\nPASS: 180 extracted cpufreq transition cases preserve guards, counters, last index and transition matrix\nPASS: compiled negative control rejected: changed-minimum\nPASS: compiled negative control rejected: missing-slack\nPASS: compiled negative control rejected: broken-stats-guard\nLIMITS: host mocks/UBSan only; no target build, real timer/PMU, concurrent cpufreq, modem, device or power proof\n",
+    "memlat": "PASS: exact three-source inverse patch/hash provenance, unchanged ARMv8 assembly bodies and unchanged legacy workers\nPASS: public async API, completion ownership, sparse allocation, unguarded teardown and non-pinning SCM wrapper contracts\nPASS: observed idle/isolated CPUs receive no sampling IPI; idle votes clear without losing elapsed baseline, isolated epochs reset\nPASS: extracted async samples, completion orders, sparse masks, read/send faults, SCM skips, epochs, zero cycles, allocation unwind and busy teardown\nPASS: 20484 extracted u64 stall-percent cases, including overflow and zero cycles\nPASS: three extracted SCM C wrappers preserve inputs/outputs/errors and balance nested global accounting (mock secure workers)\nPASS: compiled semantic mutant rejected: skip-drain\nPASS: compiled semantic mutant rejected: skip-busy-cleanup\nPASS: compiled semantic mutant rejected: partial-publication\nPASS: compiled semantic mutant rejected: skip-creation-unwind\nPASS: compiled semantic mutant rejected: missing-hotplug-lock\nPASS: compiled semantic mutant rejected: wake-observed-idle\nPASS: compiled semantic mutant rejected: sample-isolated\n",
+    "kernelsu": "KernelSU: 104 vendored files/provenance, wiring and built-in configuration PASS\n",
+    "nomount": "NoMount vendored-source, wiring and configuration checks: PASS\nCapability/payload-pointer gate: 44 cases PASS\nNative/compat directory-cookie roundtrips: 131072 cases PASS\nUID bloom/add/delete/isolation checks: 400384 cases PASS\nRule range/exclusion/fallback selection: 1001 cases PASS\n",
+    "susfs": "SUSFS pinned source/hooks and full configuration: PASS\nSUSFS reboot command authorization: 272 cases PASS\nKSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS\nReadlink truncation/count/fault/hash collision: 3010 cases PASS\nPagemap byte accounting/buffer bounds: 2404 cases PASS\nFlag negation and mount-ID ownership: PASS\n",
+    "selected13_azyr_regression": "{\n  \"balance46\": \"36 newly-idle/runnable/pending/hotplug/other-idle cases\",\n  \"balance46_negative_no_wakelist\": \"compiled and rejected at runtime\",\n  \"balance46_negative_no_nr\": \"compiled and rejected at runtime\",\n  \"delta48\": \"240000 old/new delta and inverse equivalence cases (modeled scale0/10)\",\n  \"delta48_negative_wrong_shift\": \"compiled and rejected at runtime\",\n  \"topology78\": \"450 topology policy reference cases\",\n  \"topology78_negative_no_put\": \"compiled and rejected at runtime\",\n  \"offline94\": \"18 CFQ slot-occupancy cases, references and statistics transfer preserved\",\n  \"offline94_negative_stale_slot\": \"compiled and rejected at runtime\",\n  \"clocks92\": \"36 shared-producer CFQ/BFQ clock-domain/boundary cases\",\n  \"clocks92_negative_mixed_bfq_clock\": \"compiled and rejected at runtime\",\n  \"wakeup98\": \"2 GIC recording cases, debug console on/off\",\n  \"wakeup98_negative_debug_gate\": \"compiled and rejected at runtime\",\n  \"structural\": \"verity flags/admission; inline; suspend parent flag; IRQ debug wrapper removal; IOMMU log removal; native wake-list guard; PM wake recorder PASS\"\n}\n",
+    "current_EDT_default_checks": "EDT actual TCP/FQ bodies: clocks, commit/failure, controls, ordering, rearm, maxrate, allocation fallback, legacy/nopacing; 6400 sorted packets PASS\nPASS: compiled semantic mutant rejected: no-deadline\nPASS: compiled semantic mutant rejected: double-socket-rate\nPASS: compiled semantic mutant rejected: no-maxrate\nPASS: compiled semantic mutant rejected: ack-erases-frontier\nPASS: compiled semantic mutant rejected: clock-domain\nPASS: compiled semantic mutant rejected: no-sort\nPASS: compiled semantic mutant rejected: no-rearm\nPASS: compiled semantic mutant rejected: internal-bypass\nPASS: send/clone/GSO-header/IPv4+IPv6-fragment/RX/scrub/BPF/legacy opt-in wiring\n",
+    "current_BBR3_UBSan15_negatives": "EDT BBR forecast: 120 rate/gain/fallback/horizon cases plus past deadline PASS\nBBRv3 extracted-source models: PASS (10,000 wrap cases; 74,100 split/merge cases; 1,188 TSO cases; CC switches, loss bounds, phases, TLP, BPF and ABI)\nBBRv3 source/config/ABI guards: PASS\nPASS: runtime assertion rejected byte-as-packets\nPASS: runtime assertion rejected no-wrap\nPASS: runtime assertion rejected no-loss-snapshot\nPASS: runtime assertion rejected no-loss-hook\nPASS: runtime assertion rejected no-split\nPASS: runtime assertion rejected no-merge\nPASS: runtime assertion rejected no-switch-guard\nPASS: runtime assertion rejected no-loss-tag-guard\nPASS: runtime assertion rejected no-ce-snapshot\nPASS: runtime assertion rejected required-native-hooks\nPASS: runtime assertion rejected bpf-native-exposure\nPASS: runtime assertion rejected cached-mss\nPASS: runtime assertion rejected no-legacy-refresh\nPASS: runtime assertion rejected no-edt-forecast\nPASS: runtime assertion rejected edt-without-fq\n",
+    "current_BBRplus_UBSan": "BBRplus extracted-source models: PASS (1080 TSO cases, probe phases, ACK aggregation, memory limits; private state 112 bytes)\nBBRplus source/config guards: PASS\n",
+    "current_selected_Azyr_regressions": "{\n  \"balance46\": \"36 newly-idle/runnable/pending/hotplug/other-idle cases\",\n  \"balance46_negative_no_wakelist\": \"compiled and rejected at runtime\",\n  \"balance46_negative_no_nr\": \"compiled and rejected at runtime\",\n  \"delta48\": \"240000 old/new delta and inverse equivalence cases (modeled scale0/10)\",\n  \"delta48_negative_wrong_shift\": \"compiled and rejected at runtime\",\n  \"topology78\": \"450 topology policy reference cases\",\n  \"topology78_negative_no_put\": \"compiled and rejected at runtime\",\n  \"offline94\": \"18 CFQ slot-occupancy cases, references and statistics transfer preserved\",\n  \"offline94_negative_stale_slot\": \"compiled and rejected at runtime\",\n  \"clocks92\": \"36 shared-producer CFQ/BFQ clock-domain/boundary cases\",\n  \"clocks92_negative_mixed_bfq_clock\": \"compiled and rejected at runtime\",\n  \"wakeup98\": \"2 GIC recording cases, debug console on/off\",\n  \"wakeup98_negative_debug_gate\": \"compiled and rejected at runtime\",\n  \"structural\": \"verity flags/admission; inline; suspend parent flag; IRQ debug wrapper removal; IOMMU log removal; native wake-list guard; PM wake recorder PASS\"\n}\n",
+    "current_provenance": "PASS: 20 BBRv3 source endpoints, reverse/forward replay; 3 historical BPF chains intact; protected BBR/BBRplus/TCP caps unchanged\nPASS: EDT overlay reverse/forward endpoints and immutable historical BBRv3/BPF chain\n"
+  },
+  "compile_attempt": {
+    "outcome": "BLOCKED before network objects; NOT successful target compilation",
+    "arch": "x86_64 diagnostic only, not production",
+    "issues": [
+      "ORC setup missing libelf; disabling ORC only in external diagnostic config passed setup stage",
+      "repository global mtune=cortex-a76.cortex-a55 rejected by x86 GCC",
+      "bc unavailable for generated timeconst header"
+    ],
+    "log": "make[1]: Entering directory '/home/user/.cache/bbr3-edt/host-objects'\n  GEN     ./Makefile\nscripts/kconfig/conf  --silentoldconfig Kconfig\n  CHK     include/config/kernel.release\n  GEN     ./Makefile\n  CHK     include/generated/uapi/linux/version.h\n  CHK     include/generated/utsrelease.h\n  Using /home/user/Kernel_electro as source for kernel\n  HOSTCC  arch/x86/tools/relocs_32.o\n  HOSTCC  arch/x86/tools/relocs_64.o\n  HOSTCC  arch/x86/tools/relocs_common.o\n  WRAP    arch/x86/include/generated/asm/clkdev.h\n  WRAP    arch/x86/include/generated/asm/dma-contiguous.h\n  WRAP    arch/x86/include/generated/asm/early_ioremap.h\n  WRAP    arch/x86/include/generated/asm/mcs_spinlock.h\n  WRAP    arch/x86/include/generated/asm/mm-arch-hooks.h\n  HOSTCC  scripts/sortextable\n  CC      scripts/mod/empty.o\n  HOSTCC  scripts/mod/mk_elfconfig\ncc1: error: bad value 'cortex-a76.cortex-a55' for '-mtune=' switch\ncc1: note: valid arguments to '-mtune=' switch are: nocona core2 nehalem corei7 westmere sandybridge corei7-avx ivybridge core-avx-i haswell core-avx2 broadwell skylake skylake-avx512 cannonlake icelake-client rocketlake icelake-server cascadelake tigerlake cooperlake sapphirerapids alderlake bonnell atom silvermont slm goldmont goldmont-plus tremont knl knm intel x86-64 eden-x2 nano nano-1000 nano-2000 nano-3000 nano-x2 eden-x4 nano-x4 k8 k8-sse3 opteron opteron-sse3 athlon64 athlon64-sse3 athlon-fx amdfam10 barcelona bdver1 bdver2 bdver3 bdver4 znver1 znver2 znver3 btver1 btver2 generic native\n  HOSTLD  arch/x86/tools/relocs\nmake[3]: *** [/home/user/Kernel_electro/scripts/Makefile.build:365: scripts/mod/empty.o] Error 1\nmake[3]: *** Waiting for unfinished jobs....\nmake[2]: *** [/home/user/Kernel_electro/scripts/Makefile.build:667: scripts/mod] Error 2\nmake[2]: *** Waiting for unfinished jobs....\n  CHK     include/generated/timeconst.h\n  CC      kernel/bounds.s\ncc1: error: bad value 'cortex-a76.cortex-a55' for '-mtune=' switch\ncc1: note: valid arguments to '-mtune=' switch are: nocona core2 nehalem corei7 westmere sandybridge corei7-avx ivybridge core-avx-i haswell core-avx2 broadwell skylake skylake-avx512 cannonlake icelake-client rocketlake icelake-server cascadelake tigerlake cooperlake sapphirerapids alderlake bonnell atom silvermont slm goldmont goldmont-plus tremont knl knm intel x86-64 eden-x2 nano nano-1000 nano-2000 nano-3000 nano-x2 eden-x4 nano-x4 k8 k8-sse3 opteron opteron-sse3 athlon64 athlon64-sse3 athlon-fx amdfam10 barcelona bdver1 bdver2 bdver3 bdver4 znver1 znver2 znver3 btver1 btver2 generic native\nmake[2]: *** [/home/user/Kernel_electro/./Kbuild:22: kernel/bounds.s] Error 1\nmake[2]: *** Waiting for unfinished jobs....\n/bin/sh: 1: bc: not found\nmake[2]: *** [/home/user/Kernel_electro/./Kbuild:43: include/generated/timeconst.h] Error 127\nmake[1]: *** [/home/user/Kernel_electro/Makefile:1315: prepare0] Error 2\nmake[1]: *** Waiting for unfinished jobs....\nmake[1]: *** [/home/user/Kernel_electro/Makefile:614: scripts] Error 2\nmake[1]: Leaving directory '/home/user/.cache/bbr3-edt/host-objects'\nmake: *** [Makefile:153: sub-make] Error 2\n"
+  },
+  "configuration": {
+    "source_miatoll_sha256": "ae49cc2a358ad59041b411a6823c7160c9b39c7a42e6d38645f52c8d11ce97f1",
+    "pre_default_source_miatoll_sha256": "62a05a0271c59709b5475a09834def4c8a600ab1548cf496cdefb93da36cd0ee",
+    "resolved_config_sha256": "cf6a25d0c08ec665a50bfb56753bf396eb348f06535bb48d1e242f42103a5f97",
+    "method": "shipped Kconfig host tools, external O= ARCH=arm64 HOSTCC=gcc CC=gcc; not ARM compilation",
+    "default": "bbr3 (explicit user-approved change)",
+    "TCP_caps": "16MiB unchanged",
+    "generic_Kconfig_fallback": "cubic unchanged",
+    "qdisc": "fq_codel unchanged",
+    "NET_SCH_FQ": "n; fq EDT consumer not active in selected profile; BBRv3 internal pacing remains available",
+    "available_CC": [
+      "bbr3",
+      "bbrplus",
+      "bbr",
+      "cubic"
+    ]
+  },
+  "preservation_checks": {
+    "protected_sources": true,
+    "selected13_Azyr_sources": true,
+    "prior_local6_memlat36_41": true,
+    "GPU_idle_timeout": true,
+    "only_authorized_miatoll_CC_default_change": true,
+    "generic_fallback_qdisc_and_caps_unchanged": true
+  },
+  "limits": [
+    "No production AOSP r614150 fullClang/noGCC target compilation, linked image, boot or real TCP/device timing tests.",
+    "Host actual-function and source-wiring tests do not prove driver/tunnel/GSO execution, TCP concurrency/RCU, physical timer deadlines, CC/qdisc transitions, power/fairness/throughput improvement.",
+    "Original actual-handoff RTT/rate samples retained; no claim of modern EDT RTT-local-delay correction.",
+    "Fresh connections required for reliable native FQ capability establishment after qdisc reconfiguration; live transitions remain unvalidated."
+  ],
+  "repository_at_start": {
+    "branch": "arena/e63a046d-kernel-electro",
+    "head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183"
+  },
+  "publication": {
+    "authorized": true,
+    "branch": "arena/e63a046d-kernel-electro",
+    "parent": "61be86e3b53656ef816d99548bb249b39bba9adf",
+    "scope": "18 existing source/test/doc paths modified plus EDT documentation/receipt/patch and two new EDT tests; exclude all other local work",
+    "push": "normal, non-force; verified after commit creation",
+    "CI": "not requested/not dispatched",
+    "previous_local6_memlat36_41": "preserved, not included"
+  },
+  "historical_config_prerequisite": {
+    "content": "# CONFIG_ZONE_DMA is not set\nCONFIG_LOCALVERSION=\"-electro\"\n# CONFIG_LOCALVERSION_AUTO is not set\nCONFIG_TOOLS_SUPPORT_RELR=y\n# CONFIG_FHANDLE is not set\nCONFIG_NO_HZ=y\nCONFIG_HIGH_RES_TIMERS=y\nCONFIG_IRQ_TIME_ACCOUNTING=y\nCONFIG_TASKSTATS=y\nCONFIG_TASK_XACCT=y\nCONFIG_TASK_IO_ACCOUNTING=y\nCONFIG_PSI=y\nCONFIG_RCU_EXPERT=y\nCONFIG_RCU_FAST_NO_HZ=y\nCONFIG_RCU_NOCB_CPU=y\nCONFIG_IKCONFIG=y\nCONFIG_IKCONFIG_PROC=y\nCONFIG_LOG_BUF_SHIFT=20\nCONFIG_PELT_UTIL_HALFLIFE_16=y\nCONFIG_CGROUPS=y\nCONFIG_BLK_CGROUP=y\nCONFIG_CGROUP_SCHED=y\n# CONFIG_FAIR_GROUP_SCHED is not set\nCONFIG_CGROUP_FREEZER=y\nCONFIG_CPUSETS=y\nCONFIG_CGROUP_CPUACCT=y\nCONFIG_CGROUP_BPF=y\nCONFIG_CHECKPOINT_RESTORE=y\nCONFIG_NAMESPACES=y\n# CONFIG_UTS_NS is not set\n# CONFIG_PID_NS is not set\nCONFIG_SCHED_CASS=y\nCONFIG_SCHED_BORE=y\nCONFIG_SCHED_TUNE=y\nCONFIG_DEFAULT_USE_ENERGY_AWARE=y\nCONFIG_BLK_DEV_INITRD=y\n# CONFIG_RD_XZ is not set\n# CONFIG_RD_LZO is not set\n# CONFIG_RD_LZ4 is not set\nCONFIG_BPF_SYSCALL=y\nCONFIG_BPF_JIT_ALWAYS_ON=y\nCONFIG_HAVE_MOVE_PUD=y\nCONFIG_HAVE_MOVE_PMD=y\nCONFIG_USERFAULTFD=y\nCONFIG_EMBEDDED=y\nCONFIG_PERF_EVENTS=y\n# CONFIG_VM_EVENT_COUNTERS is not set\n# CONFIG_SLUB_DEBUG is not set\n# CONFIG_COMPAT_BRK is not set\nCONFIG_SLAB_FREELIST_RANDOM=y\nCONFIG_SLAB_FREELIST_HARDENED=y\n# CONFIG_SLUB_CPU_PARTIAL is not set\nCONFIG_JUMP_LABEL=y\nCONFIG_LTO_CLANG=y\nCONFIG_LLVM_POLLY=y\nCONFIG_INLINE_OPTIMIZATION=y\nCONFIG_THINLTO=y\nCONFIG_SHADOW_CALL_STACK=y\nCONFIG_MODULES=y\nCONFIG_MODULE_UNLOAD=y\nCONFIG_MODVERSIONS=y\n# CONFIG_VMAP_STACK is not set\nCONFIG_BLK_INLINE_ENCRYPTION=y\nCONFIG_BLK_INLINE_ENCRYPTION_FALLBACK=y\nCONFIG_PARTITION_ADVANCED=y\n# CONFIG_IOSCHED_NOOP is not set\n# CONFIG_IOSCHED_DEADLINE is not set\nCONFIG_CFQ_GROUP_IOSCHED=y\nCONFIG_FAKE_UNAME_5_10=y\n# CONFIG_MQ_IOSCHED_DEADLINE is not set\n# CONFIG_MQ_IOSCHED_KYBER is not set\nCONFIG_ARCH_QCOM=y\nCONFIG_ARCH_ATOLL=y\nCONFIG_ARCH_SDMMAGPIE=y\n# CONFIG_ARM64_ERRATUM_826319 is not set\n# CONFIG_ARM64_ERRATUM_827319 is not set\n# CONFIG_ARM64_ERRATUM_824069 is not set\n# CONFIG_ARM64_ERRATUM_819472 is not set\n# CONFIG_ARM64_ERRATUM_832075 is not set\n# CONFIG_ARM64_ERRATUM_845719 is not set\n# CONFIG_ARM64_ERRATUM_1024718 is not set\n# CONFIG_ARM64_ERRATUM_1188873 is not set\n# CONFIG_CAVIUM_ERRATUM_22375 is not set\n# CONFIG_CAVIUM_ERRATUM_23154 is not set\n# CONFIG_CAVIUM_ERRATUM_27456 is not set\n# CONFIG_CAVIUM_ERRATUM_30115 is not set\n# CONFIG_QCOM_FALKOR_ERRATUM_1003 is not set\n# CONFIG_QCOM_FALKOR_ERRATUM_1009 is not set\n# CONFIG_QCOM_QDF2400_ERRATUM_0065 is not set\n# CONFIG_QCOM_FALKOR_ERRATUM_E1041 is not set\nCONFIG_SCHED_MC=y\nCONFIG_NR_CPUS=8\nCONFIG_LITTLE_CPU_MASK=63\nCONFIG_BIG_CPU_MASK=192\nCONFIG_PREEMPT=y\nCONFIG_HZ_100=y\nCONFIG_DEFAULT_MMAP_MIN_ADDR=32768\nCONFIG_CMA=y\nCONFIG_ZSMALLOC=y\nCONFIG_BALANCE_ANON_FILE_RECLAIM=y\nCONFIG_SECCOMP=y\n# CONFIG_UNMAP_KERNEL_AT_EL0 is not set\nCONFIG_ARM64_SSBD=y\nCONFIG_ARMV8_DEPRECATED=y\nCONFIG_SWP_EMULATION=y\nCONFIG_CP15_BARRIER_EMULATION=y\nCONFIG_SETEND_EMULATION=y\nCONFIG_ARM64_SW_TTBR0_PAN=y\n# CONFIG_ARM64_VHE is not set\nCONFIG_RANDOMIZE_BASE=y\nCONFIG_CMDLINE=\"cgroup_disable=pressure\"\nCONFIG_CMDLINE_EXTEND=y\n# CONFIG_EFI is not set\nCONFIG_KRYO_PMU_WORKAROUND=y\nCONFIG_BUILD_ARM64_DT_OVERLAY=y\n# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set\nCONFIG_COMPAT=y\nCONFIG_SUSPEND_SKIP_SYNC=y\nCONFIG_PM_WAKELOCKS=y\nCONFIG_PM_WAKELOCKS_LIMIT=0\n# CONFIG_PM_WAKELOCKS_GC is not set\nCONFIG_CPU_IDLE=y\nCONFIG_CPU_IDLE_GOV_TEO=y\nCONFIG_ARM_CPUIDLE=y\nCONFIG_CPU_FREQ=y\nCONFIG_CPU_FREQ_STAT=y\nCONFIG_CPU_FREQ_TIMES=y\nCONFIG_CPU_FREQ_GOV_POWERSAVE=y\nCONFIG_CPU_FREQ_GOV_USERSPACE=y\nCONFIG_CPU_FREQ_GOV_SCHEDUTIL=y\nCONFIG_NET=y\nCONFIG_PACKET=y\nCONFIG_UNIX=y\nCONFIG_XFRM_MIGRATE=y\nCONFIG_XFRM_USER=y\nCONFIG_XFRM_INTERFACE=y\nCONFIG_XFRM_STATISTICS=y\nCONFIG_NET_KEY=y\nCONFIG_INET=y\nCONFIG_IP_MULTICAST=y\nCONFIG_IP_ADVANCED_ROUTER=y\nCONFIG_IP_MULTIPLE_TABLES=y\nCONFIG_IP_ROUTE_VERBOSE=y\nCONFIG_IP_PNP=y\nCONFIG_IP_PNP_DHCP=y\nCONFIG_NET_IPGRE_DEMUX=y\nCONFIG_SYN_COOKIES=y\nCONFIG_NET_IPVTI=y\nCONFIG_INET_AH=y\nCONFIG_INET_ESP=y\nCONFIG_INET_IPCOMP=y\nCONFIG_INET_UDP_DIAG=y\nCONFIG_INET_DIAG_DESTROY=y\nCONFIG_TCP_CONG_ADVANCED=y\nCONFIG_TCP_CONG_CUBIC=y\nCONFIG_TCP_CONG_BBR=y\nCONFIG_TCP_CONG_BBRPLUS=y\nCONFIG_TCP_CONG_BBR3=y\nCONFIG_TCP_CONG_WESTWOOD=y\nCONFIG_DEFAULT_BBRPLUS=y\nCONFIG_DEFAULT_TCP_CONG=\"bbrplus\"\nCONFIG_IPV6_ROUTER_PREF=y\nCONFIG_IPV6_ROUTE_INFO=y\nCONFIG_IPV6_OPTIMISTIC_DAD=y\nCONFIG_INET6_AH=y\nCONFIG_INET6_ESP=y\nCONFIG_INET6_IPCOMP=y\nCONFIG_IPV6_MIP6=y\nCONFIG_IPV6_VTI=y\nCONFIG_IPV6_MULTIPLE_TABLES=y\nCONFIG_IPV6_SUBTREES=y\nCONFIG_NETFILTER=y\n# CONFIG_BRIDGE_NETFILTER is not set\nCONFIG_NF_CONNTRACK=y\nCONFIG_NF_CONNTRACK_SECMARK=y\nCONFIG_NF_CONNTRACK_EVENTS=y\nCONFIG_NF_CONNTRACK_AMANDA=y\nCONFIG_NF_CONNTRACK_FTP=y\nCONFIG_NF_CONNTRACK_H323=y\nCONFIG_NF_CONNTRACK_IRC=y\nCONFIG_NF_CONNTRACK_NETBIOS_NS=y\nCONFIG_NF_CONNTRACK_PPTP=y\nCONFIG_NF_CONNTRACK_SANE=y\nCONFIG_NF_CONNTRACK_TFTP=y\nCONFIG_NF_CT_NETLINK=y\nCONFIG_NETFILTER_XT_TARGET_CLASSIFY=y\nCONFIG_NETFILTER_XT_TARGET_CONNMARK=y\nCONFIG_NETFILTER_XT_TARGET_CONNSECMARK=y\nCONFIG_NETFILTER_XT_TARGET_DSCP=y\nCONFIG_NETFILTER_XT_TARGET_IDLETIMER=y\nCONFIG_NETFILTER_XT_TARGET_HARDIDLETIMER=y\nCONFIG_NETFILTER_XT_TARGET_HMARK=y\nCONFIG_NETFILTER_XT_TARGET_LOG=y\nCONFIG_NETFILTER_XT_TARGET_MARK=y\nCONFIG_NETFILTER_XT_TARGET_NFLOG=y\nCONFIG_NETFILTER_XT_TARGET_NFQUEUE=y\nCONFIG_NETFILTER_XT_TARGET_NOTRACK=y\nCONFIG_NETFILTER_XT_TARGET_TEE=y\nCONFIG_NETFILTER_XT_TARGET_TPROXY=y\nCONFIG_NETFILTER_XT_TARGET_TRACE=y\nCONFIG_NETFILTER_XT_TARGET_SECMARK=y\nCONFIG_NETFILTER_XT_TARGET_TCPMSS=y\nCONFIG_NETFILTER_XT_MATCH_BPF=y\nCONFIG_NETFILTER_XT_MATCH_COMMENT=y\nCONFIG_NETFILTER_XT_MATCH_CONNLIMIT=y\nCONFIG_NETFILTER_XT_MATCH_CONNMARK=y\nCONFIG_NETFILTER_XT_MATCH_CONNTRACK=y\nCONFIG_NETFILTER_XT_MATCH_DSCP=y\nCONFIG_NETFILTER_XT_MATCH_ESP=y\nCONFIG_NETFILTER_XT_MATCH_HASHLIMIT=y\nCONFIG_NETFILTER_XT_MATCH_HELPER=y\nCONFIG_NETFILTER_XT_MATCH_IPRANGE=y\n# CONFIG_NETFILTER_XT_MATCH_L2TP is not set\nCONFIG_NETFILTER_XT_MATCH_LENGTH=y\nCONFIG_NETFILTER_XT_MATCH_LIMIT=y\nCONFIG_NETFILTER_XT_MATCH_MAC=y\nCONFIG_NETFILTER_XT_MATCH_MARK=y\nCONFIG_NETFILTER_XT_MATCH_MULTIPORT=y\nCONFIG_NETFILTER_XT_MATCH_OWNER=y\nCONFIG_NETFILTER_XT_MATCH_POLICY=y\nCONFIG_NETFILTER_XT_MATCH_PKTTYPE=y\nCONFIG_NETFILTER_XT_MATCH_QUOTA=y\nCONFIG_NETFILTER_XT_MATCH_QUOTA2=y\nCONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG=y\n# CONFIG_NETFILTER_XT_MATCH_SCTP is not set\nCONFIG_NETFILTER_XT_MATCH_SOCKET=y\nCONFIG_NETFILTER_XT_MATCH_STATE=y\nCONFIG_NETFILTER_XT_MATCH_STATISTIC=y\nCONFIG_NETFILTER_XT_MATCH_STRING=y\nCONFIG_NETFILTER_XT_MATCH_TIME=y\nCONFIG_NETFILTER_XT_MATCH_U32=y\nCONFIG_NF_CONNTRACK_IPV4=y\nCONFIG_NF_SOCKET_IPV4=y\nCONFIG_IP_NF_IPTABLES=y\nCONFIG_IP_NF_MATCH_AH=y\nCONFIG_IP_NF_MATCH_ECN=y\nCONFIG_IP_NF_MATCH_RPFILTER=y\nCONFIG_IP_NF_MATCH_TTL=y\nCONFIG_IP_NF_FILTER=y\nCONFIG_IP_NF_TARGET_REJECT=y\nCONFIG_IP_NF_NAT=y\nCONFIG_IP_NF_TARGET_MASQUERADE=y\nCONFIG_IP_NF_TARGET_NETMAP=y\nCONFIG_IP_NF_TARGET_REDIRECT=y\nCONFIG_IP_NF_MANGLE=y\nCONFIG_IP_NF_TARGET_TTL=y\nCONFIG_IP_NF_RAW=y\nCONFIG_IP_NF_SECURITY=y\nCONFIG_IP_NF_ARPTABLES=y\nCONFIG_IP_NF_ARPFILTER=y\nCONFIG_IP_NF_ARP_MANGLE=y\nCONFIG_NF_CONNTRACK_IPV6=y\nCONFIG_NF_SOCKET_IPV6=y\nCONFIG_IP6_NF_IPTABLES=y\nCONFIG_IP6_NF_MATCH_RPFILTER=y\nCONFIG_IP6_NF_TARGET_HL=y\nCONFIG_IP6_NF_FILTER=y\nCONFIG_IP6_NF_TARGET_REJECT=y\nCONFIG_IP6_NF_MANGLE=y\nCONFIG_IP6_NF_RAW=y\nCONFIG_BRIDGE_NF_EBTABLES=y\nCONFIG_BRIDGE_EBT_BROUTE=y\nCONFIG_IP_SCTP=y\nCONFIG_L2TP=y\nCONFIG_L2TP_V3=y\nCONFIG_L2TP_IP=y\nCONFIG_L2TP_ETH=y\nCONFIG_BRIDGE=y\nCONFIG_NET_SCHED=y\nCONFIG_NET_SCH_HTB=y\nCONFIG_NET_SCH_PRIO=y\nCONFIG_NET_SCH_MULTIQ=y\nCONFIG_NET_SCH_TBF=y\nCONFIG_NET_SCH_FQ_CODEL=y\nCONFIG_NET_SCH_INGRESS=y\nCONFIG_NET_SCH_DEFAULT=y\nCONFIG_DEFAULT_FQ_CODEL=y\nCONFIG_NET_CLS_FW=y\nCONFIG_NET_CLS_U32=y\nCONFIG_CLS_U32_MARK=y\nCONFIG_NET_CLS_FLOW=y\nCONFIG_NET_CLS_BPF=y\nCONFIG_NET_CLS_MATCHALL=y\nCONFIG_NET_EMATCH=y\nCONFIG_NET_EMATCH_CMP=y\nCONFIG_NET_EMATCH_NBYTE=y\nCONFIG_NET_EMATCH_U32=y\nCONFIG_NET_EMATCH_META=y\nCONFIG_NET_EMATCH_TEXT=y\nCONFIG_NET_CLS_ACT=y\nCONFIG_NET_ACT_POLICE=y\nCONFIG_NET_ACT_GACT=y\nCONFIG_NET_ACT_MIRRED=y\nCONFIG_NET_ACT_SKBEDIT=y\nCONFIG_NET_ACT_BPF=y\nCONFIG_QRTR=y\nCONFIG_QRTR_SMD=y\nCONFIG_BPF_JIT=y\nCONFIG_SOCKEV_NLMCAST=y\nCONFIG_BT=y\nCONFIG_MSM_BT_POWER=y\nCONFIG_CFG80211=y\nCONFIG_CFG80211_CERTIFICATION_ONUS=y\nCONFIG_CFG80211_REG_CELLULAR_HINTS=y\nCONFIG_CFG80211_INTERNAL_REGDB=y\nCONFIG_RFKILL=y\nCONFIG_NFC_NQ=y\nCONFIG_FW_LOADER_USER_HELPER_FALLBACK=y\nCONFIG_REGMAP_WCD_IRQ=y\nCONFIG_DMA_CMA=y\nCONFIG_ZRAM=y\nCONFIG_BLK_DEV_LOOP=y\nCONFIG_BLK_DEV_LOOP_MIN_COUNT=16\nCONFIG_BLK_DEV_RAM=y\nCONFIG_BLK_DEV_RAM_SIZE=8192\nCONFIG_HDCP_QSEECOM=y\nCONFIG_QSEECOM=y\nCONFIG_UID_SYS_STATS=y\nCONFIG_QPNP_MISC=y\nCONFIG_AW8624_HAPTIC=y\nCONFIG_DRV2624_HAPTIC=y\nCONFIG_SCSI=y\nCONFIG_BLK_DEV_SD=y\nCONFIG_CHR_DEV_SG=y\nCONFIG_CHR_DEV_SCH=y\nCONFIG_SCSI_CONSTANTS=y\nCONFIG_SCSI_SCAN_ASYNC=y\nCONFIG_SCSI_UFSHCD=y\nCONFIG_SCSI_UFSHCD_PLATFORM=y\nCONFIG_SCSI_UFS_QCOM=y\nCONFIG_SCSI_UFS_CRYPTO=y\nCONFIG_SCSI_UFS_CRYPTO_QTI=y\nCONFIG_MD=y\nCONFIG_BLK_DEV_DM=y\nCONFIG_DM_CRYPT=y\nCONFIG_DM_DEFAULT_KEY=y\nCONFIG_DM_SNAPSHOT=y\nCONFIG_DM_UEVENT=y\nCONFIG_DM_VERITY=y\nCONFIG_DM_VERITY_FEC=y\nCONFIG_NETDEVICES=y\nCONFIG_BONDING=y\nCONFIG_DUMMY=y\nCONFIG_WIREGUARD=y\nCONFIG_TUN=y\nCONFIG_VETH=y\nCONFIG_RMNET=y\nCONFIG_SMSC911X=y\nCONFIG_AT803X_PHY=y\nCONFIG_MICREL_PHY=y\nCONFIG_PPP=y\nCONFIG_PPP_BSDCOMP=y\nCONFIG_PPP_DEFLATE=y\nCONFIG_PPP_FILTER=y\nCONFIG_PPP_MPPE=y\nCONFIG_PPP_MULTILINK=y\nCONFIG_PPPOE=y\nCONFIG_PPTP=y\nCONFIG_PPPOL2TP=y\nCONFIG_PPPOLAC=y\nCONFIG_PPPOPNS=y\nCONFIG_PPP_ASYNC=y\nCONFIG_PPP_SYNC_TTY=y\nCONFIG_USB_RTL8152=y\nCONFIG_USB_USBNET=y\nCONFIG_WCNSS_MEM_PRE_ALLOC=y\nCONFIG_CLD_LL_CORE=y\nCONFIG_CNSS_GENL=y\nCONFIG_INPUT_EVDEV=y\nCONFIG_INPUT_FINGERPRINT=y\nCONFIG_KEYBOARD_GPIO=y\n# CONFIG_INPUT_MOUSE is not set\nCONFIG_INPUT_JOYSTICK=y\nCONFIG_JOYSTICK_XPAD=y\nCONFIG_INPUT_TOUCHSCREEN=y\nCONFIG_TOUCHSCREEN_FTS_SPI=y\nCONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI=y\nCONFIG_INPUT_MISC=y\nCONFIG_INPUT_QPNP_POWER_ON=y\nCONFIG_INPUT_UINPUT=y\nCONFIG_FINGERPRINT_FPC1020=y\nCONFIG_FINGERPRINT_GF3208=y\n# CONFIG_SERIO_SERPORT is not set\n# CONFIG_LEGACY_PTYS is not set\n# CONFIG_DEVMEM is not set\nCONFIG_SERIAL_MSM_GENI=y\nCONFIG_SERIAL_MSM_WITH_HALF_SAMPLING=y\nCONFIG_HW_RANDOM=y\nCONFIG_HW_RANDOM_MSM_LEGACY=y\nCONFIG_DIAG_CHAR=y\nCONFIG_MSM_FASTCVPD=y\nCONFIG_MSM_ADSPRPC=y\nCONFIG_I2C_CHARDEV=y\nCONFIG_I2C_MUX_PCA954x=y\nCONFIG_I2C_QCOM_GENI=y\nCONFIG_SPI=y\nCONFIG_SPI_QCOM_GENI=y\nCONFIG_SPI_SPIDEV=y\nCONFIG_SPMI=y\nCONFIG_SPMI_SIMULATOR=y\nCONFIG_PM8150_PMIC_SIMULATOR=y\nCONFIG_PM8150B_PMIC_SIMULATOR=y\nCONFIG_PM8150L_PMIC_SIMULATOR=y\nCONFIG_SLIMBUS_MSM_NGD=y\nCONFIG_PTP_1588_CLOCK=y\nCONFIG_PINCTRL_SX150X=y\nCONFIG_PINCTRL_QCOM_SPMI_PMIC=y\nCONFIG_PINCTRL_ATOLL=y\nCONFIG_PINCTRL_SLPI=y\nCONFIG_GPIO_SYSFS=y\nCONFIG_POWER_RESET_QCOM=y\nCONFIG_POWER_RESET_XGENE=y\nCONFIG_POWER_RESET_SYSCON=y\nCONFIG_QPNP_QG=y\nCONFIG_SMB1355_SLAVE_CHARGER=y\nCONFIG_QPNP_SMB5=y\nCONFIG_SMB1390_CHARGE_PUMP_PSY=y\nCONFIG_SMB1398_CHARGER=y\nCONFIG_BATT_VERIFY_BY_DS28E16=y\nCONFIG_ONEWIRE_GPIO=y\nCONFIG_THERMAL=y\nCONFIG_THERMAL_WRITABLE_TRIPS=y\nCONFIG_THERMAL_GOV_USER_SPACE=y\nCONFIG_THERMAL_GOV_LOW_LIMITS=y\nCONFIG_CPU_THERMAL=y\nCONFIG_DEVFREQ_THERMAL=y\nCONFIG_THERMAL_EMULATION=y\nCONFIG_QCOM_SPMI_TEMP_ALARM=y\nCONFIG_THERMAL_TSENS=y\nCONFIG_QTI_THERMAL_LIMITS_DCVS=y\nCONFIG_QTI_VIRTUAL_SENSOR=y\nCONFIG_QTI_AOP_REG_COOLING_DEVICE=y\nCONFIG_QTI_QMI_COOLING_DEVICE=y\nCONFIG_QTI_QMI_SENSOR=y\nCONFIG_REGULATOR_COOLING_DEVICE=y\nCONFIG_QTI_BCL_PMIC5=y\nCONFIG_QTI_BCL_SOC_DRIVER=y\nCONFIG_QTI_ADC_TM=y\nCONFIG_MFD_I2C_PMIC=y\nCONFIG_MFD_SPMI_PMIC=y\nCONFIG_REGULATOR_FIXED_VOLTAGE=y\nCONFIG_REGULATOR_PROXY_CONSUMER=y\nCONFIG_REGULATOR_PM8008=y\nCONFIG_REGULATOR_QPNP_AMOLED=y\nCONFIG_REGULATOR_QPNP_LCDB=y\nCONFIG_REGULATOR_REFGEN=y\nCONFIG_REGULATOR_RPMH=y\nCONFIG_REGULATOR_STUB=y\n# CONFIG_IR_MSM_GENI is not set\nCONFIG_MEDIA_SUPPORT=y\nCONFIG_MEDIA_CAMERA_SUPPORT=y\nCONFIG_MEDIA_DIGITAL_TV_SUPPORT=y\nCONFIG_MEDIA_CONTROLLER=y\nCONFIG_VIDEO_V4L2_SUBDEV_API=y\nCONFIG_VIDEO_FIXED_MINOR_RANGES=y\nCONFIG_MEDIA_USB_SUPPORT=y\nCONFIG_USB_VIDEO_CLASS=y\n# CONFIG_USB_GSPCA is not set\nCONFIG_V4L_PLATFORM_DRIVERS=y\nCONFIG_SPECTRA_CAMERA=y\nCONFIG_MSM_VIDC_V4L2=y\nCONFIG_MSM_VIDC_GOVERNORS=y\nCONFIG_MSM_SDE_ROTATOR=y\nCONFIG_MSM_NPU_V2=y\nCONFIG_DRM=y\nCONFIG_DRM_SDE_RSC=y\nCONFIG_DRM_ANALOGIX_ANX7625=y\nCONFIG_FB_ARMCLCD=y\n# CONFIG_LCD_CLASS_DEVICE is not set\nCONFIG_BACKLIGHT_QCOM_SPMI_WLED=y\nCONFIG_LOGO=y\n# CONFIG_LOGO_LINUX_MONO is not set\n# CONFIG_LOGO_LINUX_VGA16 is not set\nCONFIG_SOUND=y\nCONFIG_SND=y\nCONFIG_SND_DYNAMIC_MINORS=y\nCONFIG_SND_USB_AUDIO=y\nCONFIG_SND_USB_AUDIO_QMI=y\nCONFIG_SND_SOC=y\nCONFIG_HIDRAW=y\nCONFIG_UHID=y\nCONFIG_HID_APPLE=y\nCONFIG_HID_ELECOM=y\nCONFIG_HID_MAGICMOUSE=y\nCONFIG_HID_MICROSOFT=y\nCONFIG_HID_MULTITOUCH=y\nCONFIG_HID_NINTENDO=y\nCONFIG_HID_PLANTRONICS=y\nCONFIG_HID_SONY=y\nCONFIG_SONY_FF=y\nCONFIG_HID_QVR=y\nCONFIG_USB_ANNOUNCE_NEW_DEVICES=y\nCONFIG_USB_XHCI_HCD=y\nCONFIG_USB_EHCI_HCD=y\nCONFIG_USB_EHCI_HCD_PLATFORM=y\nCONFIG_USB_OHCI_HCD=y\nCONFIG_USB_OHCI_HCD_PLATFORM=y\nCONFIG_USB_STORAGE=y\nCONFIG_USB_DWC3=y\nCONFIG_USB_DWC3_MSM=y\nCONFIG_USB_ISP1760=y\nCONFIG_USB_ISP1760_HOST_ROLE=y\nCONFIG_USB_EHSET_TEST_FIXTURE=y\nCONFIG_USB_LINK_LAYER_TEST=y\nCONFIG_NOP_USB_XCEIV=y\nCONFIG_USB_QCOM_EMU_PHY=y\nCONFIG_USB_MSM_SSPHY_QMP=y\nCONFIG_MSM_QUSB_PHY=y\nCONFIG_MSM_HSUSB_PHY=y\nCONFIG_DUAL_ROLE_USB_INTF=y\nCONFIG_USB_GADGET=y\nCONFIG_USB_GADGET_VBUS_DRAW=900\nCONFIG_USB_CONFIGFS=y\nCONFIG_USB_CONFIGFS_NCM=y\nCONFIG_USB_CONFIGFS_MASS_STORAGE=y\nCONFIG_USB_CONFIGFS_F_FS=y\nCONFIG_USB_CONFIGFS_F_MTP=y\nCONFIG_USB_CONFIGFS_F_PTP=y\nCONFIG_USB_CONFIGFS_F_ACC=y\nCONFIG_USB_CONFIGFS_F_AUDIO_SRC=y\nCONFIG_USB_CONFIGFS_UEVENT=y\nCONFIG_USB_CONFIGFS_F_MIDI=y\nCONFIG_USB_CONFIGFS_F_HID=y\nCONFIG_USB_CONFIGFS_F_UVC=y\nCONFIG_USB_CONFIGFS_F_DIAG=y\nCONFIG_USB_CONFIGFS_F_CDEV=y\nCONFIG_USB_CONFIGFS_F_CCID=y\nCONFIG_USB_CONFIGFS_F_GSI=y\nCONFIG_USB_CONFIGFS_F_QDSS=y\nCONFIG_USB_PD_POLICY=y\nCONFIG_QPNP_USB_PDPHY=y\nCONFIG_MMC=y\nCONFIG_MMC_PERF_PROFILING=y\nCONFIG_MMC_BLOCK_MINORS=32\nCONFIG_MMC_BLOCK_DEFERRED_RESUME=y\nCONFIG_MMC_PARANOID_SD_INIT=y\nCONFIG_MMC_CLKGATE=y\nCONFIG_MMC_SDHCI=y\nCONFIG_MMC_SDHCI_PLTFM=y\nCONFIG_MMC_SDHCI_MSM=y\nCONFIG_MMC_CQ_HCI=y\nCONFIG_MMC_CQ_HCI_CRYPTO=y\nCONFIG_MMC_CQ_HCI_CRYPTO_QTI=y\nCONFIG_NEW_LEDS=y\nCONFIG_LEDS_CLASS=y\nCONFIG_LEDS_QPNP_FLASH_V2=y\nCONFIG_LEDS_QTI_TRI_LED=y\nCONFIG_LEDS_TRIGGER_TIMER=y\nCONFIG_RTC_CLASS=y\nCONFIG_RTC_DRV_QPNP=y\nCONFIG_DMADEVICES=y\nCONFIG_QCOM_GPI_DMA=y\nCONFIG_UIO=y\nCONFIG_UIO_MSM_SHAREDMEM=y\nCONFIG_STAGING=y\nCONFIG_ASHMEM=y\nCONFIG_ION=y\nCONFIG_ION_DEFER_FREE_NO_SCHED_IDLE=y\nCONFIG_QCA_CLD_WLAN=y\nCONFIG_QCOM_GENI_SE=y\nCONFIG_QPNP_REVID=y\nCONFIG_SPS=y\nCONFIG_SPS_SUPPORT_NDP_BAM=y\nCONFIG_USB_BAM=y\nCONFIG_IPA3=y\nCONFIG_IPA_WDI_UNIFIED_API=y\nCONFIG_RMNET_IPA3=y\nCONFIG_RNDIS_IPA=y\nCONFIG_QCOM_MDSS_PLL=y\nCONFIG_SPMI_PMIC_CLKDIV=y\nCONFIG_MSM_CLK_AOP_QMP=y\nCONFIG_CLOCK_CPU_OSM=y\nCONFIG_MSM_CLK_RPMH=y\nCONFIG_MSM_GPUCC_SDMMAGPIE=y\nCONFIG_SM_GCC_ATOLL=y\nCONFIG_SM_CAMCC_ATOLL=y\nCONFIG_SM_VIDEOCC_ATOLL=y\nCONFIG_SM_DISPCC_ATOLL=y\nCONFIG_SM_NPUCC_ATOLL=y\nCONFIG_HWSPINLOCK=y\nCONFIG_HWSPINLOCK_QCOM=y\n# CONFIG_FSL_ERRATUM_A008585 is not set\n# CONFIG_HISILICON_ERRATUM_161010101 is not set\n# CONFIG_ARM64_ERRATUM_858921 is not set\nCONFIG_QCOM_APCS_IPC=y\nCONFIG_MSM_QMP=y\nCONFIG_IOMMU_IO_PGTABLE_FAST=y\nCONFIG_ARM_SMMU=y\nCONFIG_QCOM_LAZY_MAPPING=y\nCONFIG_RPMSG_CHAR=y\nCONFIG_RPMSG_QCOM_GLINK_SMEM=y\nCONFIG_RPMSG_QCOM_GLINK_SPI=y\nCONFIG_QCOM_RUN_QUEUE_STATS=y\nCONFIG_QCOM_LLCC=y\nCONFIG_QCOM_ATOLL_LLCC=y\nCONFIG_QCOM_QMI_HELPERS=y\nCONFIG_QCOM_SMEM=y\nCONFIG_QCOM_WATCHDOG_V2=y\nCONFIG_QCOM_FORCE_WDOG_BITE_ON_PANIC=y\nCONFIG_QCOM_SMP2P=y\nCONFIG_QPNP_PBS=y\nCONFIG_MSM_SERVICE_LOCATOR=y\nCONFIG_MSM_SERVICE_NOTIFIER=y\nCONFIG_MSM_SUBSYSTEM_RESTART=y\nCONFIG_MSM_PIL=y\nCONFIG_MSM_SYSMON_QMI_COMM=y\nCONFIG_MSM_PIL_SSR_GENERIC=y\nCONFIG_SETUP_SSR_NOTIF_TIMEOUTS=y\nCONFIG_SSR_SYSMON_NOTIF_TIMEOUT=20000\nCONFIG_SSR_SUBSYS_NOTIF_TIMEOUT=20000\nCONFIG_PANIC_ON_SSR_NOTIF_TIMEOUT=y\nCONFIG_MSM_BOOT_STATS=y\nCONFIG_QCOM_DCC_V2=y\nCONFIG_QCOM_SECURE_BUFFER=y\nCONFIG_ICNSS=y\nCONFIG_ICNSS_QMI=y\nCONFIG_QCOM_EUD=y\nCONFIG_QCOM_BUS_SCALING=y\nCONFIG_QCOM_BUS_CONFIG_RPMH=y\nCONFIG_QCOM_COMMAND_DB=y\nCONFIG_QCOM_EARLY_RANDOM=y\nCONFIG_QTI_RPMH_API=y\nCONFIG_QSEE_IPC_IRQ=y\nCONFIG_QCOM_GLINK=y\nCONFIG_QCOM_GLINK_PKT=y\nCONFIG_MSM_CDSP_LOADER=y\nCONFIG_QCOM_SMCINVOKE=y\nCONFIG_MSM_EVENT_TIMER=y\nCONFIG_MSM_PM=y\nCONFIG_QCOM_FSA4480_I2C=y\nCONFIG_MEM_SHARE_QMI_SERVICE=y\n# CONFIG_QCOM_QHEE_ENABLE_MEM_PROTECTION is not set\nCONFIG_QCOM_SMP2P_SLEEPSTATE=y\nCONFIG_QCOM_CDSP_RM=y\nCONFIG_QCOM_CX_IPEAK=y\nCONFIG_QTI_CRYPTO_COMMON=y\nCONFIG_QTI_CRYPTO_TZ=y\nCONFIG_DEVFREQ_GOV_PASSIVE=y\nCONFIG_SIMPLE_GPU_ALGORITHM=y\nCONFIG_QCOM_BIMC_BWMON=y\nCONFIG_ARM_MEMLAT_MON=y\nCONFIG_QCOMCCI_HWMON=y\nCONFIG_QCOM_M4M_HWMON=y\nCONFIG_DEVFREQ_GOV_QCOM_BW_HWMON=y\nCONFIG_DEVFREQ_GOV_QCOM_CACHE_HWMON=y\nCONFIG_DEVFREQ_GOV_MEMLAT=y\nCONFIG_DEVFREQ_SIMPLE_DEV=y\nCONFIG_QCOM_DEVFREQ_DEVBW=y\nCONFIG_DEVFREQ_GOV_CDSPL3=y\nCONFIG_EXTCON_USB_GPIO=y\nCONFIG_IIO=y\nCONFIG_QCOM_SPMI_ADC5=y\nCONFIG_PWM=y\nCONFIG_PWM_QTI_LPG=y\nCONFIG_QCOM_KGSL=y\nCONFIG_ARM_GIC_V3_ACL=y\nCONFIG_ARM_DSU_PMU=y\nCONFIG_QCOM_LLCC_PMU=y\nCONFIG_ANDROID=y\nCONFIG_ANDROID_BINDER_IPC=y\nCONFIG_ANDROID_BINDERFS=y\nCONFIG_QCOM_QFPROM=y\nCONFIG_NVMEM_SPMI_SDAM=y\nCONFIG_SENSORS_SSC=y\nCONFIG_ESOC=y\nCONFIG_ESOC_DEV=y\nCONFIG_ESOC_CLIENT=y\nCONFIG_ESOC_MDM_4x=y\nCONFIG_ESOC_MDM_DRV=y\nCONFIG_ESOC_MDM_DBG_ENG=y\nCONFIG_EXT4_FS=y\nCONFIG_EXT4_FS_POSIX_ACL=y\nCONFIG_EXT4_FS_SECURITY=y\nCONFIG_EXT4_ENCRYPTION=y\nCONFIG_EROFS_FS=y\nCONFIG_EROFS_FS_PCPU_KTHREAD=y\nCONFIG_EROFS_FS_PCPU_KTHREAD_HIPRI=y\nCONFIG_F2FS_FS=y\nCONFIG_F2FS_FS_SECURITY=y\nCONFIG_F2FS_FS_ENCRYPTION=y\nCONFIG_FS_ENCRYPTION_INLINE_CRYPT=y\nCONFIG_FS_VERITY=y\nCONFIG_FS_VERITY_BUILTIN_SIGNATURES=y\nCONFIG_QUOTA=y\nCONFIG_QUOTA_NETLINK_INTERFACE=y\nCONFIG_QFMT_V2=y\nCONFIG_FUSE_FS=y\nCONFIG_OVERLAY_FS=y\nCONFIG_INCREMENTAL_FS=y\nCONFIG_MSDOS_FS=y\nCONFIG_VFAT_FS=y\nCONFIG_EXFAT_FS=y\nCONFIG_TMPFS_POSIX_ACL=y\nCONFIG_ECRYPT_FS=y\nCONFIG_ECRYPT_FS_MESSAGING=y\nCONFIG_SDCARD_FS=y\nCONFIG_PSTORE=y\n# CONFIG_PSTORE_ZLIB_COMPRESS is not set\nCONFIG_PSTORE_CONSOLE=y\nCONFIG_PSTORE_PMSG=y\nCONFIG_PSTORE_RAM=y\nCONFIG_NLS_CODEPAGE_437=y\nCONFIG_NLS_ISO8859_1=y\nCONFIG_UNICODE=y\nCONFIG_PRINTK_TIME=y\nCONFIG_OPTIMIZE_INLINING=y\nCONFIG_MAGIC_SYSRQ=y\nCONFIG_KFENCE=y\nCONFIG_KFENCE_SAMPLE_INTERVAL=500\nCONFIG_KFENCE_NUM_OBJECTS=63\n# CONFIG_KFENCE_KUNIT_TEST is not set\nCONFIG_PANIC_TIMEOUT=5\nCONFIG_SCHEDSTATS=y\nCONFIG_SCHED_STACK_END_CHECK=y\n# CONFIG_DEBUG_PREEMPT is not set\nCONFIG_BUG_ON_DATA_CORRUPTION=y\nCONFIG_SECURITY=y\nCONFIG_SECURITY_NETWORK=y\nCONFIG_HARDENED_USERCOPY=y\nCONFIG_STATIC_USERMODEHELPER=y\nCONFIG_STATIC_USERMODEHELPER_PATH=\"\"\nCONFIG_SECURITY_SELINUX=y\n# CONFIG_INTEGRITY is not set\nCONFIG_CRYPTO_GCM=y\nCONFIG_CRYPTO_CHACHA20POLY1305=y\nCONFIG_CRYPTO_XCBC=y\nCONFIG_CRYPTO_TWOFISH=y\nCONFIG_CRYPTO_LZ4=y\nCONFIG_LZ4_ARM64_ACCEL=y\nCONFIG_CRYPTO_ANSI_CPRNG=y\nCONFIG_CRYPTO_DEV_QCOM_MSM_QCE=y\nCONFIG_CRYPTO_DEV_QCRYPTO=y\nCONFIG_CRYPTO_DEV_QCEDEV=y\nCONFIG_CRYPTO_DEV_QCOM_ICE=y\nCONFIG_ARM64_CRYPTO=y\nCONFIG_CRYPTO_SHA1_ARM64_CE=y\nCONFIG_CRYPTO_SHA2_ARM64_CE=y\nCONFIG_CRYPTO_GHASH_ARM64_CE=y\nCONFIG_CRYPTO_AES_ARM64_CE_CCM=y\nCONFIG_CRYPTO_AES_ARM64_CE_BLK=y\nCONFIG_CRYPTO_AES_ARM64_NEON_BLK=y\nCONFIG_FRAME_WARN=0\nCONFIG_ANON_MIN_KBYTES=196608\nCONFIG_CLEAN_LOW_KBYTES=393216\nCONFIG_CLEAN_MIN_KBYTES=196608\nCONFIG_ZRAM_ENTROPY=y\nCONFIG_ZRAM_ENTROPY_THRESHOLD=100000\nCONFIG_OPLUS_MM_HACKS=y\nCONFIG_MODULE_FORCE_LOAD=y\nCONFIG_CRYPTO_LZ4KD=y\nCONFIG_RC_CORE=y\n\n# Experimental MGLRU: enabled at boot; keep full history disabled.\nCONFIG_LRU_GEN=y\nCONFIG_LRU_GEN_ENABLED=y\n# CONFIG_LRU_GEN_STATS is not set\n\n# Vendored KernelSU v3.3.1+36 (backslashxx), built-in for ARM64 4.14\nCONFIG_KSU=y\nCONFIG_KSU_TAMPER_SYSCALL_TABLE=y\nCONFIG_KSU_LSM_SECURITY_HOOKS=y\nCONFIG_KSU_ENABLE_FULL_UID_CHECKS=y\nCONFIG_KSU_FEATURE_SULOG=y\n# CONFIG_KSU_KPROBES_KSUD is not set\n# CONFIG_KSU_HACK_ARM64_BRANCH_LINK is not set\n# CONFIG_KSU_DISABLE_32BIT_HOOKS is not set\nCONFIG_KSU_FEATURE_ADBROOT=y\n# CONFIG_KSU_HOSTSREDIRECT is not set\n# CONFIG_KSU_THRONE_TRACKER_ALWAYS_THREADED is not set\n# CONFIG_KSU_NOPRINTK is not set\n# CONFIG_KSU_SHELL_HAS_SU_ALWAYS is not set\n# CONFIG_KSU_DEBUG is not set\n\n# Vendored NoMount, pinned dev revision 04af0552bb29\nCONFIG_NOMOUNT=y\nCONFIG_KEYS=y\n\n# SUSFS 2.3.0, adapted for vendored backslashxx KSU\nCONFIG_KSU_SUSFS=y\nCONFIG_KSU_SUSFS_SUS_PATH=y\nCONFIG_KSU_SUSFS_SUS_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_KSTAT=y\nCONFIG_KSU_SUSFS_TRY_UMOUNT=y\nCONFIG_KSU_SUSFS_SPOOF_UNAME=y\nCONFIG_KSU_SUSFS_ENABLE_LOG=y\nCONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y\nCONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y\nCONFIG_KSU_SUSFS_OPEN_REDIRECT=y\nCONFIG_KSU_SUSFS_SUS_MAP=y\n",
+    "sha256": "e734f530a1b8ec8154db34acf7ece9533bc636fd3228caa522382e47ccf0f32c",
+    "source": "https://github.com/lezyss/Kernel_electro/blob/c6de0ddbe/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig",
+    "note": "Pre-existing approved config followups changed original BBR receipt endpoint; use exact verified historical config only on temporary old-chain replay, then restore protected current config. No working defconfig edit."
+  },
+  "artifact_sha256": {
+    "tools/testing/selftests/bbr3/test_edt.py": "88948a97ae3df974c38f43328b8f0bc0987160e9a4248ed76ef915ef401101b5",
+    "tools/testing/selftests/bbr3/edt_model.c": "53fdc083a1834680ce8b924bea7380d8340862d96a90e07fcc0c7f43e0825d8e",
+    "Documentation/networking/bbr3-edt.rst": "b0eb26ece65f66180ef440c88ed648b3c0dcc559a2f09d53e80eec8bc07d0348"
+  },
+  "default_selection_followup": {
+    "user_request": "Change from bbrplus to bbr3 as default and push to branch",
+    "Kconfig": "add built-in-only DEFAULT_BBR3 choice plus string mapping, keep generic DEFAULT_CUBIC",
+    "source_change": "exactly2 miatoll config lines; no other source profile setting changed",
+    "test_guards": "BBRv3 default and BBRplus availability; older default expectations updated",
+    "ROM_runtime": "applies to future built image and new sockets; ROM sysctls can override it; no running phone changed"
+  },
+  "historical_evidence_note": "Earlier tests/config/output fields describe pre-default local validation. Current_* checks and default_selection_followup supersede earlier BBRplus-default configuration, without rewriting original bbr3-validation.json or BPF receipts."
+}
