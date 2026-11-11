@@ -20,7 +20,7 @@
  * The congestion-control callback retains this tree's two-argument ABI;
    Google's unused ACK/flag arguments are omitted. cwnd accessors, GSO
    constant, global min-TSO sysctl and probe randomization use native 4.14
-@@ -48,9 +49,13 @@
+@@ -48,9 +49,16 @@
  ---------------------------
  
  ``CONFIG_TCP_CONG_BBR3`` builds the separate algorithm named ``bbr3``.
@@ -30,14 +30,17 @@
 +Following explicit user approval, miatoll now selects **bbr3** through the new
 +``DEFAULT_BBR3`` built-in-only choice. BBRplus, BBR and CUBIC remain built in
 +and selectable. Generic Kconfig fallback remains CUBIC; other device profiles
-+are not changed. TCP buffer caps stay at16MiB. Existing sockets are not migrated,
++are not changed. Miatoll now builds/selects fq for native EDT; fq_codel stays
++available. Verify the active egress qdisc after boot (ROM policy can override
++the compiled default). See bbr3-edt.rst for the controlled qdisc A/B procedure.
++TCP buffer caps stay at16MiB. Existing sockets are not migrated,
 +and ROM services/sysctls may override the kernel default at runtime.
 +The original historical receipt describes the prior BBRplus-default profile;
 +its later EDT/default overlay is recorded separately in bbr3-edt-validation.json.
  
  With BBRv3 built in or modular, congestion-control private storage grows
  from 112 to 144 bytes: 32 additional bytes per inet connection socket.
-@@ -165,7 +170,8 @@
+@@ -165,7 +173,8 @@
  
  Record ``/proc/version`` and the actual built image/config provenance.
  SUSFS may intentionally spoof ``uname``; that alone is not a wrong-image
@@ -47,7 +50,7 @@
  
    cat /proc/sys/net/ipv4/tcp_available_congestion_control
    cat /proc/sys/net/ipv4/tcp_congestion_control
-@@ -188,7 +194,7 @@
+@@ -188,7 +197,7 @@
  If a global setting is needed for an application without per-socket
  selection, first record the old value. As root, set
  ``net.ipv4.tcp_congestion_control=bbr3`` for new sockets only, and restore
@@ -69,6 +72,18 @@
  CONFIG_IPV6_ROUTER_PREF=y
  CONFIG_IPV6_ROUTE_INFO=y
  CONFIG_IPV6_OPTIMISTIC_DAD=y
+@@ -272,9 +272,10 @@
+ CONFIG_NET_SCH_MULTIQ=y
+ CONFIG_NET_SCH_TBF=y
+ CONFIG_NET_SCH_FQ_CODEL=y
++CONFIG_NET_SCH_FQ=y
+ CONFIG_NET_SCH_INGRESS=y
+ CONFIG_NET_SCH_DEFAULT=y
+-CONFIG_DEFAULT_FQ_CODEL=y
++CONFIG_DEFAULT_FQ=y
+ CONFIG_NET_CLS_FW=y
+ CONFIG_NET_CLS_U32=y
+ CONFIG_CLS_U32_MARK=y
 --- a/include/linux/skbuff.h
 +++ b/include/linux/skbuff.h
 @@ -686,6 +686,11 @@
@@ -589,7 +604,7 @@
  compile but fail a runtime assertion. A compiler failure is not a passing
  negative control. --mutant is for intentional individual failures only.
  
-@@ -33,4 +33,20 @@
+@@ -33,4 +33,27 @@
  reviewing a later edit; a hash mismatch is not permission to accept drift.
  
  See Documentation/networking/bbr3-backport.rst for port exclusions, selection
@@ -611,6 +626,13 @@
 +new native-only flag. No device transmission, hardware timing or target compiler
 +proof: see Documentation/networking/bbr3-edt.rst. Provenance runner reverses this
 +overlay in temporary copies before checking the immutable original port receipt.
++
++EDT activation followup: miatoll builds NET_SCH_FQ=y and DEFAULT_FQ=y;
++resolved DEFAULT_NET_SCH="fq". BBRv3 stays default; fq_codel stays built in as
++an alternative. test_edt.py guards the source profile as well as extracting
++TCP/FQ functions. Build/install/boot and actual egress-qdisc checks remain
++necessary: Android policy can override the compiled default. See
++Documentation/networking/bbr3-edt.rst for device verification and A/B limits.
 --- a/tools/testing/selftests/bbr3/model.c
 +++ b/tools/testing/selftests/bbr3/model.c
 @@ -46,6 +46,10 @@
@@ -782,16 +804,21 @@
      main()
 --- a/tools/testing/selftests/bbrplus/test_backport.py
 +++ b/tools/testing/selftests/bbrplus/test_backport.py
-@@ -91,8 +91,10 @@
+@@ -91,9 +91,14 @@
      assert re.search(r'default "bbrplus" if DEFAULT_BBRPLUS\n\tdefault "cubic"', kconfig)
      config = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
      assert 'CONFIG_TCP_CONG_BBRPLUS=y' in config
 -    assert 'CONFIG_DEFAULT_BBRPLUS=y' in config
 -    assert 'CONFIG_DEFAULT_TCP_CONG="bbrplus"' in config
+-    assert 'CONFIG_DEFAULT_FQ_CODEL=y' in config
 +    assert 'CONFIG_DEFAULT_BBR3=y' in config
 +    assert 'CONFIG_DEFAULT_BBRPLUS=y' not in config
 +    assert 'bool "BBRv3" if TCP_CONG_BBR3=y' in kconfig
 +    assert 'CONFIG_DEFAULT_TCP_CONG="bbr3"' in config
-     assert 'CONFIG_DEFAULT_FQ_CODEL=y' in config
++    assert 'CONFIG_NET_SCH_FQ_CODEL=y' in config  # alternative remains available
++    assert 'CONFIG_NET_SCH_FQ=y' in config
++    assert 'CONFIG_DEFAULT_FQ=y' in config
++    assert 'CONFIG_DEFAULT_FQ_CODEL=y' not in config
      print('BBRplus source/config guards: PASS')
+ 
  

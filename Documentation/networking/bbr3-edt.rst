@@ -3,8 +3,9 @@ Native BBRv3 EDT pacing/forecast adaptation
 
 Status: user authorized publication of the EDT work and switching miatoll's
 default from BBRplus to BBRv3. CONFIG_DEFAULT_BBR3=y now resolves to "bbr3".
-BBRplus/BBR/CUBIC remain available; generic CUBIC fallback, qdisc choice and16MiB
-TCP caps are unchanged. No CI dispatched. No production AOSP r614150 ARM64
+BBRplus/BBR/CUBIC remain available; generic CUBIC fallback and16MiB TCP caps
+are unchanged. A subsequent user-authorized followup builds in fq and selects
+it as miatoll's default qdisc; fq_codel stays built in as an alternative. No CI dispatched. No production AOSP r614150 ARM64
 compilation, linked image or device test. Commit/remote identity is verified
 externally after creating the commit containing this record.
 
@@ -91,7 +92,7 @@ Packet lifetime and fq
   deadlines, with a watchdog when no ordinary flow is runnable.
 * EDT packets do not get socket-rate charged twice. An explicit fq maxrate still
   applies independently. Legacy non-EDT socket pacing and rate_enable0 operation
-  retain their policies; no existing qdisc selection/default is changed.
+  retain their policies; the miatoll qdisc default is now fq (see followup below).
 
 BBRv3 forecast
 --------------
@@ -150,17 +151,67 @@ Default-selection followup and publication scope
 User request: "Change from bbrplus to bbr3 as default and push to branch".
 The built-in-only DEFAULT_BBR3 choice and its string mapping are added without
 changing the generic DEFAULT_CUBIC choice default. Only miatoll selects it;
-no other defconfig, runtime sysctl/boot script or qdisc is modified. BBRplus tests
+no other defconfig or runtime sysctl/boot script is modified. The later qdisc
+followup below supersedes the original decision to retain fq_codel. BBRplus tests
 now check availability with BBRv3 default, rather than requiring BBRplus default.
 Both source selection and resolved config are verified with shipped Kconfig tools.
 
-The default qdisc remains fq_codel. Consequently changing the CC default does
-not by itself enable fq's EDT consumption/forecast on every device: native
-internal pacing is retained where fq is not in use. The device's actual qdisc,
-ROM policy and new-socket selection need checking after flashing a validated
-image. Existing connections do not change algorithms retroactively.
+The original default-only publication retained fq_codel and did not build fq;
+that profile could not consume EDT through fq. The user subsequently authorized
+making EDT usable: CONFIG_NET_SCH_FQ=y and CONFIG_DEFAULT_FQ=y now resolve to
+CONFIG_DEFAULT_NET_SCH="fq". CONFIG_NET_SCH_FQ_CODEL=y remains available for A/B
+and rollback, but DEFAULT_FQ_CODEL is no longer selected. No TCP/FQ algorithm
+source changes are needed for this activation followup. Internal pacing still
+provides fallback when the actual egress qdisc is not fq.
 
 Publication is scoped to the EDT source/metadata/FQ/forecast adaptation, this
 explicit default-selection followup, and their tests/docs/evidence. Build on
 published61be86e3b (the13 Azyr selection). Do not include other local approved
 #6/memlat/#36/#41 or unrelated dirty work. No force push or automatic CI.
+
+Device verification and controlled EDT A/B
+-----------------------------------------
+
+These config changes apply only after building/installing the new image; no
+phone has been modified remotely. A production ARM64 compile/link/boot remains
+required. Android/netd, init scripts, VPNs and vendor networking may install a
+different qdisc. Neither the compiled default nor the sysctl proves the active
+interface uses fq. Interfaces marked noqueue/offloaded paths need special care.
+
+With suitable iproute2 tools and privileges, record::
+
+  cat /proc/version
+  cat /proc/sys/net/ipv4/tcp_congestion_control
+  cat /proc/sys/net/core/default_qdisc
+  ip route get <server-IP>
+  tc -s qdisc show dev <egress-interface>
+
+Expected kernel defaults are bbr3 and fq. Check the route/interface used by the
+actual upload (including a VPN path); the relevant transmitting qdisc must be
+fq, not fq_codel. For multiqueue devices, inspect the leaf qdiscs too. The fq
+enqueue path advertises SK_PACING_FQ and BBRv3's native TCP_CONG_EDT flag then
+enables the EDT-based forecast; generic fq statistics alone do not measure
+per-packet deadline accuracy or prove hardware transmission timing.
+
+Do not blindly replace Android multiqueue, shaped or vendor-managed qdisc trees.
+Save the complete layout first and use a device-specific reversible procedure
+if policy overrides fq. Changing default_qdisc alone does not replace qdiscs
+already attached. A clean boot/interface recreation may attach the default,
+but runtime policy still wins. No automatic init/boot override is added here.
+
+To isolate the effect of this EDT path, keep BBRv3 constant and compare fq_codel
+with fq on the same validated image, using fresh connections after each change.
+This compares the whole qdisc+pacing path, not EDT in isolation: fq_codel also
+has CoDel AQM and fq does not. Use a controlled TCP upload (for example iperf3
+-C bbr3, not -R), alternate order for at least five trials, and record the
+active qdisc each time. Compare upload throughput, retransmissions and latency
+under upload load; watch CPU/battery cost and stability. Keep TCP caps, pacing
+rate tunables, ECN, radio conditions/server and other settings constant.
+
+Also compare BBRplus and BBRv3 on the same qdisc separately if desired. A better
+BBRv3 result on fq_codel does not establish an EDT benefit. RTT/loss conditions,
+radio/driver queues, VPNs and offloads may dominate. EDT may improve pacing
+precision or loaded latency, but no speed/latency improvement is guaranteed.
+This governs locally generated TCP sending, not QUIC/UDP or the remote server's
+TCP sending in a download. No device performance result is claimed by the
+host harness or the config/provenance checks.

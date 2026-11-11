@@ -25,6 +25,14 @@ def block(s, signature):
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--self-test-negatives', action='store_true')
 args = p.parse_args()
+# The native EDT scheduler must be built and selected, not merely implemented.
+config = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text().splitlines()
+for option in ('CONFIG_TCP_CONG_BBR3=y', 'CONFIG_DEFAULT_BBR3=y',
+               'CONFIG_DEFAULT_TCP_CONG="bbr3"', 'CONFIG_NET_SCH_FQ=y',
+               'CONFIG_DEFAULT_FQ=y', 'CONFIG_NET_SCH_FQ_CODEL=y'):
+    assert option in config, 'miatoll EDT profile missing: ' + option
+assert 'CONFIG_DEFAULT_FQ_CODEL=y' not in config
+print('PASS: miatoll BBRv3 + built-in fq/default fq; fq_codel available')
 h = (ROOT / 'include/net/tcp.h').read_text()
 out = (ROOT / 'net/ipv4/tcp_output.c').read_text()
 fq = (ROOT / 'net/sched/sch_fq.c').read_text()

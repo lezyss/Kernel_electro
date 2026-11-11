@@ -50,3 +50,10 @@ and rejects two additional forecast mutants (15 total). BPF cannot opt into the
 new native-only flag. No device transmission, hardware timing or target compiler
 proof: see Documentation/networking/bbr3-edt.rst. Provenance runner reverses this
 overlay in temporary copies before checking the immutable original port receipt.
+
+EDT activation followup: miatoll builds NET_SCH_FQ=y and DEFAULT_FQ=y;
+resolved DEFAULT_NET_SCH="fq". BBRv3 stays default; fq_codel stays built in as
+an alternative. test_edt.py guards the source profile as well as extracting
+TCP/FQ functions. Build/install/boot and actual egress-qdisc checks remain
+necessary: Android policy can override the compiled default. See
+Documentation/networking/bbr3-edt.rst for device verification and A/B limits.

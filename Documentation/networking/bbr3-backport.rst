@@ -52,7 +52,10 @@ Selection and compatibility
 Following explicit user approval, miatoll now selects **bbr3** through the new
 ``DEFAULT_BBR3`` built-in-only choice. BBRplus, BBR and CUBIC remain built in
 and selectable. Generic Kconfig fallback remains CUBIC; other device profiles
-are not changed. TCP buffer caps stay at16MiB. Existing sockets are not migrated,
+are not changed. Miatoll now builds/selects fq for native EDT; fq_codel stays
+available. Verify the active egress qdisc after boot (ROM policy can override
+the compiled default). See bbr3-edt.rst for the controlled qdisc A/B procedure.
+TCP buffer caps stay at16MiB. Existing sockets are not migrated,
 and ROM services/sysctls may override the kernel default at runtime.
 The original historical receipt describes the prior BBRplus-default profile;
 its later EDT/default overlay is recorded separately in bbr3-edt-validation.json.

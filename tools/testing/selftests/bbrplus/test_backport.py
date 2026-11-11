@@ -95,7 +95,10 @@ def main():
     assert 'CONFIG_DEFAULT_BBRPLUS=y' not in config
     assert 'bool "BBRv3" if TCP_CONG_BBR3=y' in kconfig
     assert 'CONFIG_DEFAULT_TCP_CONG="bbr3"' in config
-    assert 'CONFIG_DEFAULT_FQ_CODEL=y' in config
+    assert 'CONFIG_NET_SCH_FQ_CODEL=y' in config  # alternative remains available
+    assert 'CONFIG_NET_SCH_FQ=y' in config
+    assert 'CONFIG_DEFAULT_FQ=y' in config
+    assert 'CONFIG_DEFAULT_FQ_CODEL=y' not in config
     print('BBRplus source/config guards: PASS')
 
 
