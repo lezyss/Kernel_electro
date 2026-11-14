@@ -1749,7 +1749,7 @@
     "tools/testing/selftests/bpf_upgrade/test_core.py": "43936fef244a54f0ecd75e4c13a055728ed5651e95d4bf66160ed913346cf33f",
     "tools/testing/selftests/bpf_upgrade/test_jmp32.py": "fb1b8a9d4b1ec5e85d6fd8c1cbeb532134db4a509d627f85383a973eb97e794f",
     "tools/testing/selftests/bpf_upgrade/test_lockdep.py": "12bc8ab3226089772666fa2deb0ef24720f34b3a4dbfbf3c2bc6867f3a4e47be",
-    "tools/testing/selftests/bpf_upgrade/test_runtime.c": "f255ff6dba4a126809e422feab789d83d49d272083092975822dc8d7cf3860a8",
+    "tools/testing/selftests/bpf_upgrade/test_runtime.c": "0510a142af10e45fbf416c0d0abe6c3c2038602b43aad75105eade3b3d6ce93c",
     "tools/testing/selftests/bpf_upgrade/test_softirq.py": "665890f283711f3821ec0f9edba35545f98744bbf1252924cc75c5e6da4387cb",
     "tools/testing/selftests/bpf_upgrade/test_timer_lifetime.py": "8adc5ec9c5bfa61999440cbe99e57195dd7c47e6ee5aba3db4adddd3fec282fc",
     "tools/testing/selftests/bpf_upgrade/timer_lifetime_model.c": "407c01a9dafabef67515cfbec6a6943006cd47f31ae8afa05547d8e44819a22c"
@@ -1764,5 +1764,11 @@
     "branch": "arena/e63a046d-kernel-electro",
     "scope": "Commit integrated working tree, push this branch only, and run build CI",
     "ci_result": "Recorded separately in GitHub Actions; not inferred from local validation"
+  },
+  "device_smoke_followup": {
+    "evidence": "User supplied phone output: root uid/context, real Electro /proc/version, JMP32 and atomic fetch-add PASS; final reaped-task lookup returned ENOENT",
+    "test_correction": "Reaped-task lookup expects ENOENT, not ESRCH; checked against current kernel/bpf/bpf_task_storage.c and upstream torvalds/linux v5.15",
+    "kernel_source_changed": false,
+    "status": "Awaiting corrected device rerun; no full runtime/SMP/timer validation claim"
   }
 }

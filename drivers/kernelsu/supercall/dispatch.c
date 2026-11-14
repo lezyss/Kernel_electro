@@ -10,10 +10,8 @@ static int do_grant_root(void __user *arg)
 
 	pr_info("allow root for: %d\n", audit_uid);
 	ret = escape_with_root_profile();
-
-#ifdef CONFIG_KSU_FEATURE_SULOG
 	ksu_sulog_emit_grant_root(ret, audit_uid, audit_euid, GFP_KERNEL);
-#endif
+
 	return ret;
 }
 
@@ -23,6 +21,9 @@ static int do_get_info(void __user *arg)
 
 #ifdef MODULE
 	cmd.flags |= KSU_GET_INFO_FLAG_LKM;
+	if (ksu_late_loaded) {
+		cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
+	}
 #endif
 
 	if (is_manager()) {
@@ -793,8 +794,8 @@ out:
 }
 
 /* These describe the actual pinned backslashxx driver, not a FinaSU kernel. */
-#define KSU_COMPAT_VERSION_TAG "v3.3.1-38"
-#define KSU_COMPAT_VERSION_FULL "v3.3.1-38-backslashxx-Electro"
+#define KSU_COMPAT_VERSION_TAG "v3.3.1+50"
+#define KSU_COMPAT_VERSION_FULL "v3.3.1+50-backslashxx-Electro"
 
 static int ksu_metadata_to_user(void __user *arg, const void *data, size_t size)
 {

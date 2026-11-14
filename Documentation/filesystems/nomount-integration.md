@@ -1,14 +1,16 @@
 # NoMount integration for Electro (ARM64 4.14)
 
+See [the API23 update review](nomount-update-23.md) for changes and current tests.
+
 ## Integrated revision and layout
 
 NoMount's requested `dev` branch is pinned at:
 
 ```text
 Repository: https://github.com/maxsteeel/nomount
-Commit:     04af0552bb29c7cee1b78c3eea69d7ed98b80bf2
-Subject:    kernel: drain reclaim work on shutdown
-API base:   22
+Commit:     5e9feb6f3fce42423f56b37e344052c59ec16b66
+Subject:    module: prefer ksud/apd insmod over lkmloader during install
+API base:   23
 ```
 
 Its four `kernel/src/` files and `kernel/LICENSE` are vendored under
@@ -49,7 +51,7 @@ The following shows the equivalent import on a clean, unintegrated copy:
 ```bash
 # Run from the kernel root and stop on errors.
 set -e
-NM_COMMIT=04af0552bb29c7cee1b78c3eea69d7ed98b80bf2
+NM_COMMIT=5e9feb6f3fce42423f56b37e344052c59ec16b66
 work=$(mktemp -d)
 
 git clone --no-checkout https://github.com/maxsteeel/nomount "$work/nomount"

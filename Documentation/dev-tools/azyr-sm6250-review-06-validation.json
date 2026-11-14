@@ -1,0 +1,219 @@
+{
+  "status": "review only; no kernel changes/commit/push/CI",
+  "review_items": [
+    {
+      "review_item": 54,
+      "commit": "d3cf6e4d15d895eaaa1dd5d94cf569130b810ded",
+      "subject": "cpufreq: Ensure libperfmgr is present before equaling min freq to max freq",
+      "files": [
+        "drivers/cpufreq/cpufreq.c"
+      ],
+      "reviewed_file_patch_sha256": "8d95605cd22f1afd3093e14b55e11b5c496064f65924e4f03b96719301d64b03",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 55,
+      "commit": "c26cd77710e3768ce065d53c940a42db360d8629",
+      "subject": "qos: Workaround for faulty libperfmgr config",
+      "files": [
+        "kernel/power/qos.c"
+      ],
+      "reviewed_file_patch_sha256": "cb290fbef56d80cfc53d075813b53b7daad7c8cc3976301a685035ba5533bf2d",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 56,
+      "commit": "69cf714073ebe9a68322e5d9041cb325220c0dcd",
+      "subject": "dm-verity: Enable WQ_HIGHPRI on verify_wq",
+      "files": [
+        "drivers/md/dm-verity-target.c"
+      ],
+      "reviewed_file_patch_sha256": "b20fb0ba17e6cb5194cf35df38f98dbcca43edc73957ac79c0c87d46aefa7a57",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 57,
+      "commit": "94a730ad07912c7157f227585a1a90c117e705bd",
+      "subject": "dm-verity: Stop using WQ_UNBOUND for verify_wq",
+      "files": [
+        "drivers/md/dm-verity-target.c"
+      ],
+      "reviewed_file_patch_sha256": "5cd1292638c0dfc728ab13a59cf784026f733bde25d911632a2331c5a6026520",
+      "exact_patch_check_pass": false,
+      "diagnostic": "error: patch failed: drivers/md/dm-verity-target.c:1218\nerror: drivers/md/dm-verity-target.c: patch does not apply"
+    },
+    {
+      "review_item": 58,
+      "commit": "324bac57ebadbd785dbb0e666505b650880c4fa1",
+      "subject": "adreno: Stop reading registers just for debugging",
+      "files": [
+        "drivers/gpu/msm/adreno.c",
+        "drivers/gpu/msm/kgsl_gmu_core.c",
+        "drivers/gpu/msm/kgsl_gmu_core.h"
+      ],
+      "reviewed_file_patch_sha256": "0ed385b752005db5ca48b1e4fe9f002a0f2b95735897aea5ffbd95b2e3ccc609",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 59,
+      "commit": "aef1bd65ea60ae744a7d7f1162fd7ababe371a2b",
+      "subject": "cpufreq: Don't WARN_ON on non-existent cpu",
+      "files": [
+        "drivers/cpufreq/cpufreq.c"
+      ],
+      "reviewed_file_patch_sha256": "bc3484ff40bb8a580f30b073f6d859e71b0604b1fb3977a58216ea8e2ca873da",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 60,
+      "commit": "2c744e4f3929d36594c4bf781c077b67647b7122",
+      "subject": "blk-cgroup: filter background cgroup out",
+      "files": [
+        "block/blk-cgroup.c"
+      ],
+      "reviewed_file_patch_sha256": "fd6796fcf69ce353033460596fd98f6cf134e2fef438b87708711fa65de78415",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 61,
+      "commit": "b35a05e74293c808208f8ba5cd7cd376df5715a4",
+      "subject": "cfq-iosched: Apply tunes from Pixel 4",
+      "files": [
+        "block/cfq-iosched.c"
+      ],
+      "reviewed_file_patch_sha256": "f039b2d4625a086a3ba026bfb87a89c540f014ad9dc36739e4e29a9216401828",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 62,
+      "commit": "5663866d6cdf1761dd2fa9e96e888fb4e7d6d2ea",
+      "subject": "block,cfq: Disable logging if trace is not enabled",
+      "files": [
+        "block/cfq-iosched.c"
+      ],
+      "reviewed_file_patch_sha256": "899e60ad5712d8d2446057ccc6d704ad2a61babe78240e10629ec9c663a30045",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "review_item": 63,
+      "commit": "5dfd517cfa13ec0c7a9ac95619adc330742cda44",
+      "subject": "printk: Add sleep time to timestamps",
+      "files": [
+        "include/linux/timekeeping.h",
+        "kernel/printk/printk.c",
+        "kernel/time/timekeeping.c"
+      ],
+      "reviewed_file_patch_sha256": "047e3983466b34c32caf6aa5ffe2559ca4467c171c2aae092d7786f9bedaa7d6",
+      "exact_patch_check_pass": true,
+      "diagnostic": ""
+    }
+  ],
+  "source_sha256": {
+    "block/blk-cgroup.c": "91880a83bacf1c6a6a4e731b7a4317ba8789b72f567d85b8858e2cf5d21ce475",
+    "block/cfq-iosched.c": "216e5364786ba068fb2f4388188b72d9b240a3058fde2892e9b966a929e737d5",
+    "drivers/cpufreq/cpufreq.c": "79da4a92226c4cc2ddc8a4abdf2fb1b6bbcfd7981da15c090631cdd497ca350a",
+    "drivers/gpu/msm/adreno.c": "097ecba1a81d11e75855ab4a2920edf49658886f93cf9bada177fc88cbc1b11c",
+    "drivers/gpu/msm/kgsl_gmu_core.c": "a0fedbf99ad907f3fdf02113b949aca0eb863ab0cd73add58a47a093a084ac1e",
+    "drivers/gpu/msm/kgsl_gmu_core.h": "daabde959b05b000764f2a3287866bccfa67bc48b9d5295598872dd220bb1f11",
+    "drivers/md/dm-verity-target.c": "e08fc142a9f499497198b3163f6333ece75e52c3e42dd71ac89da004910baddd",
+    "include/linux/timekeeping.h": "39842faef32d9ea23c0162cb6a2b41170da9cc2b2718bb6f6dc457f952abfa91",
+    "kernel/power/qos.c": "07c1d433383b2924fdf1f7af17aba747b14aff8c355ef6945f683c9279ad3773",
+    "kernel/printk/printk.c": "15361ced4c3046a93b63356b342679feb4c8fde6b053dbfbe101014eb02dbd9f",
+    "kernel/time/timekeeping.c": "b485e89ac8ff867d7d40e4f7e51f6600f50f3062f9923f0b5003cb82cd17cf7d"
+  },
+  "configuration": {
+    "method": "shipped Kconfig parser HOSTCC=gcc CC=gcc ARCH=arm64 in external output; not target compilation",
+    "defconfig": "vendor/xiaomi/miatoll_defconfig",
+    "sha256": "5db6637f0914c83e5eeaf0af681180587c1653f5e5c989060d1c458ef67f1567",
+    "settings": {
+      "CONFIG_DM_VERITY": "y",
+      "CONFIG_DM_VERITY_FEC": "y",
+      "CONFIG_BLK_CGROUP": "y",
+      "CONFIG_IOSCHED_CFQ": "y",
+      "CONFIG_CFQ_GROUP_IOSCHED": "y",
+      "CONFIG_DEFAULT_CFQ": "y",
+      "CONFIG_BLK_DEV_IO_TRACE": "n",
+      "CONFIG_QCOM_KGSL": "y",
+      "CONFIG_PRINTK_TIME": "y",
+      "CONFIG_DEBUG_FS": "n"
+    }
+  },
+  "host_compiler": "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "item_63_model": {
+    "method": "exact extracted print_time, print_prefix and msg_print_text from native/donor; modeled do_div/timekeeping offset and printk_log; GCC+UBSan",
+    "results": [
+      "native_time=[   12.345678]  donor_time=[3000000012.345678] ",
+      "native_size_probe=15 donor_size_probe=15 donor_actual_prefix=20",
+      "logical_capacity=18 native_written=17 donor_written=22 native_canary=Z donor_canary=]"
+    ],
+    "fixture": "#include <stdio.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include <string.h>\ntypedef uint64_t u64;\nstatic bool printk_time=true;\nstatic int64_t sleep_ns=3000000000LL;\nstatic int64_t get_total_sleep_time_nsec(void){return sleep_ns;}\n#define do_div(n,base) ({unsigned long rem=(n)%(base); (n)/=(base);rem;})\nstruct printk_log {unsigned facility,level,text_len;u64 ts_nsec;char text[64];};\nstatic const char *log_text(const struct printk_log *m){return m->text;}\nstatic size_t print_time_native(u64 ts, char *buf)\n{\n\tunsigned long rem_nsec;\n\n\tif (!printk_time)\n\t\treturn 0;\n\n\trem_nsec = do_div(ts, 1000000000);\n\n\tif (!buf)\n\t\treturn snprintf(NULL, 0, \"[%5lu.000000] \", (unsigned long)ts);\n\n\treturn sprintf(buf, \"[%5lu.%06lu] \",\n\t\t       (unsigned long)ts, rem_nsec / 1000);\n}\nstatic size_t print_prefix_native(const struct printk_log *msg, bool syslog, char *buf)\n{\n\tsize_t len = 0;\n\tunsigned int prefix = (msg->facility << 3) | msg->level;\n\n\tif (syslog) {\n\t\tif (buf) {\n\t\t\tlen += sprintf(buf, \"<%u>\", prefix);\n\t\t} else {\n\t\t\tlen += 3;\n\t\t\tif (prefix > 999)\n\t\t\t\tlen += 3;\n\t\t\telse if (prefix > 99)\n\t\t\t\tlen += 2;\n\t\t\telse if (prefix > 9)\n\t\t\t\tlen++;\n\t\t}\n\t}\n\n\tlen += print_time_native(msg->ts_nsec, buf ? buf + len : NULL);\n\treturn len;\n}\nstatic size_t msg_print_text_native(const struct printk_log *msg, bool syslog, char *buf, size_t size)\n{\n\tconst char *text = log_text(msg);\n\tsize_t text_size = msg->text_len;\n\tsize_t len = 0;\n\n\tdo {\n\t\tconst char *next = memchr(text, '\\n', text_size);\n\t\tsize_t text_len;\n\n\t\tif (next) {\n\t\t\ttext_len = next - text;\n\t\t\tnext++;\n\t\t\ttext_size -= next - text;\n\t\t} else {\n\t\t\ttext_len = text_size;\n\t\t}\n\n\t\tif (buf) {\n\t\t\tif (print_prefix_native(msg, syslog, NULL) +\n\t\t\t    text_len + 1 >= size - len)\n\t\t\t\tbreak;\n\n\t\t\tlen += print_prefix_native(msg, syslog, buf + len);\n\t\t\tmemcpy(buf + len, text, text_len);\n\t\t\tlen += text_len;\n\t\t\tbuf[len++] = '\\n';\n\t\t} else {\n\t\t\t/* SYSLOG_ACTION_* buffer size only calculation */\n\t\t\tlen += print_prefix_native(msg, syslog, NULL);\n\t\t\tlen += text_len;\n\t\t\tlen++;\n\t\t}\n\n\t\ttext = next;\n\t} while (text);\n\n\treturn len;\n}\nstatic size_t print_time_donor(u64 ts, char *buf)\n{\n\tunsigned long rem_nsec;\n\n\tif (!printk_time)\n\t\treturn 0;\n\n\trem_nsec = do_div(ts, 1000000000);\n\n\tif (!buf)\n\t\treturn snprintf(NULL, 0, \"[%5lu.000000] \", (unsigned long)ts);\n\n\tts += get_total_sleep_time_nsec();\n\treturn sprintf(buf, \"[%5lu.%06lu] \",\n\t\t       (unsigned long)ts, rem_nsec / 1000);\n}\nstatic size_t print_prefix_donor(const struct printk_log *msg, bool syslog, char *buf)\n{\n\tsize_t len = 0;\n\tunsigned int prefix = (msg->facility << 3) | msg->level;\n\n\tif (syslog) {\n\t\tif (buf) {\n\t\t\tlen += sprintf(buf, \"<%u>\", prefix);\n\t\t} else {\n\t\t\tlen += 3;\n\t\t\tif (prefix > 999)\n\t\t\t\tlen += 3;\n\t\t\telse if (prefix > 99)\n\t\t\t\tlen += 2;\n\t\t\telse if (prefix > 9)\n\t\t\t\tlen++;\n\t\t}\n\t}\n\n\tlen += print_time_donor(msg->ts_nsec, buf ? buf + len : NULL);\n\treturn len;\n}\nstatic size_t msg_print_text_donor(const struct printk_log *msg, bool syslog, char *buf, size_t size)\n{\n\tconst char *text = log_text(msg);\n\tsize_t text_size = msg->text_len;\n\tsize_t len = 0;\n\n\tdo {\n\t\tconst char *next = memchr(text, '\\n', text_size);\n\t\tsize_t text_len;\n\n\t\tif (next) {\n\t\t\ttext_len = next - text;\n\t\t\tnext++;\n\t\t\ttext_size -= next - text;\n\t\t} else {\n\t\t\ttext_len = text_size;\n\t\t}\n\n\t\tif (buf) {\n\t\t\tif (print_prefix_donor(msg, syslog, NULL) +\n\t\t\t    text_len + 1 >= size - len)\n\t\t\t\tbreak;\n\n\t\t\tlen += print_prefix_donor(msg, syslog, buf + len);\n\t\t\tmemcpy(buf + len, text, text_len);\n\t\t\tlen += text_len;\n\t\t\tbuf[len++] = '\\n';\n\t\t} else {\n\t\t\t/* SYSLOG_ACTION_* buffer size only calculation */\n\t\t\tlen += print_prefix_donor(msg, syslog, NULL);\n\t\t\tlen += text_len;\n\t\t\tlen++;\n\t\t}\n\n\t\ttext = next;\n\t} while (text);\n\n\treturn len;\n}\n\nint main(void){char a[128],b[128];size_t an,bn;struct printk_log msg={0,0,1,12345678900ULL,\"x\"};\nprint_time_native(msg.ts_nsec,a);print_time_donor(msg.ts_nsec,b);\nprintf(\"native_time=%s donor_time=%s\\n\",a,b);\nprintf(\"native_size_probe=%zu donor_size_probe=%zu donor_actual_prefix=%zu\\n\",print_time_native(msg.ts_nsec,0),print_time_donor(msg.ts_nsec,0),strlen(b));\nmemset(a,'Z',sizeof(a));memset(b,'Z',sizeof(b));an=msg_print_text_native(&msg,false,a,18);bn=msg_print_text_donor(&msg,false,b,18);\nprintf(\"logical_capacity=18 native_written=%zu donor_written=%zu native_canary=%c donor_canary=%c\\n\",an,bn,a[18],b[18]);\nreturn !(an<=18 && bn>18 && a[18]=='Z' && b[18]!='Z');}\n",
+    "conclusion": "nanoseconds added to already-divided seconds; actual prefix longer than NULL-buffer sizing probe; msg_print_text exceeds its logical capacity",
+    "limits": "physical buffers are oversized 128-byte arrays; capacity 18 is an API-bound/canary probe, not an actual heap overflow, kernel execution or suspend-race test"
+  },
+  "item_62_compile_probe": {
+    "method": "exact donor CFQ logging macros; mock trace helper consumes queue when tracing on, discards argument when off as native header does",
+    "results": {
+      "trace_off": {
+        "success": true,
+        "diagnostic": ""
+      },
+      "trace_on": {
+        "success": false,
+        "diagnostic": "/tmp/azyr06-review-98gqe72i/trace_on.c: In function \u2018main\u2019:\n/tmp/azyr06-review-98gqe72i/trace_on.c:11:53: error: \u2018bfqd\u2019 undeclared (first use in this function); did you mean \u2018cfqd\u2019?\n   11 |         if (likely(!blk_trace_note_message_enabled((bfqd)->queue)))     \\\n      |                                                     ^~~~\n/tmp/azyr06-review-98gqe72i/trace_on.c:2:20: note: in definition of macro \u2018likely\u2019\n    2 | #define likely(x) (x)\n      |                    ^\n/tmp/azyr06-review-98gqe72i/trace_on.c:29:106: note: in expansion of macro \u2018cfq_log_cfqq\u2019\n   29 | int main(void){struct request_queue q={0};struct cfq_data obj={&q};struct cfq_data *cfqd=&obj;(void)cfqd;cfq_log_cfqq(cfqd,0,\"x\");cfq_log_cfqg(cfqd,0,\"x\");return 0;}\n      |                                                                                                          ^~~~~~~~~~~~\n/tmp/azyr06-review-98gqe72i/trace_on.c:11:53: note: each undeclared identifier is reported only once for each function it appears in\n   11 |         if (likely(!blk_trace_note_message_enabled((bfqd)->queue)))     \\\n      |                                                     ^~~~\n/tmp/azyr06-review-98gqe72i/trace_on.c:2:20: note: in definition of macro \u2018likely\u2019\n    2 | #define likely(x) (x)\n      |                    ^\n/tmp/azyr06-review-98gqe72i/trace_on.c:29:106: note: in expansion of macro \u2018cfq_log_cfqq\u2019\n   29 | int main(void){struct request_queue q={0};struct cfq_data obj={&q};struct cfq_data *cfqd=&obj;(void)cfqd;cfq_log_cfqq(cfqd,0,\"x\");cfq_log_cfqg(cfqd,0,\"x\");return 0;}\n      |                                                                                                          ^~~~~~~~~~~~"
+      },
+      "trace_on_typo_corrected": {
+        "success": true,
+        "diagnostic": ""
+      }
+    },
+    "fixture": "#include <stdbool.h>\n#define likely(x) (x)\nstruct request_queue {int enabled;};struct cfq_data {struct request_queue *queue;};\n#ifdef TRACE_ON\nstatic inline bool blk_trace_note_message_enabled(struct request_queue *q){return q->enabled;}\n#else\n#define blk_trace_note_message_enabled(q) (false)\n#endif\n#define blk_add_cgroup_trace_msg(...) do {} while(0)\n#define cfq_log_cfqq(cfqd, cfqq, fmt, args...)\tdo {\t\t\t\\\n\tif (likely(!blk_trace_note_message_enabled((bfqd)->queue)))\t\\\n\t\tbreak;\t\t\t\t\t\t\t\\\n\tblk_add_cgroup_trace_msg((cfqd)->queue,\t\t\t\t\\\n\t\t\tcfqg_to_blkg((cfqq)->cfqg)->blkcg,\t\t\\\n\t\t\t\"cfq%d%c%c \" fmt, (cfqq)->pid,\t\t\t\\\n\t\t\tcfq_cfqq_sync((cfqq)) ? 'S' : 'A',\t\t\\\n\t\t\tcfqq_type((cfqq)) == SYNC_NOIDLE_WORKLOAD ? 'N' : ' ',\\\n\t\t\t  ##args);\t\t\t\t\t\\\n} while (0)\n\n#define cfq_log_cfqg(cfqd, cfqg, fmt, args...)\tdo {\t\t\t\\\n\tif (likely(!blk_trace_note_message_enabled((bfqd)->queue)))\t\\\n\t\tbreak;\t\t\t\t\t\t\t\\\n\tblk_add_cgroup_trace_msg((cfqd)->queue,\t\t\t\t\\\n\t\t\tcfqg_to_blkg(cfqg)->blkcg, fmt, ##args);\t\\\n} while (0)\n\n\nint main(void){struct request_queue q={0};struct cfq_data obj={&q};struct cfq_data *cfqd=&obj;(void)cfqd;cfq_log_cfqq(cfqd,0,\"x\");cfq_log_cfqg(cfqd,0,\"x\");return 0;}\n",
+    "conclusion": "trace-off compiles because helper macro discards argument; trace-on fails undeclared bfqd; correcting only typo compiles in this bounded fixture",
+    "limits": "not a whole CFQ or production target compilation"
+  },
+  "items_60_61_init_order": {
+    "method": "actual donor cfq_pd_init with mock adapters; invoke before blkcg_bg assignment as native blkg_create does",
+    "results": [
+      "first_background_queue_weight=500 idle_ns=8000000 subsequent_weight=200 idle_ns=0",
+      "configured_weight=777 after_new_queue_init=200"
+    ],
+    "fixture": "#include <stdio.h>\n#define NSEC_PER_USEC 1000ULL\nstruct cfq_group_data {unsigned weight,leaf_weight;unsigned long long group_idle;};\nstruct blkcg {struct cfq_group_data *cgd;};\nstatic struct blkcg blkcg_root,*blkcg_bg;\nstruct blkg {struct blkcg *blkcg;};\nstruct blkg_policy_data {struct blkg *blkg;};\nstruct cfq_group {struct blkg_policy_data pd;unsigned weight,leaf_weight;unsigned long long group_idle;};\n#define pd_to_cfqg(pd) ((struct cfq_group *)(pd))\n#define blkcg_to_cfqgd(bg) ((bg)->cgd)\nstatic void cfq_pd_init(struct blkg_policy_data *pd)\n{\n\tstruct cfq_group *cfqg = pd_to_cfqg(pd);\n\tstruct cfq_group_data *cgd = blkcg_to_cfqgd(pd->blkg->blkcg);\n\n\tif (pd->blkg->blkcg == &blkcg_root) {\n\t\tcgd->weight = 1000;\n\t\tcgd->group_idle = 2000 * NSEC_PER_USEC;\n\t} else if (pd->blkg->blkcg == blkcg_bg) {\n\t\tcgd->weight = 200;\n\t\tcgd->group_idle = 0;\n\t}\n\n\tcfqg->weight = cgd->weight;\n\tcfqg->leaf_weight = cgd->leaf_weight;\n\tcfqg->group_idle = cgd->group_idle;\n}\nint main(void){struct cfq_group_data cgd={500,500,8000000};struct blkcg bg={&cgd};struct blkg blkg={&bg};struct cfq_group first={{&blkg},0,0,0},second=first;\ncfq_pd_init(&first.pd);blkcg_bg=&bg;cfq_pd_init(&second.pd);\nprintf(\"first_background_queue_weight=%u idle_ns=%llu subsequent_weight=%u idle_ns=%llu\\n\",first.weight,first.group_idle,second.weight,second.group_idle);\ncgd.weight=777;cfq_pd_init(&second.pd);printf(\"configured_weight=777 after_new_queue_init=%u\\n\",cgd.weight);return 0;}\n",
+    "conclusion": "first background queue can retain old defaults while later queues get donor weights; initialization can overwrite configured cgroup weight",
+    "limits": "not real cgroup concurrency/lifetime or storage performance testing"
+  },
+  "verity_sequence": {
+    "native_flags": "WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM | WQ_UNBOUND, num_online_cpus()",
+    "after_56_57": "WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM | WQ_HIGHPRI, 0",
+    "exact_pair_temporary_replay_pass": true,
+    "limits": "no runtime dm table, verified block-device use or device read/camera/verity error stress measured"
+  },
+  "limits": [
+    "No production AOSP target/image build or device execution in this review.",
+    "Enabled config is not proof that ROM runtime uses the path.",
+    "Exact patch applicability is not correctness/authorization."
+  ],
+  "next_review_item": 64,
+  "context_sha256": {
+    "include/linux/blktrace_api.h": "5bf217330b68686d225827c17a4314ef9e0a3547d91abbabe6d76596c97b0a9c",
+    "include/linux/workqueue.h": "a7cdf8dffc0af916018b79892ef2c6f9db5a6331a363ee21148403fb9815c5ed",
+    "include/linux/cgroup.h": "38e280978aafbabb426b99a1f4ef279acfdda591f55208b9561a4ed28642d7ed",
+    "drivers/gpu/msm/adreno_a6xx_gmu.c": "bd73ca63aebaa66491083fb1c0e87cb2a0146be800fcc6fe98548068388d477f",
+    "block/blk-throttle.c": "0042eb18d18916377301cb3f9d47c4f621050d1d079524dbe03d4e20a2389103",
+    "kernel/printk/printk.c": "15361ced4c3046a93b63356b342679feb4c8fde6b053dbfbe101014eb02dbd9f"
+  },
+  "preservation_checks": {
+    "candidate_sources_unchanged": true,
+    "review_05_sources_unchanged": true,
+    "earlier_memlat_postimages_unchanged": true,
+    "items_36_41_postimages_unchanged": true,
+    "item_6_kconfig_unchanged": true,
+    "source_miatoll_defconfig_unchanged": true
+  }
+}

@@ -1,0 +1,30 @@
+Azyr #36 / #41 extracted-source checks
+=====================================
+
+From the kernel root:
+
+    python3 tools/testing/selftests/cpufreq_ipa/test_tuning.py \
+        --self-test-negatives --general-regs-only
+
+Requires Python 3, git, GCC (or --cc with a compatible host compiler) and its
+UBSan runtime. --general-regs-only is optional and compiler/host dependent.
+No downloads, kernel builds or hardware execution. Intentional assertion-failure
+controls have core dumps disabled.
+
+Checks the exact two-source patch/inverse and reviewed preimage hashes. For IPA,
+extracts the real delay declaration/call/macro, checks 10000..12000 microseconds
+with integer arithmetic, and verifies that restoring just this change reproduces
+the entire original IPA file. For cpufreq, extracts both versions of the actual
+transition function and checks 180 combinations covering absent stats, initial
+invalid index, invalid new frequency, unchanged index and valid transitions.
+Checks last index, update count, total transitions and the entire transition
+matrix. Compiled mutants changing the minimum, removing slack and breaking the
+unchanged-index guard must fail assertions.
+
+These are host mocks with UBSan, not a production AOSP target build or proof of
+real timer coalescing, concurrent cpufreq behavior, modem/WLAN stability, device
+boot, latency, performance or power gains. See the application record:
+
+    Documentation/dev-tools/azyr-sm6250-036-041-validation.json
+    Documentation/dev-tools/azyr-sm6250-036-041-validation.txt
+    Documentation/dev-tools/azyr-sm6250-036-041.diff

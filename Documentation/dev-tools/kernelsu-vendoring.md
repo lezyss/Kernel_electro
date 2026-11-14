@@ -3,8 +3,8 @@
 ## What is integrated
 
 - Fork: <https://github.com/backslashxx/KernelSU>
-- Current selected tag: `v3.3.1-38`
-- Current exact commit: `feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb`
+- Current selected tag: `v3.3.1+50`
+- Current exact commit: `ae63c92098d94bdad1696c74a3ad2e96692118bf`
 - Location: `drivers/kernelsu/`, containing ordinary tracked source files.
 - Target: built-in KSU on ARM64 miatoll, Linux 4.14; native and compat hooks.
 
@@ -316,3 +316,11 @@ Current sources also carry the approved original SUSFS 2.4 backport. Consult
 The +38 upstream pin, old local inventory and manager seals remain unchanged;
 validation reconstructs their exact pre-2.4 bytes through a closed successor.
 This does not switch KSU forks/managers or activate the new priority filter.
+
+## Current +50 followup
+
+The selected pin is now v3.3.1+50 / ae63c92098d94bdad1696c74a3ad2e96692118bf,
+numeric32730. See kernelsu-updates/v3.3.1+50.md for the exact delta, retained
+SUSFS exec/SELinux adaptations and limits. Earlier sections describe historical
+integration stages. No fork/manager replacement, unconditional shell-SU, new
+hook mode, build-time download or CI activation is introduced by the update.

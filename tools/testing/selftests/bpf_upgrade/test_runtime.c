@@ -91,7 +91,7 @@ static void task_storage(void)
  pidfd=syscall(__NR_pidfd_open,child,0);if(pidfd<0)die("child pidfd_open");
  if(waitpid(child,NULL,0)!=child)die("waitpid");
  a.key=PTR(&pidfd);errno=0;
- if(bpf(BPF_MAP_LOOKUP_ELEM,&a)!=-1||errno!=ESRCH)die("reaped task must fail ESRCH");
+ if(bpf(BPF_MAP_LOOKUP_ELEM,&a)!=-1||errno!=ENOENT)die("reaped task must fail ENOENT");
  close(pidfd);close(map);puts("PASS: task storage real/invalid/closed/exited pidfd paths");
 }
 int main(void)

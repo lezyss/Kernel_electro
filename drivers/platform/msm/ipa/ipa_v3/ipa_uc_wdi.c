@@ -2593,6 +2593,9 @@ int ipa3_disable_wdi_pipe(u32 clnt_hdl)
 	 * remove delay and enable holb on IPA Producer pipe
 	 */
 	if (IPA_CLIENT_IS_PROD(ep->client)) {
+		const unsigned long delay_us = IPA_UC_POLL_SLEEP_USEC *
+					       IPA_UC_POLL_SLEEP_USEC;
+
 		IPADBG("Stopping PROD channel - hdl=%d clnt=%d\n",
 			clnt_hdl, ep->client);
 		/* remove delay on wlan-prod pipe*/
@@ -2616,8 +2619,7 @@ int ipa3_disable_wdi_pipe(u32 clnt_hdl)
 				goto uc_timeout;
 			}
 		}
-		usleep_range(IPA_UC_POLL_SLEEP_USEC * IPA_UC_POLL_SLEEP_USEC,
-			IPA_UC_POLL_SLEEP_USEC * IPA_UC_POLL_SLEEP_USEC);
+		usleep_range(delay_us, delay_us + delay_us / 5);
 
 	}
 

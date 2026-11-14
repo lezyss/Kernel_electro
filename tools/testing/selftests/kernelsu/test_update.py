@@ -216,4 +216,9 @@ def main():
 
 
 if __name__ == '__main__':
+    # Validate the current +50 layer, then replay this legacy suite on copies.
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
+    from update50 import legacy_main
+    legacy_main(__file__)
     main()

@@ -1,0 +1,95 @@
+Azyr #36 corrected / #41 exact local application validation
+=========================================================
+
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+Commands (all exited 0):
+make O=<external-output> ARCH=arm64 HOSTCC=gcc CC=gcc vendor/xiaomi/miatoll_defconfig
+python3 tools/testing/selftests/cpufreq_ipa/test_tuning.py --self-test-negatives --general-regs-only
+python3 tools/testing/selftests/memlat/test_memlat.py --self-test-negatives
+python3 tools/testing/selftests/susfs/test_integration.py --config <external-output>/.config --profile full --host-tests --cc 'gcc -Wno-address'
+python3 tools/testing/selftests/susfs/test_provenance_overlays.py
+python3 tools/testing/selftests/kernelsu/test_update.py --self-test-negatives
+python3 tools/testing/selftests/nomount/test_integration.py --config <external-output>/.config --host-tests --cc gcc
+
+PASS: exact two-source patch/inverse hashes and reviewed preimage chain
+PASS: extracted IPA delay is integer-only 10000..12000 us; other IPA code unchanged
+PASS: 180 extracted cpufreq transition cases preserve guards, counters, last index and transition matrix
+PASS: compiled negative control rejected: changed-minimum
+PASS: compiled negative control rejected: missing-slack
+PASS: compiled negative control rejected: broken-stats-guard
+LIMITS: host mocks/UBSan only; no target build, real timer/PMU, concurrent cpufreq, modem, device or power proof
+PASS: exact three-source inverse patch/hash provenance, unchanged ARMv8 assembly bodies and unchanged legacy workers
+PASS: public async API, completion ownership, sparse allocation, unguarded teardown and non-pinning SCM wrapper contracts
+PASS: observed idle/isolated CPUs receive no sampling IPI; idle votes clear without losing elapsed baseline, isolated epochs reset
+PASS: extracted async samples, completion orders, sparse masks, read/send faults, SCM skips, epochs, zero cycles, allocation unwind and busy teardown
+PASS: 20484 extracted u64 stall-percent cases, including overflow and zero cycles
+PASS: three extracted SCM C wrappers preserve inputs/outputs/errors and balance nested global accounting (mock secure workers)
+PASS: compiled semantic mutant rejected: skip-drain
+PASS: compiled semantic mutant rejected: skip-busy-cleanup
+PASS: compiled semantic mutant rejected: partial-publication
+PASS: compiled semantic mutant rejected: skip-creation-unwind
+PASS: compiled semantic mutant rejected: missing-hotplug-lock
+PASS: compiled semantic mutant rejected: wake-observed-idle
+PASS: compiled semantic mutant rejected: sample-isolated
+SUSFS pinned source/hooks and full configuration: PASS
+SUSFS reboot command authorization: 272 cases PASS
+KSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS
+Readlink truncation/count/fault/hash collision: 3010 cases PASS
+Pagemap byte accounting/buffer bounds: 2404 cases PASS
+Flag negation and mount-ID ownership: PASS
+PASS: rejected full-profile priority filter disablement
+PASS: rejected header tamper
+PASS: rejected broken SUSFS preimage
+PASS: rejected broken pre-BPF chain
+PASS: rejected broadened overlay scope
+PASS: rejected patch tamper
+PASS: rejected unsafe patch path
+PASS: rejected missing overlay
+PASS: rejected missing BPF manifest
+PASS: rejected duplicate BPF record
+PASS: rejected changed BPF postimage
+PASS: rejected unrelated SUSFS hook tamper
+PASS: rejected FinaSU dispatch tamper
+PASS: rejected wrong reference revision
+PASS: rejected missing Phoenix overlay
+PASS: rejected Phoenix patch tamper
+PASS: rejected Phoenix preimage tamper
+PASS: rejected Phoenix scope broadening
+PASS: rejected unsafe Phoenix patch
+PASS: rejected missing KSU update
+PASS: rejected KSU patch tamper
+PASS: rejected KSU preimage tamper
+PASS: rejected KSU postimage tamper
+PASS: rejected KSU scope broadening
+PASS: rejected unsafe KSU patch
+PASS: rejected missing 2.4 successor
+PASS: rejected 2.4 patch tamper
+PASS: rejected 2.4 source tamper
+PASS: rejected 2.4 manifest reseal
+PASS: rejected 2.4 scope broadening
+PASS: rejected unsafe 2.4 patch
+PASS: reviewed overlay and all 30 provenance negative controls
+PASS: pinned 16-file upstream delta + honest display update, exact inverse/forward replay and source hashes
+PASS: rejected FinaSU false-version
+PASS: rejected FinaSU resealed-body
+PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases
+PASS: rejected fault-status
+PASS: rejected address-limit
+PASS: rejected fallback
+PASS: rejected zero-size
+LIMITS: host models only; not a pinned-Clang kernel build, real RO mappings, SMP, module loading or device boot proof.
+NoMount vendored-source, wiring and configuration checks: PASS
+Capability/payload-pointer gate: 44 cases PASS
+Native/compat directory-cookie roundtrips: 131072 cases PASS
+UID bloom/add/delete/isolation checks: 400384 cases PASS
+Rule range/exclusion/fallback selection: 1001 cases PASS
+
+Preservation checks: other review-04 sources, earlier memlat, #6 Kconfig and source miatoll defconfig unchanged: PASS
+
+LIMITS:
+- No pinned-AOSP compiler/ARM64 object build or full image/modules link was performed for these changes.
+- Host mocks do not execute real waits, timer coalescing, cpufreq concurrency, IPA firmware, modem/WLAN or suspend/RX paths.
+- No device boot, stress test, performance or power benefit measured.
+- Allowing 2 ms additional timer slack can increase this path's shutdown latency; it does not change sleep state or guarantee a wakeup deadline under load.
+
+No commit, push or CI dispatch. Next review #44.

@@ -1,0 +1,3362 @@
+diff --git a/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig b/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
+--- a/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
++++ b/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
+@@ -761,7 +761,6 @@
+ CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
+ CONFIG_KSU_LSM_SECURITY_HOOKS=y
+ CONFIG_KSU_ENABLE_FULL_UID_CHECKS=y
+-CONFIG_KSU_FEATURE_SULOG=y
+ # CONFIG_KSU_KPROBES_KSUD is not set
+ # CONFIG_KSU_HACK_ARM64_BRANCH_LINK is not set
+ # CONFIG_KSU_DISABLE_32BIT_HOOKS is not set
+diff --git a/drivers/kernelsu/INTERNAL.md b/drivers/kernelsu/INTERNAL.md
+--- a/drivers/kernelsu/INTERNAL.md
++++ b/drivers/kernelsu/INTERNAL.md
+@@ -1,13 +1,10 @@
+ # Quirks / Adaptations
+-## NOT IMPLEMENTED
+-- late-load, #3258
+-
+ ## differences
+ 
+ ### C-style
+ - GNU23, but written in a way compatible to GNU17/GNU11 compilers.
+ - pointer-heavy. assumes little endian on everything.
+-- metaprogramming is actually happening: compile-time overloading/reflection, RAII-like cleanup, template-like type trickery
++- metaprogramming is actually happening: compile-time overloading/reflection/contracts, RAII-like cleanup, template-like type trickery
+ - compat and backports are also done through that metaprogramming (mostly redefinitions)
+ - heavy use of compiler attributes / builtins, this is intended.
+ - minimum is GCC 4.9 / Clang 9
+@@ -56,11 +53,6 @@
+ - after all we just need file pointer
+ - however if theres syscall table hook, we hook it on there instead
+ - we also use this for "second stage apply" instead of execve_ksud
+-#### bprm LSM
+-- defferent hooks for different kernels
+-- think of this as "after sys_execve"
+-- lockless argv pullouts for sulog
+-- might be used for something later
+ 
+ ### selinux_hide
+ - we have a thin implementation downstream
+diff --git a/drivers/kernelsu/Kconfig b/drivers/kernelsu/Kconfig
+--- a/drivers/kernelsu/Kconfig
++++ b/drivers/kernelsu/Kconfig
+@@ -69,13 +69,6 @@
+ 	  Disabling this is mostly useful for non-ARM64 with kernel > 6.8.
+ 	  Make sure to implement manual hooks on security/security.c.
+ 
+-config KSU_FEATURE_SULOG
+-	bool "KernelSU SU Logging feature"
+-	depends on KSU
+-	default y
+-	help
+-	  Build KernelSU's SU Log.
+-
+ config KSU_FEATURE_ADBROOT
+ 	bool "KernelSU ADB Root feature"
+ 	depends on KSU
+diff --git a/drivers/kernelsu/Makefile b/drivers/kernelsu/Makefile
+--- a/drivers/kernelsu/Makefile
++++ b/drivers/kernelsu/Makefile
+@@ -15,8 +15,8 @@
+ $(info -- KDIR: $(KDIR))
+ $(info -- MDIR: $(MDIR))
+ 
+-# compliant to last upstream kernel change as of 019a3c0
+-CFLAGS_ksu.o += -DKSU_VERSION=32717
++# compliant to last upstream kernel change as of 64833c0
++CFLAGS_ksu.o += -DKSU_VERSION=32730
+ 
+ KSU_PACKAGE_NAME := me.weishu.kernelsu
+ KSU_EXPECTED_SIZE := 0x033b
+diff --git a/drivers/kernelsu/UPSTREAM.json b/drivers/kernelsu/UPSTREAM.json
+--- a/drivers/kernelsu/UPSTREAM.json
++++ b/drivers/kernelsu/UPSTREAM.json
+@@ -1,5 +1,6 @@
+ {
+-  "commit": "feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb",
++  "commit": "ae63c92098d94bdad1696c74a3ad2e96692118bf",
++  "electro_update_note": "SUSFS+syscall-table configuration retains reviewed original-syscall exec semantics. New ADB/preinit and sulog APIs adapted; other configurations retain upstream exec front end. Native audit_context helper preserved.",
+   "finasu_overlay": {
+     "manager_review_commit": "2d5786b9129a254a87ac358c8bec0203ccd53351",
+     "manifest": "Documentation/dev-tools/finasu-manager.json",
+@@ -11,66 +12,66 @@
+     ]
+   },
+   "git_blob_sha1": {
+-    "INTERNAL.md": "016a16c03a0690233fcdb507ee95b4893edbca12",
+-    "Kconfig": "c69bc26ee7476088d4f1e9f801b9c1091d51229b",
++    "INTERNAL.md": "886678bba4cf4f6b404180fa7661502c181cd554",
++    "Kconfig": "b327a50246399367f34b4f3237f2160fa231fa1a",
+     "LICENSE": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+-    "Makefile": "62385f0b2b5db6fb267c0147d79f98932dba38c5",
++    "Makefile": "24650f8a0f85b9cac5150ae7061a4f6e924a77ca",
+     "downstream/arm64_branch_insn.h": "36584c0bba547cc7063540766dcdcf29c169b01b",
+-    "downstream/deprecated/ksu_getpriority.h": "e18bf654d57c550d510fa78e918b3d820fcf6b35",
+-    "downstream/deprecated/module_blacklist.h": "cf4f0bcf7f9e68a91cc6f3d9214d317aa99c899a",
+-    "downstream/kallsyms_common.h": "e987a09bf35dbe1523dd59f2fecfed555fe5a1b7",
++    "downstream/deprecated/ksu_getpriority.h": "5e8c1345a54b650c7a0cda97a58dddb5bdd83c7d",
++    "downstream/deprecated/module_blacklist.h": "5c7a5e6c6dc2c28f76df3cfbcfdaf364fd2fb8de",
++    "downstream/kallsyms_common.h": "0973d483a3163dd9fe826096ed09fd22984c72ba",
+     "downstream/kprobes_common.h": "1c580e2d6681f22ad53367f0bac8d3ba42346b27",
+-    "downstream/ksu_hostsredirect.h": "80a0b0a95a6c7a6a2dbca5459879692872bab96b",
++    "downstream/ksu_hostsredirect.h": "7fc37efee418b6c6a3ce3480a6383ee1dca27cb9",
+     "downstream/slow_avc_audit_defs.h": "0b7e83693d064faf6e5b053010d65f24dc8d5d8f",
+-    "downstream/syscall_table_common.h": "1d63367cec66e808afed6029fe1b6bd669d02188",
++    "downstream/syscall_table_common.h": "4b968f44ce3037cb7f9f079470022988e327286e",
+     "downstream/tiny_sulog.h": "b301fbd420b2e784834a25bdcea7e14e0f5a44f5",
+     "downstream/toolkit.h": "06364371b356ff0a5657fea13321f2e059e0fc73",
+-    "downstream/vmap_patch.h": "fa2ac0e781a61808d3a91e41155d3feafdec6141",
++    "downstream/vmap_patch.h": "8c14ba1eb525e12ade955c72eec68544c835e73a",
+     "external/chibihash64.h": "f6b72104e57e6e0d96bbba5935a2d9525c567904",
+     "external/linux_hashtable.h": "abd4882c409b75d5fd917c48bba93bc3d7f88ebb",
+     "external/linux_overflow.h": "8b9252739e45a1829c21838393022fd5ab52140a",
+-    "feature/adb_root.c": "f67d1f643451ec360cd1895059f0503ad4b3c065",
+-    "feature/adb_root.h": "eb17614e4a5809c2074fb1ef84e09a77a81af81e",
+-    "feature/kernel_umount.c": "5f4e4b8331c7e1cfe8df163d7c5ee765a864938b",
++    "feature/adb_root.c": "2049a4e75d912a419c9703b5096618d389463a5f",
++    "feature/adb_root.h": "0024235c72bf6e7b7858341823da9d82b5617ae2",
++    "feature/kernel_umount.c": "76c06058e6b7827760109c9436c048a7520627bc",
+     "feature/kernel_umount.h": "dd03818285002e050507c1c18cd5ea5b58e1791b",
+-    "feature/module_blacklist.c": "bc20d26a4b928e77cbf64b7616b1cc68d185a0d3",
++    "feature/module_blacklist.c": "30e11260c8f87554bf3b3af652858f74f036da72",
+     "feature/module_blacklist.h": "177a8b9c44d8dfd5b471882836f71b71660d2c2f",
+-    "feature/selinux_hide.c": "98a85955c4bd657b1eddcd378079055edc2d9768",
+-    "feature/selinux_hide.h": "1706e6fb50e48b9a673bc9ecbd475c900fa2e9db",
++    "feature/selinux_hide.c": "e64026f3978ee7e146fbe174367a4ac1af937e24",
++    "feature/selinux_hide.h": "a43d57906020a0fe6dc28fd932bc83fa524f056b",
+     "feature/shell_su_adb_only.c": "6573043171331fbe964d9e9c5b04d530f29721ed",
+     "feature/shell_su_adb_only.h": "09e6a1a95539b1a6b5a074e59ab50cd3b91942df",
+-    "feature/sucompat.c": "4efbf91ddbd94c9eca732971408f07a47649b6fb",
++    "feature/sucompat.c": "eca581316734c62a6e8a222371c15d82e586e5e8",
+     "feature/sucompat.h": "580384ee9c6c578c730b5f84077dfb3b50334e46",
+     "feature/sulog.c": "14e29e09fb010669e37eea1afc5df7461a011816",
+     "feature/sulog.h": "565f59113cd048cb6f020d4e56df0f57ebf305df",
+     "hook/branch_link_hook_arm64.c": "2c0fb237da07e871c89a5d800978b4c2796d64ad",
+     "hook/kp_ksud.c": "ee49c5dcf95048c67bf2adf6390315378ed4c41e",
+-    "hook/lsm_hooks_list.c": "7330c1ce8a7c0ebc3fc9779e52d63c7a4bff09b1",
+-    "hook/lsm_hooks_manual.c": "03666b9e0fcfccc5aa299801b895189d35bb5c13",
+-    "hook/lsm_hooks_static.c": "0b720b638a7692213e0b94f6349664b7cf4dba7e",
+-    "hook/lsm_hooks_ultralegacy.c": "4a56e663df3eedaea7e32e7c22d5feff69763e43",
++    "hook/lsm_hooks_list.c": "8b5c39f06094e1ba9a3bffe69cf1e0cdca853987",
++    "hook/lsm_hooks_manual.c": "59e7912d0a6d438973dc7520b9484b6e7172a957",
++    "hook/lsm_hooks_static.c": "44cb3bf75fe1abe4ec0148d328a11fdd41cbabdd",
++    "hook/lsm_hooks_ultralegacy.c": "5863fabf939a46bd516d26f4418512d442e5e0f9",
+     "hook/setuid_hook.c": "925798048a86548b33ec0717b45a730a1e21a058",
+-    "hook/syscall_table_hook_arm.c": "ea908ec5c7afa603bc0675eebf171d1d587bd8ea",
+-    "hook/syscall_table_hook_arm64.c": "c7e36f6a5ab77aca05d78d5d4e99144eaa97d48c",
+-    "hook/syscall_table_mirror.c": "3b2d7f3f3c0988f0a46e177ed646ccd5355d9834",
+-    "include/arch.h": "8d0dbadaf308e9fc1ebc444b8155e38b281b113b",
++    "hook/syscall_table_hook_arm.c": "050197b777d6df27b166eb53839e59fc33197107",
++    "hook/syscall_table_hook_arm64.c": "c584d6045750dd19d6361f248ab433ea6dada0ea",
++    "hook/syscall_table_mirror_arm64.c": "3c68d65e3a6355e68182be533e5fde83fd2e00a0",
++    "include/arch.h": "a6418e6ad4f0b67b2124a9bff8f3fef7339fe15c",
+     "include/klog.h": "6de40a66680e6d954dc0df677cf795ec8263139c",
+-    "include/ksu.h": "4b51e2c9f01effd3af7666d5c078b226930c3866",
++    "include/ksu.h": "d08d045613ee62fc62143505ace8e1b163a0c0a3",
+     "include/uapi/app_profile.h": "f45d6c1794a37760cae2162c3772d36e929a18cd",
+     "include/uapi/feature.h": "0cb862e5b293a024a3b06a58b09a1ca2aaa3c76e",
+     "include/uapi/selinux.h": "960454f7f46afd55601634c1915d247d90262c9f",
+     "include/uapi/sulog.h": "9453a4bd0c161f909dd3dcd265b39a1ead4e80d6",
+     "include/uapi/supercall.h": "1d21f61c8021ea39f60f76c5a3eeb0201f68e35d",
+     "include/util.h": "cb3a4900ac0d9f407a8d13ec3666caf69ab8d061",
+-    "infra/event_queue.c": "333a10c0c523c4d5de63fdfb320523ebbe2f4bd0",
+-    "infra/event_queue.h": "2170f64fd8c8eefc6b83b10581841156c11e4d75",
++    "infra/event_queue.c": "b6b2fefbb2d53f2bd29ffbfee833812512be2577",
++    "infra/event_queue.h": "f34d1e1c0adbd9a9b1f21e3f9cc5a16f3dc1b85a",
+     "infra/file_wrapper.c": "59dca316dbff87b5834ee45f83f82983a11ad189",
+     "infra/file_wrapper.h": "ee672312b7aae4199a4cecdaa5dc747283d1db18",
+     "infra/su_mount_ns.c": "8b7002791c43e083f51a2d70600486ba0e52e453",
+     "infra/su_mount_ns.h": "f118d8135c121de9c9ace30db0edf75764241c6f",
+-    "kernel_compat.h": "c57fd08eff784c10a5bc75829a625014d42a4982",
++    "kernel_compat.h": "b1742fc26c3ac17bb6f0bc71489e0684f8704f22",
+     "kernel_includes.h": "92832878f7b36bceb89ffe36127255100352d96e",
+-    "ksu.c": "a78a11da9c91e06e2c2ee0550f15c108e769662d",
++    "ksu.c": "9be80bfe6789468ff18d598e23636c2389d08955",
+     "manager/apk_sign.c": "55e79b15cb439cfe3d36695f6f8ee0fc179f1368",
+     "manager/apk_sign.h": "20326ec6ee30448fe1cf64348ce8a3d12723802c",
+     "manager/manager_identity.h": "0891a6a6f5711d41aea315589442215d78934f7b",
+@@ -83,8 +84,8 @@
+     "policy/app_profile.h": "6b26ee46b3f6dfdd7a73968243462b1c038af8e8",
+     "policy/feature.c": "28aae6dd31d15b130c0ff51805d2b6c683412416",
+     "policy/feature.h": "14ed40d28cc9c2c7921c788133ba5655ede37e46",
+-    "preinit/preinit.c": "7b1d7a9b2a3c9e719653fb2b58e26bf995b6b57f",
+-    "preinit/preinit.h": "980cf0a84395f883a854627a5613e3c941eef325",
++    "preinit/preinit.c": "29439554e4c49fa0f0b5888ef391fdddfcd0ef3f",
++    "preinit/preinit.h": "051727f71411bef837fce34078af6897f5d75d3a",
+     "preinit/runner/Makefile": "915d7b6657b176ca88d81dacd63bc9abf2b7e347",
+     "preinit/runner/README": "244871f719278c2211b58649264e2d264bd6291c",
+     "preinit/runner/picoprintf/LICENSE": "beaa5e5d3d114cf6eab596459a634bb85c977ee0",
+@@ -94,7 +95,7 @@
+     "preinit/runner/picoprintf/picoprintf.h": "f933eea03d10da0a37ffec32ad17486cdb0d7cb2",
+     "preinit/runner/runner.c": "981347943d53c2c2b76c115fa055667438697029",
+     "preinit/runner/runner_oot.h": "3a9c8899fc60aad64e808d2be0f1c15f4cbec4a6",
+-    "preinit/runner/runner_xxd.h": "6ab53688a96df24d2b243d8b045aeb08dbe85366",
++    "preinit/runner/runner_xxd.h": "d8f107a69e05fbc19305cc8d9bd4b7b3a019db68",
+     "preinit/runner/small_rt.h": "66a31ac369e747d003e74028651079973a067387",
+     "runtime/boot_event.c": "23cf5a2ff98eee8e643950be2680e12acd692fa5",
+     "runtime/ksud.h": "569637afb8ebd009ee2df7e4d907875711422ff0",
+@@ -106,23 +107,27 @@
+     "selinux/sepolicy.c": "01068b395d8002a4b601ffb03290916c317e7665",
+     "selinux/sepolicy.h": "8ae79e3dc3b35f89cdccd4a1ad5ebbf6636613ca",
+     "setup.sh": "fa35377026b0dbfa29441ef3c07c8425e7696f43",
+-    "sulog/event.c": "c45b97a918ef99f1bd83c74b5263e70fd8a82111",
+-    "sulog/event.h": "08b93a6524c1ee8d1c0ac1fe1ed298438614f923",
+-    "sulog/fd.c": "70da685e73ea7cd762c643d3b2e14255449615bd",
++    "sulog/event.c": "bfa08ed7d2c3a4704a292543615c1ee9e6549278",
++    "sulog/event.h": "bf27c1e94593f1b67938cfe6d329d8cd647e2886",
++    "sulog/fd.c": "765b6a4dd2d4efcbfba9cc399854c7e439d7de72",
+     "sulog/fd.h": "6a117fedc0a952fac561b2bc5cccf4cd10269845",
+-    "supercall/dispatch.c": "0b7ec3c1f465a524dab462ff55b0abacadb36220",
++    "supercall/dispatch.c": "ba25d8ac7c5a0b62db05de1242a9ef3b11ed6208",
+     "supercall/internal.h": "d5f2655b70d8a59a55a27d14ad9a3a6286e37788",
+     "supercall/perm.c": "89b6748850729a768b1774b3ac5278f4b7e97e99",
+-    "supercall/supercall.c": "59ec582f5d25375032e8d691e965f7646c8adf9e",
++    "supercall/supercall.c": "e6a1e75ebedc3f5a0e068026c535a75460f7ae81",
+     "supercall/supercall.h": "65579b7ce372e283fdc0020b28f2713d4203d053"
+   },
+   "local_sha256": {
+-    "Kconfig": "097c27a389f2d9d671fae55d74e69a7032cec03523e5ccec9f9e2013cc9ca711",
+-    "Makefile": "21de5e1c525b12d3f3de6595fe888112b8dd73871a176bd6beb0cd8dfc236e33",
+-    "feature/kernel_umount.c": "1dfeada54e47b47d3b70f2496c67c2527b7878448da85952c5f86c759fa276e0",
++    "Kconfig": "889a8cf782699b7c70465d40779a9ca2b2ab13079cfaf73211f0f68e1150dec7",
++    "Makefile": "68b9f1de2842f9529347e49f48a02cb791c5ab09c9ae9904b495f6ed27eb7497",
++    "feature/kernel_umount.c": "108a8e9e57b5f7ba854649296bd020cd91c045cff0c7b3afd853bbc80c41b310",
++    "feature/selinux_hide.c": "724aa403444094548cb269144fe6c4cbd2f223a652fb057b5f2b9a07e0513ea9",
++    "feature/sucompat.c": "260b21f1e5a4f91eae1d8305675c98c56c346185543337703c6ae0a160ccb715",
++    "hook/syscall_table_hook_arm64.c": "d209d7105ae69db52bc0c1c4b13a559756634b5b8f52b81c2c3ddc359410493a",
+     "include/uapi/supercall.h": "0c1d251336ed26d70f1c58fa0e1759b67b9072230d7ec2fd5ab545323dd1aaab",
++    "kernel_compat.h": "6f031603430373b969ab88fcf0916b22b9d6f56fa63205ad6901367f81d0c67d",
+     "kernel_includes.h": "8407ddc03825f34e24b02f0b744c698e64a1a39dc9983c18254418a159f70b51",
+-    "ksu.c": "e1bfda42c5970a03f8f781140db7c3be49442f0948fbef01d02d753b6421407b",
++    "ksu.c": "730de966974b8916a2cfae21d218d4ef12ffacb68a022ccb856495cbbd3e09f3",
+     "manager/apk_sign.c": "d5be2e510a9c6c5c60c399405165937cb5de3095390777013448a709c2d9e079",
+     "manager/apk_sign.h": "cf49fd18adb0d930f564779447c70ff139d7f417d993f255c1382d6a1d24ac2f",
+     "manager/manager_identity.h": "d5fa9fa2dada1320842d4b78ce086d89c3d5efcc5ee780fa18414e125b036a99",
+@@ -130,12 +135,13 @@
+     "selinux/rules.c": "4332ce523b1edced5fc7f8abf9a06ab579770aa0146d6d8709064f3ee433133d",
+     "selinux/selinux.c": "adce42134477b277ccfd6af1c442e84b89ef2b28cd5113df981c9b2cb84b1309",
+     "selinux/selinux.h": "96146f328f0620bdf0b1384f1defb8fc4787272e94fd28efcdb705b04ac4fae6",
+-    "supercall/dispatch.c": "cef984f9b25701acc8dd7c3d6f218a893b3266a0e3e35643c1cc598133e23393",
+-    "supercall/supercall.c": "e5a8c1330f191802aa46c2beb7b90d16e435c9fc11429d80729f7fec510cf61d"
++    "selinux/sepolicy.c": "92a952aaa175d7872c3a59b794f89d6ec90adf305869d5bb1020d53061312e37",
++    "supercall/dispatch.c": "45d11411529f3394e0b37efc391802e2ddc699ec2d8c8b6724e9f2cea3d288bb",
++    "supercall/supercall.c": "9461745a108d7fd5d6adf6f64553201fef661aaec60bdd28d1c4546ad9e64c5d"
+   },
+   "previous_revision": {
+-    "commit": "cbc0b49908066e9c7f778737f65a216f50b203ba",
+-    "tag": "v3.3.1+36"
++    "commit": "feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb",
++    "tag": "v3.3.1-38"
+   },
+   "repository": "https://github.com/backslashxx/KernelSU",
+   "susfs_overlay": {
+@@ -143,6 +149,6 @@
+     "notes": "Corrected SUSFS bridge on original backslashxx base; see Documentation/filesystems/susfs/.",
+     "repository": "https://github.com/manipvlator/KernelSU"
+   },
+-  "tag": "v3.3.1-38",
++  "tag": "v3.3.1+50",
+   "upstream_subdirectory": "kernel"
+ }
+diff --git a/drivers/kernelsu/UPSTREAM.md b/drivers/kernelsu/UPSTREAM.md
+--- a/drivers/kernelsu/UPSTREAM.md
++++ b/drivers/kernelsu/UPSTREAM.md
+@@ -1,14 +1,14 @@
+ # Vendored KernelSU driver
+ 
+ - Fork: https://github.com/backslashxx/KernelSU
+-- Tag: `v3.3.1-38`
+-- Commit: `feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb`
++- Tag: `v3.3.1+50`
++- Commit: `ae63c92098d94bdad1696c74a3ad2e96692118bf`
+ - Imported directory: `kernel/` (104 files, including licenses and preinit runner source/data)
+ - License: GPL-2.0-only; see `LICENSE` and retained component license notices.
+ - Storage: ordinary files under `drivers/kernelsu/`, not a symlink, submodule,
+   embedded Git repository, or a dependency downloaded at build time.
+ 
+-`UPSTREAM.json` records each upstream Git blob ID and the SHA-256 of the 15
++`UPSTREAM.json` records each upstream Git blob ID and the SHA-256 of the 20
+ locally adapted files (including the SUSFS and FinaSU-manager overlays). These
+ hashes record source identity, not a security audit or independent signature
+ verification of the fork.
+@@ -81,3 +81,19 @@
+ NoMount, fork and selected hook strategy are retained. Priority filtering
+ remains default-off. Combined target-build evidence is recorded separately in
+ `backport-2.4.0-validation.json`; the earlier KSU update record stays historical.
++
++## Update to v3.3.1+50
++
++See Documentation/dev-tools/kernelsu-updates/v3.3.1+50.md and its additive
++receipt/patch. Numeric version is32730 (not a FinaSU version). The upstream
++syscall-table-mirror implementation was renamed; selected syscall-table hooks
++are retained. For CONFIG_KSU_SUSFS + CONFIG_KSU_TAMPER_SYSCALL_TABLE only, keep
++the reviewed original-native/compat-exec-once front end and successful-return
++SU-fd installation, rather than mixing it with upstream's nested native exec
++and compat argv conversion. Adapt that front end to unified ADB/preinit and
++runtime sulog APIs. Other configurations retain the new upstream front end.
++Native SUSFS typed SELinux filtering remains authoritative: both procattr and
++new xattr mutation hooks are no-ops with SUSFS. Native audit_context(), __poll_t
++and strncpy_from_user_nofault() already exist and are not shadowed by new shims.
++Upstream removed the SULOG build option: logging is now always built with a
++runtime-off default; only its obsolete defconfig line was removed.
+diff --git a/drivers/kernelsu/downstream/deprecated/ksu_getpriority.h b/drivers/kernelsu/downstream/deprecated/ksu_getpriority.h
+--- a/drivers/kernelsu/downstream/deprecated/ksu_getpriority.h
++++ b/drivers/kernelsu/downstream/deprecated/ksu_getpriority.h
+@@ -199,12 +199,12 @@
+ 	pr_info("ksu_getpriority: page allocated at: 0x%lx, %u / %u bytes\n", (uintptr_t)gp_package_bitmap, gp_alloc_size, PAGE_SIZE);
+ 
+ #ifdef CONFIG_ARM64
+-	read_and_replace_syscall((void *)&aarch64_getpriority, __AARCH64_getpriority, (void *)hook_aarch64_getpriority, (void *)sys_call_table);
++	replace_syscall((void *)&aarch64_getpriority, __AARCH64_getpriority, (void *)hook_aarch64_getpriority, (void *)sys_call_table);
+ #ifdef CONFIG_COMPAT
+-	read_and_replace_syscall((void *)&armeabi_getpriority, __ARMEABI_getpriority, (void *)hook_armeabi_getpriority, (void *)compat_sys_call_table);
++	replace_syscall((void *)&armeabi_getpriority, __ARMEABI_getpriority, (void *)hook_armeabi_getpriority, (void *)compat_sys_call_table);
+ #endif
+ #else
+-	read_and_replace_syscall((void *)&armeabi_getpriority, __ARMEABI_getpriority, (void *)hook_armeabi_getpriority, (void *)sys_call_table);
++	replace_syscall((void *)&armeabi_getpriority, __ARMEABI_getpriority, (void *)hook_armeabi_getpriority, (void *)sys_call_table);
+ #endif
+ 
+ 	return;
+diff --git a/drivers/kernelsu/downstream/deprecated/module_blacklist.h b/drivers/kernelsu/downstream/deprecated/module_blacklist.h
+--- a/drivers/kernelsu/downstream/deprecated/module_blacklist.h
++++ b/drivers/kernelsu/downstream/deprecated/module_blacklist.h
+@@ -109,8 +109,8 @@
+ 
+ static inline void ksu_hook_syscall_init_module(void)
+ {
+-	read_and_replace_syscall((void *)&aarch64_init_module, __AARCH64_init_module, (void *)hook_aarch64_init_module_ret, (void *)sys_call_table);
+-	read_and_replace_syscall((void *)&aarch64_finit_module, __AARCH64_finit_module, (void *)hook_aarch64_finit_module_ret, (void *)sys_call_table);
++	replace_syscall((void *)&aarch64_init_module, __AARCH64_init_module, (void *)hook_aarch64_init_module_ret, (void *)sys_call_table);
++	replace_syscall((void *)&aarch64_finit_module, __AARCH64_finit_module, (void *)hook_aarch64_finit_module_ret, (void *)sys_call_table);
+ 
+ 	kthread_run(ksu_unhook_syscall_init_module, NULL, "kthread");
+ }
+diff --git a/drivers/kernelsu/downstream/kallsyms_common.h b/drivers/kernelsu/downstream/kallsyms_common.h
+--- a/drivers/kernelsu/downstream/kallsyms_common.h
++++ b/drivers/kernelsu/downstream/kallsyms_common.h
+@@ -171,36 +171,20 @@
+ 	uintptr_t start = (uintptr_t)_stext;
+ 	uintptr_t end = (uintptr_t)_etext;
+ 	uintptr_t iter_count = 0;
+-	uintptr_t curr;
+-
++
++	char symbol_buf[KSYM_SYMBOL_LEN];
+ 	cond_resched();
+-
+-	char *membuf __offstack(KSYM_SYMBOL_LEN * 2);
+-	char *symbol_buf = membuf;
+-	char *symbol_cache = membuf + KSYM_SYMBOL_LEN;
+-
+ 	pr_info("%s: hash array init! \n", __func__);
+ 
+-	curr = start;
++	uintptr_t curr = start;
+ 
+ scan_start:
+ 	iter_count++;
+ 
+-	// not needed actually, sprint_symbol terminates.
+-	// we keep it here as a reminder.
+-	// memset(symbol_buf, 0, sizeof(symbol_buf));
+-
+-	sprint_symbol_no_offset(symbol_buf, curr);
+-	if (!symbol_buf[0])
++	if (sprint_symbol(symbol_buf, curr) <= 0)
+ 		goto step_up;
+ 
+-	// if current symbol is same as last entry, skip
+-	if (!strcmp(symbol_buf, symbol_cache))
+-		goto step_up;
+-
+-	// symbol is not the same as the last one!
+-	// cache this symbol and insert it to our hash array!
+-	strscpy(symbol_cache, symbol_buf, KSYM_SYMBOL_LEN);
++	char *slash = strchr(symbol_buf, '/');
+ 
+ 	// however we should not use cfi_jt for this
+ 	// what we want is the target of that cfi_jt
+@@ -225,17 +209,15 @@
+ 	if (!dot_ptr && !dollar_ptr)
+ 		goto step_up;
+ 
++//	pr_info("insert: %s \n", symbol_buf);
+ 	insert_to_kallsyms_array(symbol_buf, curr);
+ 
+ step_up:;
+-	unsigned long sym_size = 0;
+-	unsigned long offset = 0;
+-	kallsyms_lookup_size_offset(curr, &sym_size, &offset);
+-	if ((!!sym_size || !!offset) && sym_size > offset)
+-		curr =  curr + (sym_size - offset); // we can do larger jumps
+-	else
+-		curr = curr + 4;
+-
++	size_t sym_sz = sizeof(uint32_t);
++	if (slash && !!kstrtoul(slash + 1, 0, &sym_sz))
++		sym_sz = sizeof(uint32_t);
++
++	curr = curr + sym_sz;
+ 	if (curr < end)
+ 		goto scan_start;
+ 
+@@ -308,11 +290,11 @@
+ 	strscpy(namebuf, name, KSYM_SYMBOL_LEN);
+ 	char *dot_ptr = strchr(namebuf, '.');
+ 	if (dot_ptr)
+-		dot_ptr[0] = '\0';
++		dot_ptr[0] = 0;
+ 
+ 	char *dollar_ptr = strchr(namebuf, '$');
+ 	if (dollar_ptr)
+-		dollar_ptr[0] = '\0';
++		dollar_ptr[0] = 0;
+ 
+ 	if (!!strcmp(namebuf, args->target_name))
+ 		return 0;
+diff --git a/drivers/kernelsu/downstream/ksu_hostsredirect.h b/drivers/kernelsu/downstream/ksu_hostsredirect.h
+--- a/drivers/kernelsu/downstream/ksu_hostsredirect.h
++++ b/drivers/kernelsu/downstream/ksu_hostsredirect.h
+@@ -190,12 +190,12 @@
+ 	path_put(&kpath);
+ 	pr_info("ksu_hostsredirect: /data/adb/hosts found! hooking sys_openat \n");
+ #ifdef CONFIG_ARM64
+-	read_and_replace_syscall((void *)&aarch64_openat, __AARCH64_openat, (void *)hook_aarch64_openat, native_sct);
++	replace_syscall((void *)&aarch64_openat, __AARCH64_openat, (void *)hook_aarch64_openat, native_sct);
+ # ifdef CONFIG_COMPAT
+-	read_and_replace_syscall((void *)&armeabi_openat, __ARMEABI_openat, (void *)hook_armeabi_openat, compat_sct);
++	replace_syscall((void *)&armeabi_openat, __ARMEABI_openat, (void *)hook_armeabi_openat, compat_sct);
+ # endif
+ #else
+-	read_and_replace_syscall((void *)&armeabi_openat, __AARCH64_openat, (void *)hook_armeabi_openat, native_sct);
++	replace_syscall((void *)&armeabi_openat, __AARCH64_openat, (void *)hook_armeabi_openat, native_sct);
+ #endif
+ 	return;
+ }
+diff --git a/drivers/kernelsu/downstream/syscall_table_common.h b/drivers/kernelsu/downstream/syscall_table_common.h
+--- a/drivers/kernelsu/downstream/syscall_table_common.h
++++ b/drivers/kernelsu/downstream/syscall_table_common.h
+@@ -32,6 +32,4 @@
+ static void *compat_sct __read_mostly = (void *)compat_sys_call_table;
+ #endif
+ 
+-static bool syscall_table_is_mirrored __read_mostly = false;
+-
+ #endif // __KSU_H_SYSCALL_TABLE_COMMON
+diff --git a/drivers/kernelsu/downstream/vmap_patch.h b/drivers/kernelsu/downstream/vmap_patch.h
+--- a/drivers/kernelsu/downstream/vmap_patch.h
++++ b/drivers/kernelsu/downstream/vmap_patch.h
+@@ -28,7 +28,7 @@
+ {
+ // __atomic_store_n((uintptr_t *)target_slot, (uintptr_t)new_ptr, __ATOMIC_RELAXED);
+ 	assume_dereferenceable((void *)target_slot, sizeof(uintptr_t));
+-	WRITE_ONCE(*target_slot, new_ptr);
++	*(volatile void **)target_slot = new_ptr;
+ 	kick_all_cpus_sync();
+ }
+ 
+@@ -93,7 +93,7 @@
+ // for 4.19+ storage_ptr is actually syscall_fn_t *, which is just long * so we can consider this void **
+ // for 4.19- storage_ptr is actually void **
+ // target_table is void *target_table[];
+-static noinline void read_and_replace_syscall(void *storage_ptr, unsigned long syscall_nr, void *hook_fnptr, void *target_table)
++static noinline void replace_syscall(void *storage_ptr, unsigned long syscall_nr, void *hook_fnptr, void *target_table)
+ {
+ 	uintptr_t *table = (uintptr_t *)target_table;
+ 	uintptr_t *slot = &table[syscall_nr];
+@@ -152,7 +152,7 @@
+ 		return;
+ 	}
+ 
+-	pr_info("%s: syscall is ours! sc_addr: 0x%lx hook_fnptr: 0x%lx\n", __func__, (uintptr_t)sc_addr, (uintptr_t)hook_fnptr);
++	pr_info("%s: syscall is ours! sc_addr: 0x%lx hook: 0x%lx\n", __func__, (uintptr_t)sc_addr, (uintptr_t)hook_fnptr);
+ 
+ 	int ret = patch_ro_slot((uintptr_t)slot, (uintptr_t)*(void **)storage_ptr);
+ 	if (ret)
+@@ -164,16 +164,16 @@
+ }
+ 
+ // just so we can print out syscall_nr
+-#define do_read_and_replace_syscall read_and_replace_syscall
+-#define read_and_replace_syscall(old_p, syscall_nr, new_p, table) ({		\
+-	pr_info("read_and_replace_syscall: hooking %s\n", #syscall_nr);		\
+-	do_read_and_replace_syscall(old_p, syscall_nr, new_p, table);		\
++#define do_replace_syscall replace_syscall
++#define replace_syscall(old_p, syscall_nr, new_p, table) ({		\
++	pr_info("replace_syscall: hooking %s\n", #syscall_nr);		\
++	do_replace_syscall(old_p, syscall_nr, new_p, table);		\
+ })
+ 
+ #define do_restore_syscall restore_syscall
+-#define restore_syscall(old_p, syscall_nr, new_p, table) ({			\
+-	pr_info("restore_syscall: unhooking %s\n", #syscall_nr);		\
+-	do_restore_syscall(old_p, syscall_nr, new_p, table);			\
++#define restore_syscall(old_p, syscall_nr, new_p, table) ({		\
++	pr_info("restore_syscall: unhooking %s\n", #syscall_nr);	\
++	do_restore_syscall(old_p, syscall_nr, new_p, table);		\
+ })
+ 
+ #endif // __KSU_H_VMAP_PATCH
+diff --git a/drivers/kernelsu/feature/adb_root.c b/drivers/kernelsu/feature/adb_root.c
+--- a/drivers/kernelsu/feature/adb_root.c
++++ b/drivers/kernelsu/feature/adb_root.c
+@@ -162,7 +162,7 @@
+ 	return 0;	
+ }
+ 
+-static noinline void do_ksu_adb_root_execve_user(void *restrict filename, void *restrict envp_in)
++static noinline void do_ksu_adb_root_execve(void **restrict filename_kernel, const char __user **filename_user, void ***restrict envp_in)
+ {
+ 	if (likely(ksu_is_seccomp_enabled()))
+ 		return;
+@@ -171,60 +171,24 @@
+ 	if (uid != 0 && uid != 2000)
+         	return;
+ 
+-	// filename is void * char __user *
+-	const char __user **filename_user = (const char __user **)filename;
+-
+-	if (likely(!is_exec_adbd(filename_user)))
+-		return;
+-
+-	if (unlikely(!is_libadbroot_ok()))
+-		return;
+-
+-	if (setup_ld_preload((void ***)envp_in))
+-		return;
+-
+-	pr_info("escape to root for adb\n");
+-	escape_to_root_for_adb_root();
+-	escape_with_root_profile(); // why is this needed for 3.x?
+-	return;
+-}
+-
+-static noinline void do_ksu_adb_root_execve_kernel(void *restrict filename, void *restrict envp_in)
+-{
+-	if (likely(ksu_is_seccomp_enabled()))
+-		return;
+-
+-	uid_t uid = current_euid().val;
+-	if (uid != 0 && uid != 2000)
+-        	return;
+-
+-	if (!filename)
+-		return;
+-
+-	// filename is char **
+-	if (!*(void **)filename)
+-		return;
+-
+-	if (!!endswith(*(char **)filename, "/adbd"))
+-		return;
+-
+-	if (unlikely(!is_libadbroot_ok()))
+-		return;
+-
+ 	if (!envp_in)
+ 		return;
+ 
+-	struct user_arg_ptr *envp = (struct user_arg_ptr *)envp_in;
+-
+-	void ***envp_addr = (void ***)&envp->ptr.native;
+-#ifdef CONFIG_COMPAT
+-	if (unlikely(envp->is_compat))
+-		envp_addr = (void ***)&envp->ptr.compat;
+-#endif
+-
+-	pr_info("%s: envp 0x%lx \n", __func__, (uintptr_t)*envp_addr );
+-
+-	if (setup_ld_preload(envp_addr))
++	if (filename_kernel) {
++		if (!*(void **)filename_kernel) // filename is char **
++			return;
++
++		if (!!endswith(*(char **)filename_kernel, "/adbd"))
++			return;
++	} else {
++		if (!is_exec_adbd(filename_user))
++			return;
++	}
++
++	if (!is_libadbroot_ok())
++		return;
++
++	if (setup_ld_preload(envp_in))
+ 		return; 
+ 
+ 	pr_info("escape to root for adb\n");
+@@ -234,32 +198,19 @@
+ }
+ 
+ #ifdef KSU_CAN_USE_JUMP_LABEL // see kernel_compat.h
+-
+ DEFINE_STATIC_KEY_FALSE(ksu_adb_root_key);
+-
+-static inline void ksu_adb_root_execve_user(void *restrict filename, void *restrict envp_in)
++static inline void ksu_adb_root_execve(void **restrict filename_kernel, const char __user **filename_user, void ***restrict envp_in)
+ {
+ 	if (static_branch_unlikely(&ksu_adb_root_key))
+-		do_ksu_adb_root_execve_user(filename, envp_in);
+-}
+-static inline void ksu_adb_root_execve_kernel(void *restrict filename, void *restrict envp_in)
+-{
+-	if (static_branch_unlikely(&ksu_adb_root_key))
+-		do_ksu_adb_root_execve_kernel(filename, envp_in);
+-}
+-
++		do_ksu_adb_root_execve(filename_kernel, filename_user, envp_in);
++}
+ static inline void ksu_adb_root_branch_enable() { static_branch_enable(&ksu_adb_root_key); smp_mb(); }
+ static inline void ksu_adb_root_branch_disable() { static_branch_disable(&ksu_adb_root_key); smp_mb(); }
+ #else /* ! KSU_CAN_USE_JUMP_LABEL */
+-static inline void ksu_adb_root_execve_user(void *restrict filename, void *restrict envp_in)
++static inline void ksu_adb_root_execve(void **restrict filename_kernel, const char __user **filename_user, void ***restrict envp_in)
+ {
+ 	if (unlikely(ksu_adb_root))
+-		do_ksu_adb_root_execve_user(filename, envp_in);
+-}
+-static inline void ksu_adb_root_execve_kernel(void *restrict filename, void *restrict envp_in)
+-{
+-	if (unlikely(ksu_adb_root))
+-		do_ksu_adb_root_execve_kernel(filename, envp_in);
++		do_ksu_adb_root_execve(filename_kernel, filename_user, envp_in);
+ }
+ static inline void ksu_adb_root_branch_enable() { } // no-op
+ static inline void ksu_adb_root_branch_disable() { } // no-op
+diff --git a/drivers/kernelsu/feature/adb_root.h b/drivers/kernelsu/feature/adb_root.h
+--- a/drivers/kernelsu/feature/adb_root.h
++++ b/drivers/kernelsu/feature/adb_root.h
+@@ -6,8 +6,7 @@
+ void ksu_adb_root_exit(void);
+ #else
+ 
+-#define ksu_adb_root_execve_user(...) do { } while (0)
+-#define ksu_adb_root_execve_kernel(...) do { } while (0)
++#define ksu_adb_root_execve(...) do { } while (0)
+ 
+ #endif
+ 
+diff --git a/drivers/kernelsu/feature/kernel_umount.c b/drivers/kernelsu/feature/kernel_umount.c
+--- a/drivers/kernelsu/feature/kernel_umount.c
++++ b/drivers/kernelsu/feature/kernel_umount.c
+@@ -33,23 +33,20 @@
+ #else /* we play 'guess if backported' */
+ static __nocfi inline void ksu_umount_mnt(const char *mnt, struct path *path, int flags)
+ {
++	int err;
++#ifndef MODULE
+ 	extern int path_umount(struct path *path, int flags) __weak;
+-	int err;
+-#ifdef MODULE
+-	assume(!path_umount);
++	if (path_umount) {
++		err = path_umount(path, flags);
++		goto out;
++	}
+ #endif
+-	if (!path_umount)
+-		goto syscall;
+-
+-	err = path_umount(path, flags);
+-	goto out;
+-
+-syscall:;
+ 	mm_segment_t old_fs = get_fs();
+ 	set_fs(KERNEL_DS);
+ 	err = (int)ksyscall(umount, (char __user *)mnt, flags);
+ 	set_fs(old_fs);
+ 	path_put(path);  // release caller's ref
++	goto out;
+ out:
+ 	if (err)
+ 		pr_info("umount %s failed: %d\n", mnt, err);
+diff --git a/drivers/kernelsu/feature/module_blacklist.c b/drivers/kernelsu/feature/module_blacklist.c
+--- a/drivers/kernelsu/feature/module_blacklist.c
++++ b/drivers/kernelsu/feature/module_blacklist.c
+@@ -81,8 +81,8 @@
+ 
+ static inline void ksu_hook_syscall_init_module(void)
+ {
+-	read_and_replace_syscall((void *)&aarch64_init_module, __AARCH64_init_module, (void *)hook_aarch64_init_module_ret, native_sct);
+-	read_and_replace_syscall((void *)&aarch64_finit_module, __AARCH64_finit_module, (void *)hook_aarch64_finit_module_ret, native_sct);
++	replace_syscall((void *)&aarch64_init_module, __AARCH64_init_module, (void *)hook_aarch64_init_module_ret, native_sct);
++	replace_syscall((void *)&aarch64_finit_module, __AARCH64_finit_module, (void *)hook_aarch64_finit_module_ret, native_sct);
+ 
+ 	kthread_run(ksu_unhook_syscall_init_module, NULL, "kthread");
+ }
+diff --git a/drivers/kernelsu/feature/selinux_hide.c b/drivers/kernelsu/feature/selinux_hide.c
+--- a/drivers/kernelsu/feature/selinux_hide.c
++++ b/drivers/kernelsu/feature/selinux_hide.c
+@@ -73,18 +73,66 @@
+ 	if (!str || !str[0])
+ 		return 0;
+ 
+-	// two cachelines
+-	char buf[128];
+-	size_t len = (size < 128) ? size : 127;
+-
+-	memcpy(buf, str, len);
+-	buf[len] = '\0';
+-
+-	if (!ksu_should_destroy_context(buf))
++	if (!ksu_should_destroy_context(str, size))
+ 		return 0;
+ 	
+-	pr_info("selinux_hide: setprocattr: destroy: %s\n", buf);
+-	str[1] = '1';
++	pr_info("selinux_hide: setprocattr: destroy: %.*s\n", (int)size, str);
++	str[1] = ';';
++
++	return 0;
++#endif
++}
++
++static __always_inline int ksu_hide_setxattr_inline(const char *name, void *value, size_t size)
++{
++#ifdef CONFIG_KSU_SUSFS
++	/* Native SUSFS typed policy filtering must remain the sole selected path. */
++	return 0;
++#else
++	if (unlikely(!ksu_selinux_hide_enabled))
++		return 0;
++
++	// only hook when seccomp is enabled
++	if (!ksu_is_seccomp_enabled())
++		return 0;
++
++	// only appuid
++	if (current_uid().val < 10000)
++		return 0;
++
++	if (!size)
++		return 0;
++
++	if (!name)
++		return 0;
++
++//	pr_info("%s: name: %s value: %s sz: %u \n", __func__, name, (char *)value, size);
++	constexpr char c[] = "security.selinux";
++	if (!!memcmp_inline(name, c, sizeof(c)))
++		return 0;
++
++	char *str = (char *)value;
++	if (!str || !str[0])
++		return 0;
++
++	if (!ksu_should_destroy_context(str, size))
++		return 0;
++
++ // this is wrong, this just fucks up ratelimit, rethink later, also better to catch in userspace
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0) && defined(CONFIG_AUDIT)
++	for (int i = 0; i < 16; i++) {
++		struct audit_buffer *ab = audit_log_start(audit_context(), GFP_ATOMIC, AUDIT_SELINUX_ERR);
++		if (!i) {
++			audit_log_format(ab, "op=setxattr invalid_context=");
++			audit_log_n_untrustedstring(ab, str, size);
++		} else
++			audit_log_format(ab, "");
++		audit_log_end(ab);
++	}
++#endif
++	// destroy
++	pr_info("selinux_hide: inode_setxattr: destroy: %.*s\n", size, str);
++	str[1] = ';';
+ 
+ 	return 0;
+ 
+@@ -122,7 +170,7 @@
+ 		goto skip_destroy;
+ 
+ 	kbuf[len] = '\0';
+-	if (ksu_should_destroy_context(kbuf)) {
++	if (ksu_should_destroy_context(kbuf, len)) {
+ 		pr_info("selinux_hide: selinux_transaction_write: destroy: %s \n", kbuf);
+ 		buf = (const char __user *)current->mm->start_stack;
+ 	}
+diff --git a/drivers/kernelsu/feature/selinux_hide.h b/drivers/kernelsu/feature/selinux_hide.h
+--- a/drivers/kernelsu/feature/selinux_hide.h
++++ b/drivers/kernelsu/feature/selinux_hide.h
+@@ -209,7 +209,7 @@
+ 	return;
+ }
+ 
+-static bool ksu_should_destroy_context(char *str)
++static bool ksu_should_destroy_context(char *str, size_t limit)
+ {
+ 	if (!str)
+ 		return false;
+@@ -223,7 +223,7 @@
+ 	while (type_buf->len > offset) {
+ 		const char *current_entry = type_buf->data + offset;
+ 
+-		if (strstr(str, current_entry))
++		if (strnstr(str, current_entry, limit))
+ 			return true;
+ 
+ 		offset = offset + strlen(current_entry) + 1;
+@@ -231,7 +231,7 @@
+ } // scope--
+ 
+ check_rule:; // double strstr
+-	const char *str2 = strnchr(str, 128, ' ');
++	const char *str2 = strnchr(str, limit, ' ');
+ 	if (!str2)
+ 		return false;
+ 
+@@ -248,7 +248,7 @@
+ 		const char *tgt_rule = src_rule + src_sz;
+ 		size_t tgt_sz = strlen(tgt_rule) + 1;
+ 
+-		if (strnstr(str, src_rule, str2 - str) && strstr(str2, tgt_rule))
++		if (strnstr(str, src_rule, str2 - str) && strnstr(str2, tgt_rule, limit - (str2 - str)))
+ 			return true;
+ 
+ 		offset = offset + src_sz + tgt_sz;
+diff --git a/drivers/kernelsu/feature/sucompat.c b/drivers/kernelsu/feature/sucompat.c
+--- a/drivers/kernelsu/feature/sucompat.c
++++ b/drivers/kernelsu/feature/sucompat.c
+@@ -1,3 +1,9 @@
++/* Electro SUSFS syscall hooks must execute the original native/compat syscall
++ * exactly once and install the SU descriptor only after its successful return.
++ * Keep that reviewed front end instead of mixing it with upstream's new nested
++ * native-exec/compat-argv conversion. Other configurations use upstream below.
++ */
++#if defined(CONFIG_KSU_SUSFS) && defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE)
+ #if defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) || defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
+ #define SUCOMPAT_HOOK_TYPE static __always_inline int
+ #else
+@@ -196,9 +202,9 @@
+ 	if (!!__builtin_strcmp(syscall_name, "sys_execve") && !!__builtin_strcmp(syscall_name, "sys_execveat"))
+ 		goto no_escalate;
+ 
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	ksu_sulog_emit(KSU_SULOG_EVENT_SUCOMPAT, NULL, 0, GFP_KERNEL);
+-#endif
++	/* Preserve filename-only logging, now behind upstream's runtime branch. */
++	void **empty_argv = NULL;
++	ksu_sulog_emit_sucompat_post(NULL, *filename_user, &empty_argv);
+ 	if (!!escape_with_root_profile())
+ 		return false;
+ 
+@@ -248,8 +254,8 @@
+ // sys_execve, compat_sys_execve
+ SUCOMPAT_HOOK_TYPE ksu_handle_sys_execve(const char __user **filename_user, void *argv, void *envp)
+ {
+-	ksu_adb_root_execve_user((void *)filename_user, (void *)envp);
+-	ksu_preinit_user_execve_hook(filename_user, argv, envp);
++	ksu_adb_root_execve(NULL, filename_user, envp);
++	ksu_preinit_execve(NULL, filename_user, argv, envp);
+ 
+ 	if (!is_su_allowed((const void **)filename_user))
+ 		return 0;
+@@ -260,8 +266,8 @@
+ // sys_execveat, compat_sys_execveat
+ SUCOMPAT_HOOK_TYPE ksu_handle_sys_execveat(int *fd, const char __user **filename_user, void *argv, void *envp, int *flags)
+ {
+-	ksu_adb_root_execve_user((void *)filename_user, (void *)envp);
+-	ksu_preinit_user_execve_hook(filename_user, argv, envp);
++	ksu_adb_root_execve(NULL, filename_user, envp);
++	ksu_preinit_execve(NULL, filename_user, argv, envp);
+ 
+ 	if (!is_su_allowed((const void **)filename_user))
+ 		return 0;
+@@ -271,9 +277,9 @@
+ 
+ static __always_inline void ksu_sucompat_kernel_common(int *restrict fd, void **restrict filename_ptr, void *restrict argv, void *restrict envp, int *restrict flags, const char *function_name)
+ {
+-	ksu_adb_root_execve_kernel((void *)filename_ptr, (void *)envp);
++	ksu_adb_root_execve(filename_ptr, NULL, envp);
+ #if !defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
+-	ksu_preinit_kernel_execve_hook(filename_ptr, argv, envp);
++	ksu_preinit_execve(filename_ptr, NULL, argv, envp);
+ #endif // we defer hooking on branch link it should be caught by sys_execve first
+ 
+ 	if (!is_su_allowed((const void **)filename_ptr))
+@@ -303,9 +309,8 @@
+ 	// we only handle execve here after removing vfs_statx hook for >= 6.1
+ 	write_sulog('x');
+ 
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	ksu_sulog_emit(KSU_SULOG_EVENT_SUCOMPAT, NULL, 0, GFP_KERNEL);
+-#endif
++	void **empty_argv = NULL;
++	ksu_sulog_emit_sucompat_post(*filename_ptr, NULL, &empty_argv);
+ 	if (!!escape_with_root_profile())
+ 		return;
+ 
+@@ -443,3 +448,545 @@
+ #endif
+ 	return retval;
+ }
++
++#else /* upstream v3.3.1+50 front end */
++#if defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) || defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
++#define SUCOMPAT_HOOK_TYPE static __always_inline int
++#else
++#define SUCOMPAT_HOOK_TYPE int
++#endif
++
++#define SU_PATH "/system/bin/su"
++#define SH_PATH "/system/bin/sh"
++
++static bool ksu_su_compat_enabled __read_mostly = true;
++
++static char __user *sh_user_path(void)
++{
++	constexpr char sh_path[16] = SH_PATH;
++	return userspace_stack_buffer(sh_path, sizeof(sh_path));
++}
++
++static char __user *ksud_user_path(void)
++{
++	constexpr char ksud_path[16] = KSUD_PATH;
++	return userspace_stack_buffer(ksud_path, sizeof(ksud_path));
++}
++
++#if !defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) && defined(KSU_CAN_USE_JUMP_LABEL)
++DEFINE_STATIC_KEY_TRUE(ksu_sucompat_key);
++static inline void ksu_sucompat_enable_branch()
++{
++	pr_info("su_compat: enable sucompat branches\n");
++	static_branch_enable(&ksu_sucompat_key);
++	smp_mb();
++}
++static inline void ksu_sucompat_disable_branch()
++{
++	pr_info("su_compat: remove sucompat branches\n");
++	static_branch_disable(&ksu_sucompat_key);
++	smp_mb();
++}
++#else
++static inline void ksu_sucompat_enable_branch() { } // no-op
++static inline void ksu_sucompat_disable_branch() { } // no-op
++#endif
++
++static noinline bool __ksu_is_allow_uid_copy(uid_t uid)
++{
++	assume(uid == 2000);
++
++	// tiann/KernelSU #3882
++	if (uid == SHELL_UID && !ksu_shell_su_allowed_for_current())
++		return false;
++
++	return __ksu_is_allow_uid(uid);
++}
++
++static __always_inline bool is_su_allowed(const void **ptr_to_check)
++{
++#ifndef CONFIG_KSU_TAMPER_SYSCALL_TABLE
++#ifdef KSU_CAN_USE_JUMP_LABEL
++	// read as: if not 'likely' disabled
++	if (!!!static_branch_likely(&ksu_sucompat_key))
++		return false;
++#else
++	if (!ksu_su_compat_enabled)
++		return false;
++#endif // KSU_CAN_USE_JUMP_LABEL
++#endif
++
++	// put ret hot on insn pipeline
++	if (likely(ksu_is_seccomp_enabled()))
++		return false;
++
++	// pass through tagged task from setuid hook
++	if (test_thread_flag(TIF_KSU_MANAGED))
++		goto check_ptr;
++
++#ifdef CONFIG_KSU_ENABLE_FULL_UID_CHECKS
++	if (!ksu_is_allow_uid_for_current(current_uid().val))
++		return false;
++	goto check_ptr;
++#else /* ! CONFIG_KSU_ENABLE_FULL_UID_CHECKS */
++	// so if its root but not ksu domain, deny, see __ksu_is_allow_uid_for_current
++	uid_t uid = current_uid().val;
++	if (!!uid)
++		goto uid_check;
++
++	if (!is_ksu_domain())
++		return false;
++	goto check_ptr;
++
++uid_check:
++#ifdef CONFIG_KSU_SHELL_HAS_SU_ALWAYS
++	/**
++	 * NOTE: if shell always has su anyway, and full uid checks are disabled, 
++	 * we can skip all these checks. this goto is for explicitness / code style
++	 */
++	 goto check_ptr;
++	 __builtin_unreachable();
++#else /* default behavior */
++	/**
++	 * NOTE: shell has its seccomp disabled, so we only need
++	 * to check for this thing. short-circuit if not shell! 
++	 * as we allow apps on setuid lsm by disabling seccomp
++	 */
++	if (likely(uid != 2000))
++		goto check_ptr;
++
++	/**
++	 * use our noinline copy. only shell falls through this. nbd that
++	 * it opens up a stack frame. having small code around here is worth
++	 */
++	if (!__ksu_is_allow_uid_copy(uid))
++		return false;
++#endif /* default behavior */
++#endif /* ! CONFIG_KSU_ENABLE_FULL_UID_CHECKS */
++check_ptr:
++	assume(!!ptr_to_check);
++	if (unlikely(!ptr_to_check))
++		return false;
++
++	assume_dereferenceable((void *)ptr_to_check, sizeof(uintptr_t));
++	if (unlikely(!*ptr_to_check))
++		return false;
++
++	return true;
++}
++
++static __always_inline bool is_user_filename_su(const char __user **filename_user)
++{
++	uintptr_t buf;
++	constexpr char su[16] = SU_PATH;
++
++	// sugar prep
++	uintptr_t *su_p = (uintptr_t *)su;
++	uintptr_t __user *fn_p = (uintptr_t __user *)untagged_addr(*(char **)filename_user);
++
++	static_assert(sizeof(SU_PATH) + 1 == 16);
++
++	// cheaper than prefaulting (fault_in_readable, fault_in_pages_readable)
++	__builtin_prefetch(fn_p);
++
++	/*
++	 * it seems this is actually the slowest part, so we peek last word first to speed it up
++	 * NOTE: get_user rets EFAULT on err, so if we are copying a pointer that points to nothing, 
++	 * we also detect that and ret fast
++	 *
++	 * first read overreads, reading 8 bytes, "bin/su\0?" /  4 bytes, "su\0?" when we only need 7/3
++	 * but this is fine as we are guaranteed alignment, hardware provides trailing garbeg
++	 * if it is specially crafted and hits a page guard, we just get EFAULT anyway
++	 *
++	 * on 64-bit we do this in 2 word compare, 4 on 32-bit, little endian only!
++	 *
++	 */
++
++#ifdef CONFIG_64BIT
++	if (get_user(buf, &fn_p[1]))
++		return false;
++
++	if (likely((buf & 0x00FFFFFFFFFFFFFFUL) != (su_p[1] & 0x00FFFFFFFFFFFFFFUL)))
++		return false;
++#else
++	if (get_user(buf, &fn_p[3]))
++		return false;
++
++	if (likely((buf & 0x00FFFFFFUL) != (su_p[3] & 0x00FFFFFFUL)))
++		return false;
++
++	if (unlikely(get_user(buf, &fn_p[2])))
++		return false;
++
++	if (buf != su_p[2])
++		return false;
++
++	if (unlikely(get_user(buf, &fn_p[1])))
++		return false;
++
++	if (unlikely(buf != su_p[1]))
++		return false;
++#endif
++	// last word
++	if (unlikely(get_user(buf, &fn_p[0])))
++		return false;
++
++	if (unlikely(buf != su_p[0]))
++		return false;
++
++	return true;
++}
++
++// note: u_argv, u_envp are pointers to argv/envp array, void * char __user * char __user *
++static noinline int ksyscall_execve_ksud(const char *fn_name, void ***u_argv, void ***u_envp)
++{
++	if (!current->mm)
++		return -EPERM;
++
++	const struct cred *old_cred = override_creds(ksu_cred);
++	struct file *file = filp_open("/data/adb/ksud", O_RDONLY, 0);
++	revert_creds(old_cred);
++	if (IS_ERR(file))
++		return PTR_ERR(file);
++
++	int fd = get_unused_fd_flags(O_CLOEXEC);
++	if (fd < 0) {
++		fput(file);
++		return fd;
++	}
++	
++	fd_install(fd, file);
++
++	char fd_path[32];
++	int len = snprintf(fd_path, sizeof(fd_path), "/proc/self/fd/%d", fd);
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
++	uintptr_t mmap_page = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0);
++	if (IS_ERR_VALUE(mmap_page)) {
++		pr_info("mmap fail!\n");
++		ksu_close_fd(fd);
++		return -ENOMEM;
++	}
++
++	if (IS_ENABLED(CONFIG_KSU_DEBUG))
++		pr_info("mmap page: 0x%lx \n", mmap_page);
++
++	if (!!copy_to_user((void *)mmap_page, fd_path, sizeof(fd_path))) {
++		ksyscall(munmap, mmap_page, PAGE_SIZE);
++		ksu_close_fd(fd);
++		return -EFAULT;
++	}
++
++	void __user *argv = (void __user *)(const char __user **)*(void ***)u_argv;
++	void __user *envp = (void __user *)(const char __user **)*(void ***)u_envp;
++	void __user *filename = (void __user *)(const char __user *)mmap_page;
++
++	if (likely(!is_compat_task())) 
++		goto ksyscall_exec;
++
++	pr_info("su_compat: %s su->ksud! [compat]\n", fn_name);
++
++	// now extend the pointers
++	uintptr_t *m_argv = (uintptr_t *)(mmap_page + 1024);
++	uintptr_t *m_envp = (uintptr_t *)(mmap_page + 2048);
++
++	uint32_t buf4;
++	uint32_t __user *c_ptr = (uint32_t __user *)argv;
++	int i = 0;
++
++	while (!get_user(buf4, &c_ptr[i]) && !!buf4 && i < 127) {
++		uintptr_t buf8 = (uintptr_t)buf4;
++		if (!!put_user(buf8, &m_argv[i]))
++			break;
++		i++;
++	}
++
++	// reset
++	buf4 = 0;
++	i = 0;
++	c_ptr = (uint32_t __user *)envp;
++
++	while (!get_user(buf4, &c_ptr[i]) && !!buf4 && i < 127) {
++		uintptr_t buf8 = (uintptr_t)buf4;
++		if (!!put_user(buf8, &m_envp[i]))
++			break;
++		i++;
++	}
++
++	argv = (char __user **)m_argv;
++	envp = (char __user **)m_envp;
++
++ksyscall_exec:;
++	int ret = (int)ksyscall(execve, filename, argv, envp);
++	if (ret) {
++		pr_info("ksyscall failed! ret: %d \n", ret);
++		ksyscall(munmap, mmap_page, PAGE_SIZE);
++		ksu_close_fd(fd);
++		return ret;
++	}
++
++	ksu_install_su_fd(); // ksu#3679
++	pr_info("su_compat: %s su->%s!%s\n", fn_name, fd_path, (is_compat_task()) ? " [compat]" : "");
++	if (IS_ENABLED(CONFIG_KSU_DEBUG))
++		pr_info("su_compat: ksyscall(execve, \"%s\", 0x%lx, 0x%lx);\n", fd_path, (uintptr_t)argv, (uintptr_t)envp);
++
++	return 0;
++#else
++	void __user *argv = (void __user *)(const char __user **)*(void ***)u_argv;
++	void __user *envp = (void __user *)(const char __user **)*(void ***)u_envp;
++
++	/**
++	 * on old abi, we can use kernel_execve. however, just like userspace execve,
++	 * this does NOT return to caller on success, so we install fd before exec
++	 */
++	ksu_install_su_fd(); // ksu#3679
++	pr_info("su_compat: %s su->%s!\n", fn_name, fd_path);
++
++	if (IS_ENABLED(CONFIG_KSU_DEBUG))
++		pr_info("su_compat: kernel_execve(\"%s\", 0x%lx, 0x%lx);\n", fd_path, (uintptr_t)argv, (uintptr_t)envp);
++
++	int ret = kernel_execve(fd_path, argv, envp);
++	if (ret) {
++		pr_info("kernel_execve failed! ret: %d \n", ret);
++		ksu_close_fd(fd);
++		return ret;
++	}
++	return 0;
++#endif
++}
++
++static __always_inline void ksu_sucompat_user_execve(const char __user **filename_user, void *restrict argv, void *restrict envp, const char *syscall_name)
++{
++	ksu_adb_root_execve(nullptr, filename_user, envp);
++	ksu_preinit_execve(nullptr, filename_user, argv, envp);
++
++	if (!is_su_allowed((const void **)filename_user))
++		return;
++
++	ksu_sulog_emit_sucompat_pre(nullptr, *filename_user, argv);
++	if (!is_user_filename_su(filename_user))
++		return;
++
++	if (!!escape_with_root_profile())
++		return;
++
++	write_sulog('x');
++	ksu_sulog_emit_sucompat_post(nullptr, *filename_user, argv);
++	if (!ksyscall_execve_ksud(syscall_name, argv, envp))
++		return;
++
++	// failure path
++	pr_info("su_compat: %s su->sh!%s\n", syscall_name, (is_compat_task()) ? " [compat]" : "" );
++	*filename_user = sh_user_path();
++	return;
++}
++
++static __always_inline void ksu_sucompat_user_common(const char __user **filename_user, const char *syscall_name)
++{
++	if (!is_su_allowed((const void **)filename_user))
++		return;
++
++	if (!is_user_filename_su(filename_user))
++		return;
++
++	if (!__builtin_strcmp(syscall_name, "sys_faccessat"))
++		write_sulog('a');
++	if (!__builtin_strcmp(syscall_name, "sys_newfstatat"))
++		write_sulog('s');
++
++	pr_info("su_compat: %s su->sh!%s\n", syscall_name, (is_compat_task()) ? " [compat]" : "" );
++	*filename_user = sh_user_path();
++	return;
++}
++
++// sys_faccessat
++SUCOMPAT_HOOK_TYPE ksu_handle_faccessat(int *dfd, const char __user **filename_user, int *mode, int *__unused_flags)
++{
++	ksu_sucompat_user_common(filename_user, "sys_faccessat");
++	return 0;
++}
++
++// sys_newfstatat, sys_fstat64
++SUCOMPAT_HOOK_TYPE ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
++{
++	ksu_sucompat_user_common(filename_user, "sys_newfstatat");
++	return 0;
++}
++
++// sys_execve, compat_sys_execve
++SUCOMPAT_HOOK_TYPE ksu_handle_sys_execve(const char __user **filename_user, void *argv, void *envp)
++{
++	ksu_sucompat_user_execve(filename_user, argv, envp, "sys_execve");
++	return 0;
++}
++
++// sys_execveat, compat_sys_execveat
++SUCOMPAT_HOOK_TYPE ksu_handle_sys_execveat(int *fd, const char __user **filename_user, void *argv, void *envp, int *flags)
++{
++	ksu_sucompat_user_execve(filename_user, argv, envp, "sys_execveat");
++	return 0;
++}
++
++static __always_inline bool is_kernel_filename_su(const char **filename)
++{
++	constexpr char su[16] = SU_PATH;
++	uint64_t *su_p = (uint64_t *)su;
++	uint64_t *fn_p = (uint64_t *)*(char **)filename;
++
++	// getname_flags pads this so nothing to worry about
++	assume_restricted((void *)su_p, (void *)fn_p);
++	assume_dereferenceable((void *)fn_p, 16);
++
++	// https://godbolt.org/z/j8Yovv6bE
++	if (likely((fn_p[1] & 0x00FFFFFFFFFFFFFFULL) != (su_p[1] & 0x00FFFFFFFFFFFFFFULL)))
++		return false;
++
++	if (unlikely(fn_p[0] != su_p[0]))
++		return false;
++
++	return true;
++}
++
++static __always_inline void ksu_sucompat_kernel_execve(int *restrict fd, void **restrict filename_ptr, void *restrict argv, void *restrict envp, int *restrict flags, const char *function_name)
++{
++	// compat and native are unionized
++	struct user_arg_ptr *k_argv = (struct user_arg_ptr *)argv;
++	struct user_arg_ptr *k_envp = (struct user_arg_ptr *)envp;
++	void ***u_argv = (void ***)&k_argv->ptr;
++	void ***u_envp = (void ***)&k_envp->ptr;
++
++	ksu_adb_root_execve(filename_ptr, nullptr, u_envp);
++#if !defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
++	ksu_preinit_execve(filename_ptr, nullptr, u_argv, u_envp);
++#endif // we defer hooking on branch link it should be caught by sys_execve first
++
++	if (!is_su_allowed((const void **)filename_ptr))
++		return;
++
++	if (!!fd && fd != (int *)AT_FDCWD && *fd != AT_FDCWD)
++		return;
++
++	if (!!flags && !!*flags)
++		return;
++
++	ksu_sulog_emit_sucompat_pre(*filename_ptr, nullptr, u_argv);
++	if (!is_kernel_filename_su((const char **)filename_ptr))
++		return;
++
++	if (!!escape_with_root_profile())
++		return;
++
++	write_sulog('x');
++	ksu_sulog_emit_sucompat_post(*filename_ptr, nullptr, u_argv);
++	if (!ksyscall_execve_ksud(function_name, u_argv, u_envp))
++		return;
++
++	// failure path
++	pr_info("su_compat: %s su->sh!%s\n", function_name, (is_compat_task()) ? " [compat]" : "" );
++	constexpr char sh[16] = SH_PATH;
++	memcpy_inline(*filename_ptr, sh, sizeof(sh));
++	return;
++}
++
++struct filename; // take note: struct filename *filename, for do_execveat_common / do_execve_common on >= 3.14
++SUCOMPAT_HOOK_TYPE ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv, void *envp, int *flags)
++{
++	void *struct_filename = *(void **)filename_ptr;
++	if (IS_ERR(struct_filename)) // see getname_flags
++		return 0;
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
++	static_assert(offsetof(struct filename, name) == 0);
++#endif
++
++	// first member of struct filename is char *name.
++	// char *filename = *(char **)struct_filename;
++	ksu_sucompat_kernel_execve(fd, (void **)struct_filename, argv, envp, flags, "do_execveat_common");
++	return 0;
++}
++
++// take note: char *filename, for do_execve_common on < 3.14
++SUCOMPAT_HOOK_TYPE ksu_legacy_execve_sucompat(const char **filename_ptr, void *argv, void *envp)
++{
++	ksu_sucompat_kernel_execve((int *)AT_FDCWD, (void **)filename_ptr, argv, envp, 0, "do_execve_common");
++	return 0;
++}
++
++#ifdef CONFIG_KSU_TAMPER_SYSCALL_TABLE
++static void syscall_table_sucompat_enable();
++static void syscall_table_sucompat_disable();
++#else
++#define syscall_table_sucompat_enable() do { } while (0)
++#define syscall_table_sucompat_disable() do { } while (0)
++#endif
++
++static void ksu_sucompat_enable()
++{
++
++	ksu_sucompat_enable_branch();
++	syscall_table_sucompat_enable();
++
++	ksu_su_compat_enabled = true;
++	pr_info("%s: hooks enabled: exec, faccessat, stat\n", __func__);
++}
++
++static void ksu_sucompat_disable()
++{
++
++	ksu_sucompat_disable_branch();
++	syscall_table_sucompat_disable();
++
++	ksu_su_compat_enabled = false;
++	pr_info("%s: hooks disabled: exec, faccessat, stat\n", __func__);
++}
++
++static int su_compat_feature_get(u64 *value)
++{
++	*value = ksu_su_compat_enabled ? 1 : 0;
++	return 0;
++}
++
++static int su_compat_feature_set(u64 value)
++{
++	bool enable = value != 0;
++
++	if (enable == ksu_su_compat_enabled) {
++		pr_info("su_compat: no need to change\n");
++	return 0;
++	}
++
++	if (enable) {
++		ksu_sucompat_enable();
++	} else {
++		ksu_sucompat_disable();
++	}
++
++	ksu_su_compat_enabled = enable;
++	pr_info("su_compat: set to %d\n", enable);
++
++	return 0;
++}
++
++static const struct ksu_feature_handler su_compat_handler = {
++	.feature_id = KSU_FEATURE_SU_COMPAT,
++	.name = "su_compat",
++	.get_handler = su_compat_feature_get,
++	.set_handler = su_compat_feature_set,
++};
++
++// sucompat: permited process can execute 'su' to gain root access.
++void __init ksu_sucompat_init()
++{
++	if (ksu_register_feature_handler(&su_compat_handler)) {
++		pr_err("Failed to register su_compat feature handler\n");
++	}
++
++	tiny_sulog_init_heap();
++}
++
++void __exit ksu_sucompat_exit()
++{
++	ksu_unregister_feature_handler(KSU_FEATURE_SU_COMPAT);
++}
++
++#endif
+diff --git a/drivers/kernelsu/hook/lsm_hooks_list.c b/drivers/kernelsu/hook/lsm_hooks_list.c
+--- a/drivers/kernelsu/hook/lsm_hooks_list.c
++++ b/drivers/kernelsu/hook/lsm_hooks_list.c
+@@ -30,15 +30,6 @@
+ 	return inode_rename_fn(old_inode, old_dentry, new_inode, new_dentry);
+ }
+ 
+-static void (*bprm_committing_creds_fn)(struct linux_binprm *bprm) __read_mostly = nullptr;
+-static __nocfi void ksu_bprm_committing_creds(struct linux_binprm *bprm)
+-{
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	ksu_sulog_emit_bprm((const char *)bprm->filename);
+-#endif
+-	bprm_committing_creds_fn(bprm); // NOTE: void LSM hook
+-}
+-
+ static int (*file_permission_fn)(struct file *file, int mask) __read_mostly = nullptr;
+ static __nocfi int ksu_file_permission(struct file *file, int mask)
+ {
+@@ -72,22 +63,22 @@
+ }
+ #endif
+ 
+-static void *setprocattr_fn __read_mostly = nullptr;
+-static __nocfi int ksu_setprocattr_new(const char *name, void *value, size_t size)
+-{
+-	ksu_hide_setprocattr_inline(name, value, size);
+-	return ((typeof(ksu_setprocattr_new) *)setprocattr_fn)(name, value, size);
+-}
+-
+-static __nocfi int ksu_setprocattr_old(struct task_struct *p, char *name, void *value, size_t size)
+-{
+-	ksu_hide_setprocattr_inline(name, value, size);
+-	return ((typeof(ksu_setprocattr_old) *)setprocattr_fn)(p, name, value, size);
+-}
+-
+ #define SETPROCATTR_TYPE_old	struct task_struct *, char *, void *, size_t
+ #define SETPROCATTR_TYPE_new1	const char *, void *, size_t
+ #define SETPROCATTR_TYPE_new2	const char *lsm, const char *, void *, size_t
++
++static void *setprocattr_fn __read_mostly = nullptr;
++static __nocfi int ksu_setprocattr_new(const char *name, void *value, size_t size)
++{
++	ksu_hide_setprocattr_inline(name, value, size);
++	return ((typeof(ksu_setprocattr_new) *)setprocattr_fn)(name, value, size);
++}
++
++static __nocfi int ksu_setprocattr_old(struct task_struct *p, char *name, void *value, size_t size)
++{
++	ksu_hide_setprocattr_inline(name, value, size);
++	return ((typeof(ksu_setprocattr_old) *)setprocattr_fn)(p, name, value, size);
++}
+ 
+ /**
+  * the pragma is to workaround GCC 4.9's broken designated initializer.
+@@ -124,6 +115,54 @@
+ #undef SETPROCATTR_TYPE_old
+ #undef OVERLOAD_SETPROCATTR
+ 
++// 4.x~5.11, 5.12 ~ 6.2, 6.3+
++struct mnt_idmap;
++struct user_namespace;
++#define INODE_SETXATTR_TYPE_new2	struct mnt_idmap *, struct dentry *, const char *, const void *, size_t, int
++#define INODE_SETXATTR_TYPE_new1	struct user_namespace *, struct dentry *, const char *, const void *, size_t, int
++#define INODE_SETXATTR_TYPE_old		struct dentry *, const char *, const void *, size_t, int
++
++static void *inode_setxattr_fn __read_mostly = nullptr;
++static __nocfi int ksu_inode_setxattr_new2(struct mnt_idmap *idmap, struct dentry *dentry, const char *name, const void *value, size_t size, int flags)
++{
++	ksu_hide_setxattr_inline(name, value, size);
++	return ((typeof(ksu_inode_setxattr_new2) *)inode_setxattr_fn)(idmap, dentry, name, value, size, flags);
++}
++
++static __nocfi int ksu_inode_setxattr_new1(struct user_namespace *mnt_userns, struct dentry *dentry, const char *name, const void *value, size_t size, int flags)
++{
++	ksu_hide_setxattr_inline(name, value, size);
++	return ((typeof(ksu_inode_setxattr_new1) *)inode_setxattr_fn)(mnt_userns, dentry, name, value, size, flags);
++}
++
++static __nocfi int ksu_inode_setxattr_old(struct dentry *dentry, const char *name, const void *value, size_t size, int flags)
++{
++	ksu_hide_setxattr_inline(name, value, size);
++	return ((typeof(ksu_inode_setxattr_old) *)inode_setxattr_fn)(dentry, name, value, size, flags);
++}
++
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
++
++#define OVERLOAD_INODE_SETXATTR(fn) _Generic(					\
++(fn),										\
++	int (*)(INODE_SETXATTR_TYPE_new2)	:ksu_inode_setxattr_new2,	\
++	int (*)(INODE_SETXATTR_TYPE_new1)	:ksu_inode_setxattr_new1, 	\
++	int (*)(INODE_SETXATTR_TYPE_old)	:ksu_inode_setxattr_old 	\
++)
++
++// now choose what we have
++static typeof(security_inode_setxattr) *ksu_inode_setxattr __read_mostly = nullptr;
++static inline void ksu_do_overload_inode_setxattr(void)
++{
++	ksu_inode_setxattr = OVERLOAD_INODE_SETXATTR(security_inode_setxattr);
++}
++#pragma GCC diagnostic pop
++#undef INODE_SETXATTR_TYPE_old
++#undef INODE_SETXATTR_TYPE_new1
++#undef INODE_SETXATTR_TYPE_new2
++#undef OVERLOAD_INODE_SETXATTR
++
+ /**
+  *
+  * Instead of using list/hlist abstractions and shit, since we know these things exist
+@@ -310,9 +349,8 @@
+ 	ksu_do_overload_setprocattr();
+ 	LSM_HACK_INIT(setprocattr, ksu_setprocattr);
+ 
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	LSM_HACK_INIT(bprm_committing_creds, ksu_bprm_committing_creds);
+-#endif
++	ksu_do_overload_inode_setxattr();
++	LSM_HACK_INIT(inode_setxattr, ksu_inode_setxattr);
+ 
+ #if !defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) && !defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
+ 	LSM_HACK_INIT(file_permission, ksu_file_permission);
+@@ -325,8 +363,3 @@
+ #endif
+ 
+ }
+-
+-static void __init ksu_core_init(void)
+-{
+-	ksu_lsm_hook_init();
+-}
+diff --git a/drivers/kernelsu/hook/lsm_hooks_manual.c b/drivers/kernelsu/hook/lsm_hooks_manual.c
+--- a/drivers/kernelsu/hook/lsm_hooks_manual.c
++++ b/drivers/kernelsu/hook/lsm_hooks_manual.c
+@@ -29,9 +29,6 @@
+ 
+ int ksu_bprm_check(struct linux_binprm *bprm)
+ {
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	ksu_sulog_emit_bprm((const char *)bprm->filename);
+-#endif
+ 	return 0;
+ }
+ 
+@@ -57,7 +54,14 @@
+ 	return 0;
+ }
+ 
+-static void __init ksu_core_init(void)
++// NOTE: 3-args only. other args unused.
++int ksu_hide_inode_setxattr(const char *name, void *value, size_t size)
++{
++	ksu_hide_setxattr_inline(name, value, size);
++	return 0;
++}
++
++static void __init ksu_lsm_hook_init(void)
+ {
+ 	pr_info("%s: Automated LSM hooking disabled. Make sure manual security hooks are implemented!\n", __func__);
+ }
+diff --git a/drivers/kernelsu/hook/lsm_hooks_static.c b/drivers/kernelsu/hook/lsm_hooks_static.c
+--- a/drivers/kernelsu/hook/lsm_hooks_static.c
++++ b/drivers/kernelsu/hook/lsm_hooks_static.c
+@@ -38,7 +38,7 @@
+ 	return security_inode_rename(old_dir, old_dentry, new_dir, new_dentry, flags);
+ }
+ 
+-// setuid
++#if 0 // setuid
+ extern int security_task_fix_setuid(struct cred *new, const struct cred *old, int flags);
+ static int ksu_task_fix_setuid(struct cred *new, const struct cred *old, int flags)
+ {
+@@ -48,16 +48,35 @@
+ 
+ 	return security_task_fix_setuid(new, old, flags);
+ }
++#endif
+ 
+-// bprm
+-extern int security_bprm_check(struct linux_binprm *bprm);
+-static int ksu_bprm_check(struct linux_binprm *bprm)
++#define __AARCH64_setresuid 147
++static void *aarch64_setresuid __read_mostly = nullptr;
++asmlinkage long hook_aarch64_setresuid(const struct pt_regs *regs)
+ {
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	ksu_sulog_emit_bprm((const char *)bprm->filename);
++	extern long __arm64_sys_setresuid(const struct pt_regs *regs);
++	const struct cred old = *current_cred();
++
++	long ret = __arm64_sys_setresuid(regs);
++	if (!ret)
++		ksu_handle_setresuid_cred(current_cred(), &old);
++	return ret;
++}
++
++#ifdef CONFIG_COMPAT
++#define __ARMEABI_setresuid 208
++static void *armeabi_setresuid __read_mostly = nullptr;
++asmlinkage long hook_armeabi_setresuid(const struct pt_regs *regs)
++{
++	extern long __arm64_sys_setresuid(const struct pt_regs *regs);
++	const struct cred old = *current_cred();
++
++	long ret = __arm64_sys_setresuid(regs);
++	if (!ret)
++		ksu_handle_setresuid_cred(current_cred(), &old);
++	return ret;
++}
+ #endif
+-	return security_bprm_check(bprm);
+-}
+ 
+ // vfs_read, as security_file_permission is a bit spotty to hook!
+ extern ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos);
+@@ -85,7 +104,16 @@
+ 	return security_setprocattr(lsmid, name, value, size);
+ }
+ 
+-static void __init ksu_core_init(void)
++extern int security_inode_setxattr(struct mnt_idmap *idmap, struct dentry *dentry,
++			const char *name, const void *value, size_t size, int flags);
++static int ksu_inode_setxattr(struct mnt_idmap *idmap, struct dentry *dentry,
++			const char *name, const void *value, size_t size, int flags)
++{
++	ksu_hide_setxattr_inline(name, value, size);
++	return security_inode_setxattr(idmap, dentry, name, value, size, flags);
++}
++
++static void __init ksu_lsm_hook_init(void)
+ {
+ 	int ret;
+ 	uintptr_t target_callsite;
+@@ -98,47 +126,28 @@
+ #endif
+ 	symbol_addr = kallsyms_lookup_retry("vfs_rename");
+ 	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 256 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_vfs_rename);
+-	pr_info("lsm_hijack: vfs_rename: ret %d \n", ret);
++	pr_info("LSM: vfs_rename: ret %d \n", ret);
+ 	if (!ret)
+ 		goto rename_hook_done;
+ 
+ 	target_callsite = kallsyms_lookup_retry("vfs_rename");
+ 	symbol_addr = kallsyms_lookup_retry("security_inode_rename");
+ 	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 256 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_inode_rename);
+-	pr_info("lsm_hijack: security_inode_rename: ret %d \n", ret);
++	pr_info("LSM: security_inode_rename: ret %d \n", ret);
+ 
+ rename_hook_done:
+ 
++#if 0
+ 	target_callsite = kallsyms_lookup_retry("__sys_setresuid");
+ 	if (!target_callsite)
+ 		target_callsite = kallsyms_lookup_retry("__arm64_sys_setresuid");
+ 	symbol_addr = kallsyms_lookup_retry("security_task_fix_setuid");
+ 	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 256 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_task_fix_setuid);
+ 	pr_info("lsm_hijack: security_task_fix_setuid: ret %d \n", ret);
+-
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	symbol_addr = kallsyms_lookup_retry("security_bprm_check");
+-	target_callsite = kallsyms_lookup_retry("bprm_execve");
+-	if (!target_callsite)
+-		goto skip_bprm1;
+-	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 256 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_bprm_check);
+-	if (!ret)
+-		goto bprm_done;
+-skip_bprm1:
+-	target_callsite = kallsyms_lookup_retry("search_binary_handler");
+-	if (!target_callsite)
+-		goto skip_bprm2;
+-	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 256 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_bprm_check);
+-	if (!ret)
+-		goto bprm_done;
+-skip_bprm2:
+-	ret = -ENXIO;
+-	target_callsite = kallsyms_lookup_retry("exec_binprm");
+-	if (!target_callsite)
+-		goto bprm_done;
+-	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 256 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_bprm_check);
+-bprm_done:
+-	pr_info("lsm_hijack: security_bprm_check: ret %d \n", ret);
++#endif
++	replace_syscall((void *)&aarch64_setresuid, __AARCH64_setresuid, (void *)hook_aarch64_setresuid, native_sct);
++#ifdef CONFIG_COMPAT
++	replace_syscall((void *)&armeabi_setresuid, __ARMEABI_setresuid, (void *)hook_armeabi_setresuid, compat_sct);
+ #endif
+ 
+ #if !defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) && !defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
+@@ -169,12 +178,17 @@
+ 	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 128 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_security_file_permission);
+ 
+ read_hook_done:
+-	pr_info("lsm_hijack: security_file_permission: ret %d \n", ret);
++	pr_info("LSM: security_file_permission: ret %d \n", ret);
+ #endif
+ 
+-	target_callsite = kallsyms_lookup_retry("proc_pid_attr_write");
++	target_callsite = kallsyms_lookup_retry("proc_pid_attr_write"); // fn ptr on dispatch table
+ 	symbol_addr = kallsyms_lookup_retry("security_setprocattr");
+ 	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 128 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_setprocattr);
+-	pr_info("lsm_hijack: security_setprocattr: ret %d \n", ret);
++	pr_info("LSM: security_setprocattr: ret %d \n", ret);
++
++	target_callsite = kallsyms_lookup_retry("__vfs_setxattr_locked"); // exported symbol
++	symbol_addr = kallsyms_lookup_retry("security_inode_setxattr");
++	ret = arm64_bl_patch(target_callsite, ksu_get_ksym_size(target_callsite, 128 * sizeof(uint32_t)), symbol_addr, (uintptr_t)&ksu_inode_setxattr);
++	pr_info("LSM: security_inode_setxattr: ret %d \n", ret);
+ 
+ }
+diff --git a/drivers/kernelsu/hook/lsm_hooks_ultralegacy.c b/drivers/kernelsu/hook/lsm_hooks_ultralegacy.c
+--- a/drivers/kernelsu/hook/lsm_hooks_ultralegacy.c
++++ b/drivers/kernelsu/hook/lsm_hooks_ultralegacy.c
+@@ -20,6 +20,13 @@
+ {
+ 	ksu_hide_setprocattr_inline(name, value, size);
+ 	return orig_setprocattr(p, name, value, size);
++}
++
++static int (*orig_inode_setxattr) (struct dentry *dentry, const char *name, const void *value, size_t size, int flags) __read_mostly = nullptr;
++static int hook_inode_setxattr(struct dentry *dentry, const char *name, const void *value, size_t size, int flags)
++{
++	ksu_hide_setxattr_inline(name, value, size);
++	return orig_inode_setxattr(dentry, name, value, size, flags);
+ }
+ 
+ static int (*orig_inode_rename) (struct inode *old_dir, struct dentry *old_dentry,
+@@ -29,15 +36,6 @@
+ {
+ 	ksu_rename_observer(old_dentry, new_dentry);
+ 	return orig_inode_rename(old_inode, old_dentry, new_inode, new_dentry);
+-}
+-
+-static int (*orig_bprm_check_security)(struct linux_binprm *bprm) __read_mostly = nullptr;
+-static int hook_bprm_check_security(struct linux_binprm *bprm)
+-{
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	ksu_sulog_emit_bprm((const char *)bprm->filename);
+-#endif
+-	return orig_bprm_check_security(bprm);
+ }
+ 
+ static int (*orig_task_fix_setuid) (struct cred *new, const struct cred *old, int flags) __read_mostly = nullptr;
+@@ -342,13 +340,11 @@
+ 	orig_setprocattr = ops->setprocattr;
+ 	ops->setprocattr = hook_setprocattr;
+ 
++	orig_inode_setxattr = ops->inode_setxattr;
++	ops->inode_setxattr = hook_inode_setxattr;
++
+ 	orig_task_fix_setuid = ops->task_fix_setuid;
+ 	ops->task_fix_setuid = hook_task_fix_setuid;
+-
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+-	orig_bprm_check_security = ops->bprm_check_security;
+-	ops->bprm_check_security = hook_bprm_check_security;
+-#endif
+ 
+ #if !defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) && !defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
+ 	orig_file_permission = ops->file_permission;
+@@ -358,7 +354,7 @@
+ 	return 0;
+ }
+ 
+-static void ksu_lsm_hook_init(void)
++static void __init ksu_lsm_hook_init(void)
+ {
+ 	set_selinux_ops();
+ 
+@@ -376,8 +372,3 @@
+ 	kthread_run(ksu_restore_file_permission, NULL, "kthread");
+ 	return;
+ }
+-
+-static void __init ksu_core_init(void)
+-{
+-	ksu_lsm_hook_init();
+-}
+diff --git a/drivers/kernelsu/hook/syscall_table_hook_arm.c b/drivers/kernelsu/hook/syscall_table_hook_arm.c
+--- a/drivers/kernelsu/hook/syscall_table_hook_arm.c
++++ b/drivers/kernelsu/hook/syscall_table_hook_arm.c
+@@ -226,12 +226,12 @@
+ {
+ 	guarded_mutex_lock(&sucompat_toggle_mutex);
+ 
+-	read_and_replace_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, native_sct);
++	replace_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, native_sct);
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+-	read_and_replace_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, native_sct);
+-#endif
+-	read_and_replace_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, native_sct);
+-	read_and_replace_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, native_sct);
++	replace_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, native_sct);
++#endif
++	replace_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, native_sct);
++	replace_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, native_sct);
+ }
+ 
+ static void syscall_table_sucompat_disable()
+@@ -248,9 +248,9 @@
+ 
+ static void syscall_table_ksud_hook_init()
+ {
+-	read_and_replace_syscall((void *)&armeabi_reboot, __ARMEABI_reboot, (void *)hook_armeabi_reboot, native_sct);
+-	read_and_replace_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, native_sct);
+-	read_and_replace_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, native_sct);
++	replace_syscall((void *)&armeabi_reboot, __ARMEABI_reboot, (void *)hook_armeabi_reboot, native_sct);
++	replace_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, native_sct);
++	replace_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, native_sct);
+ 
+ 	// start unreg kthread
+ 	kthread_run(ksu_syscall_table_restore, NULL, "unhook");
+diff --git a/drivers/kernelsu/hook/syscall_table_hook_arm64.c b/drivers/kernelsu/hook/syscall_table_hook_arm64.c
+--- a/drivers/kernelsu/hook/syscall_table_hook_arm64.c
++++ b/drivers/kernelsu/hook/syscall_table_hook_arm64.c
+@@ -373,20 +373,20 @@
+ {
+ 	guarded_mutex_lock(&sucompat_toggle_mutex);
+ 
+-	read_and_replace_syscall((void *)&aarch64_execve, __AARCH64_execve, (void *)hook_aarch64_execve, native_sct);
++	replace_syscall((void *)&aarch64_execve, __AARCH64_execve, (void *)hook_aarch64_execve, native_sct);
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0) || defined(__NR_execveat)
+-	read_and_replace_syscall((void *)&aarch64_execveat, __AARCH64_execveat, (void *)hook_aarch64_execveat, native_sct);
+-#endif
+-	read_and_replace_syscall((void *)&aarch64_faccessat, __AARCH64_faccessat, (void *)hook_aarch64_faccessat, native_sct);
+-	read_and_replace_syscall((void *)&aarch64_newfstatat, __AARCH64_newfstatat, (void *)hook_aarch64_newfstatat, native_sct);
++	replace_syscall((void *)&aarch64_execveat, __AARCH64_execveat, (void *)hook_aarch64_execveat, native_sct);
++#endif
++	replace_syscall((void *)&aarch64_faccessat, __AARCH64_faccessat, (void *)hook_aarch64_faccessat, native_sct);
++	replace_syscall((void *)&aarch64_newfstatat, __AARCH64_newfstatat, (void *)hook_aarch64_newfstatat, native_sct);
+ 
+ #if defined(CONFIG_COMPAT)
+-	read_and_replace_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, compat_sct);
++	replace_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, compat_sct);
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0) || defined(__NR_execveat)
+-	read_and_replace_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, compat_sct);
+-#endif
+-	read_and_replace_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, compat_sct);
+-	read_and_replace_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, compat_sct);
++	replace_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, compat_sct);
++#endif
++	replace_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, compat_sct);
++	replace_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, compat_sct);
+ #endif
+ 
+ }
+@@ -410,14 +410,14 @@
+ 
+ static void syscall_table_ksud_hook_init()
+ {
+-	read_and_replace_syscall((void *)&aarch64_reboot, __AARCH64_reboot, (void *)hook_aarch64_reboot, native_sct);
+-	read_and_replace_syscall((void *)&aarch64_newfstat, __AARCH64_newfstat, (void *)hook_aarch64_newfstat_ret, native_sct);
+-	read_and_replace_syscall((void *)&aarch64_read, __AARCH64_read, (void *)hook_aarch64_read, native_sct);
++	replace_syscall((void *)&aarch64_reboot, __AARCH64_reboot, (void *)hook_aarch64_reboot, native_sct);
++	replace_syscall((void *)&aarch64_newfstat, __AARCH64_newfstat, (void *)hook_aarch64_newfstat_ret, native_sct);
++	replace_syscall((void *)&aarch64_read, __AARCH64_read, (void *)hook_aarch64_read, native_sct);
+ 
+ #if defined(CONFIG_COMPAT)
+-	read_and_replace_syscall((void *)&armeabi_reboot, __ARMEABI_reboot, (void *)hook_armeabi_reboot, compat_sct);
+-	read_and_replace_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, compat_sct);
+-	read_and_replace_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, compat_sct);
++	replace_syscall((void *)&armeabi_reboot, __ARMEABI_reboot, (void *)hook_armeabi_reboot, compat_sct);
++	replace_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, compat_sct);
++	replace_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, compat_sct);
+ #endif // COMPAT
+ 
+ 	// start unreg kthread
+diff --git a/drivers/kernelsu/hook/syscall_table_mirror.c b/drivers/kernelsu/hook/syscall_table_mirror.c
+deleted file mode 100644
+--- a/drivers/kernelsu/hook/syscall_table_mirror.c
++++ /dev/null
+@@ -1,180 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0-only
+-/*
+- * Copyright (C) 2026 \xx
+- *
+- * This file is a downstream extension and NOT affiliated, endorsed by,
+- * or maintained by the official KernelSU developers.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- *
+- */
+-
+-/**
+- *  syscall_table_mirror.c - lets own the full table ourselves.
+- *
+- *  tested to work on:
+- *	- 4.14 ~ 6.12
+- *
+- *  Changelog:
+- *	- init, 261031
+- *	- fixup offsets (adrp + add reg) on 4.19+ (261101)
+- *	- hunt multiple loadsites (enskye/KyeSU/commit/1828e7190), (261102)
+- *
+- *
+- */
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0) && defined(CONFIG_KALLSYMS) && defined(CONFIG_ARM64)
+-
+-#define sct_slots 512
+-
+-static uintptr_t sys_call_table_mpage[sct_slots * 2] __aligned(4096);
+-#if defined(CONFIG_COMPAT)
+-static uintptr_t compat_sys_call_table_mpage[sct_slots * 2] __aligned(4096);
+-#endif
+-
+-static int bruteforce_sct_adrp(uintptr_t *target_table, uintptr_t insn_addr_start, ptrdiff_t scan_depth, void *new_page, void *new_table)
+-{
+-	uintptr_t insn_p = insn_addr_start;
+-	uintptr_t insn_end = insn_addr_start + scan_depth;
+-	uint32_t raw_insn = 0;
+-	uint32_t patched = 0; // # of sites patched
+-
+-scan:
+-	if (insn_p >= insn_end)
+-		goto bail;
+-
+-	if (copy_from_kernel_nofault((void *)&raw_insn, (void *)insn_p, sizeof(uint32_t)))
+-		goto increment;
+-
+-	// aarch64_insn_is_##abbr, arch/arm64/include/asm/insn.h
+-	if (!aarch64_insn_is_adrp(raw_insn))
+-		goto increment;
+-
+-	pr_info("0x%lx insn is adrp! .inst 0x%lx \n", insn_p, raw_insn);
+-
+-	uintptr_t pc_pg = insn_p & ~0xFFFUL; // target, aligned to 4096
+-	uintptr_t tgt = pc_pg + (long)aarch64_insn_adrp_get_offset(raw_insn);
+-
+-	pr_info("tgt: 0x%lx target_table: 0x%lx\n", tgt, *target_table);
+-	if (tgt != (*target_table & ~0xFFFUL))
+-		goto increment;
+-
+-	/**
+-	 * max distance is 2^20 * 4096, signed 21bits imm per 4096
+-	 * however aarch64_insn_adrp_set_offset is s32 max
+-	 *
+-	 * this tigthens range check by +-scan_depth, to avoid extra logic
+-	 * where multiple adrp that are few insn away from each other and
+-	 * another 'loading the same table and one is going -ERANGE'
+-	 */
+-	int64_t offset = (int64_t)new_page - (int64_t)pc_pg;
+-	if (!patched  && (offset < (-0x80000000LL + __builtin_labs(scan_depth)) || offset > (0x7fffffffLL - __builtin_labs(scan_depth))))
+-		return -ERANGE;
+-
+-	pr_info("tgt 0x%lx to new_page: 0x%lx in range! (delta: %ld bytes)\n", tgt, (uintptr_t)new_page, offset);
+-
+-	uint32_t new_insn = aarch64_insn_adrp_set_offset(raw_insn, (int32_t)offset);
+-
+-	pr_info("new_insn: .inst 0x%lx \n", new_insn);
+-
+-	void *arr_addr[] = { (void *)insn_p };
+-	uint32_t arr_insn[] = { new_insn };
+-	
+-	int res = aarch64_insn_patch_text(arr_addr, arr_insn, 1);
+-	pr_info("%s: patched insn! ret: %d\n", __func__, res);
+-	if (!res)
+-		patched++;
+-
+-increment:
+-	insn_p = insn_p + sizeof(uint32_t);
+-	goto scan;
+-
+-bail:
+-	if (!patched) {
+-		pr_info("%s: insn not found!\n", __func__);
+-		return -ENOENT;	
+-	}
+-
+-	pr_info("target_table: 0x%lx mirror_table: 0x%lx patch_count: %u \n", *target_table, (uintptr_t)new_table, patched);
+-	patch_ptr_slot_kick_cpu((void **)target_table, (void *)new_table);
+-	return 0;
+-}
+-
+-static int do_mirror_syscall_table(const char *native_sym, const char *compat_sym, ptrdiff_t scan_depth)
+-{
+-	uintptr_t addr = (uintptr_t)native_sct;
+-	uintptr_t base = addr & ~0xFFFUL;
+-	uintptr_t offset = addr & 0xFFFUL;
+-	void *new_table = (void *)sys_call_table_mpage + offset;
+-
+-	if (!!copy_from_kernel_nofault((void *)sys_call_table_mpage, (void *)base, 4096 * 2))
+-		return -EFAULT;
+-
+-	uintptr_t target = kallsyms_lookup_name(native_sym);
+-	if (!target)
+-		return -ENOENT;
+-
+-	pr_info("addr: 0x%lx base: 0x%lx offset: %lu \n", addr, base, offset);
+-
+-	ssize_t new_scan_depth = ksu_get_ksym_size(target, scan_depth);
+-	pr_info("target: %s @ 0x%lx sz: %zu\n", native_sym, target, new_scan_depth);
+-
+-	int ret = bruteforce_sct_adrp((uintptr_t *)&native_sct, target, new_scan_depth, (void *)sys_call_table_mpage, new_table);
+-	if (ret)
+-		return ret;
+-
+-	pr_info("%s: sys_call_table mirrored! adrp insn patched!\n", __func__);
+-
+-#if defined(CONFIG_COMPAT)
+-	addr = (uintptr_t)compat_sct;
+-	base = addr & ~0xFFFUL;
+-	offset = addr & 0xFFFUL;
+-	new_table = (void *)compat_sys_call_table_mpage + offset;
+-
+-	if (!!copy_from_kernel_nofault((void *)compat_sys_call_table_mpage, (void *)base, 4096 * 2))
+-		return -EFAULT;
+-
+-	target = kallsyms_lookup_name(compat_sym);
+-	if (!target)
+-		return -ENOENT;
+-
+-	pr_info("addr: 0x%lx base: 0x%lx offset: %lu \n", addr, base, offset);
+-
+-	new_scan_depth = ksu_get_ksym_size(target, scan_depth);
+-	pr_info("target: %s @ 0x%lx sz: %zu\n", compat_sym, target, new_scan_depth);
+-
+-	ret = bruteforce_sct_adrp((uintptr_t *)&compat_sct, target, new_scan_depth, (void *)compat_sys_call_table_mpage, new_table);
+-	if (ret)
+-		return ret;
+-
+-	pr_info("%s: compat_sys_call_table mirrored! adrp insn patched!\n", __func__);
+-#endif
+-	syscall_table_is_mirrored = true;
+-	return 0;
+-}
+-
+-static void try_mirror_syscall_table(void)
+-{
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+-	int ret = do_mirror_syscall_table("do_el0_svc", "do_el0_svc_compat", 64 * 4);
+-	if (!ret)
+-		return;
+-
+-	ret = do_mirror_syscall_table("el0_svc_handler", "el0_svc_compat_handler", 64 * 4);
+-	if (!ret)
+-		return;
+-
+-	// for heavily inlined shit
+-	do_mirror_syscall_table("el0_svc", "el0_svc_compat", 256 * 4);
+-#else
+-	do_mirror_syscall_table("el0_svc", "el0_svc_compat", 16 * 4);
+-#endif
+-}
+-
+-#else 
+-
+-#define try_mirror_syscall_table()	do { } while(0)
+-#endif
+-
+-
+diff --git a/drivers/kernelsu/hook/syscall_table_mirror_arm64.c b/drivers/kernelsu/hook/syscall_table_mirror_arm64.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/kernelsu/hook/syscall_table_mirror_arm64.c
+@@ -0,0 +1,204 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2026 \xx
++ *
++ * This file is a downstream extension and NOT affiliated, endorsed by,
++ * or maintained by the official KernelSU developers.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++
++/**
++ *  syscall_table_mirror.c - lets own the full table ourselves.
++ *
++ *  Due to some kernel protection bullshit, vmapping as writable is no go.
++ *  either by straight up blocking EL2 MMU access or due to integrity checks. (e.g. checksums against the table)
++ *
++ *  This method explores replacing the page adrp loads around ~el0_svc.
++ *
++ *  * 4.14 and older (pre syscall wrapper, aligned to 4096, natural adrp alignment)
++ *  ffffff8010083f80 <el0_svc>:
++ *  ffffff8010083f80: b000f11b     	adrp	x27, 0xffffff8011ea4000 <sys_call_table> << we replace this
++ *  ffffff8010083f84: 2a0803fa     	mov	w26, w8
++ *  ffffff8010083f88: 52803759     	mov	w25, #0x1ba     // =442
++ *
++ *  * 4.19+ (with syscall wrapper, access is not page aligned, offset by add insn after adrp)
++ *  ffffff80100b0c6c <el0_svc_handler>:
++ *  ffffff80100b0c6c: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
++ *  ffffff80100b0c70: 910003fd     	mov	x29, sp
++ *  ffffff80100b0c74: 14000008     	b	0xffffff80100b0c94
++ *  ffffff80100b0c78: d503201f     	nop
++ *  ffffff80100b0c7c: b9404001     	ldr	w1, [x0, #0x40]
++ *  ffffff80100b0c80: f000b7c2     	adrp	x2, 0xffffff80117ab000	<< page where sys_call_table lies, we replace this
++ *  ffffff80100b0c84: 913a0042     	add	x2, x2, #0xe80		<< offset
++ *  ffffff80100b0c88: 9400001a     	bl	0xffffff80100b0cf0 <el0_svc_common>
++ *  ffffff80100b0c8c: ...
++ *
++ *  due to that offset on 4.19+ we have to prepare and copy 2x 4096, basically as allowance for the offset.
++ *  
++ *  tested to work on:
++ *	- 4.14 ~ 6.12
++ *
++ *  Changelog:
++ *	- init, 261031
++ *	- fixup offsets (adrp + add reg) on 4.19+ (261101)
++ *	- hunt multiple loadsites (enskye/KyeSU/commit/1828e7190), (261102)
++ *	- edge-case protection, ERANGE + scan_depth thingy, (26110?)
++ *
++ */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0) && defined(CONFIG_KALLSYMS) && defined(CONFIG_ARM64)
++
++#define sct_slots 512
++
++static uintptr_t sys_call_table_mpage[sct_slots * 2] __aligned(4096);
++#if defined(CONFIG_COMPAT)
++static uintptr_t compat_sys_call_table_mpage[sct_slots * 2] __aligned(4096);
++#endif
++
++static int bruteforce_sct_adrp(uintptr_t *target_table, uintptr_t insn_addr_start, ptrdiff_t scan_depth, void *new_page, void *new_table)
++{
++	uintptr_t insn_p = insn_addr_start;
++	uintptr_t insn_end = insn_addr_start + scan_depth;
++	uint32_t raw_insn = 0;
++	uint32_t patched = 0; // # of sites patched
++
++scan:
++	if (insn_p >= insn_end)
++		goto bail;
++
++	if (copy_from_kernel_nofault((void *)&raw_insn, (void *)insn_p, sizeof(uint32_t)))
++		goto increment;
++
++	// aarch64_insn_is_##abbr, arch/arm64/include/asm/insn.h
++	if (!aarch64_insn_is_adrp(raw_insn))
++		goto increment;
++
++	pr_info("0x%lx insn is adrp! .inst 0x%lx \n", insn_p, raw_insn);
++
++	uintptr_t pc_pg = insn_p & ~0xFFFUL; // target, aligned to 4096
++	uintptr_t tgt = pc_pg + (long)aarch64_insn_adrp_get_offset(raw_insn);
++
++	pr_info("tgt: 0x%lx target_table: 0x%lx\n", tgt, *target_table);
++	if (tgt != (*target_table & ~0xFFFUL))
++		goto increment;
++
++	/**
++	 * max distance is 2^20 * 4096, signed 21bits imm per 4096
++	 * however aarch64_insn_adrp_set_offset is s32 max
++	 *
++	 * this tigthens range check by +-scan_depth, to avoid extra logic
++	 * where multiple adrp that are few insn away from each other and
++	 * another 'loading the same table and one is going -ERANGE'
++	 */
++	int64_t offset = (int64_t)new_page - (int64_t)pc_pg;
++	if (!patched && (offset < (-0x80000000LL + __builtin_labs(scan_depth)) || offset > (0x7fffffffLL - __builtin_labs(scan_depth))))
++		return -ERANGE;
++
++	pr_info("tgt 0x%lx to new_page: 0x%lx in range! (delta: %ld bytes)\n", tgt, (uintptr_t)new_page, offset);
++
++	uint32_t new_insn = aarch64_insn_adrp_set_offset(raw_insn, (int32_t)offset);
++
++	pr_info("new_insn: .inst 0x%lx \n", new_insn);
++
++	void *arr_addr[] = { (void *)insn_p };
++	uint32_t arr_insn[] = { new_insn };
++	
++	int res = aarch64_insn_patch_text(arr_addr, arr_insn, 1);
++	pr_info("%s: patched insn! ret: %d\n", __func__, res);
++	if (!res)
++		patched++;
++
++increment:
++	insn_p = insn_p + sizeof(uint32_t);
++	goto scan;
++
++bail:
++	if (!patched) {
++		pr_info("%s: insn not found!\n", __func__);
++		return -ENOENT;	
++	}
++
++	pr_info("target_table: 0x%lx mirror_table: 0x%lx patch_count: %u \n", *target_table, (uintptr_t)new_table, patched);
++	patch_ptr_slot_kick_cpu((void **)target_table, (void *)new_table);
++	return 0;
++}
++
++static int do_mirror_syscall_table(const char *native_sym, const char *compat_sym, ptrdiff_t scan_depth)
++{
++	uintptr_t addr = (uintptr_t)native_sct;
++	uintptr_t base = addr & ~0xFFFUL;
++	uintptr_t offset = addr & 0xFFFUL;
++	void *new_table = (void *)sys_call_table_mpage + offset;
++
++	uintptr_t target = kallsyms_lookup_name(native_sym);
++	if (!target)
++		return -ENOENT;
++
++	if (!!copy_from_kernel_nofault((void *)sys_call_table_mpage, (void *)base, 4096 * 2))
++		return -EFAULT;
++
++	pr_info("addr: 0x%lx base: 0x%lx offset: %lu \n", addr, base, offset);
++
++	ssize_t new_scan_depth = ksu_get_ksym_size(target, scan_depth);
++	pr_info("target: %s @ 0x%lx sz: %zu\n", native_sym, target, new_scan_depth);
++
++	int ret = bruteforce_sct_adrp((uintptr_t *)&native_sct, target, new_scan_depth, (void *)sys_call_table_mpage, new_table);
++	if (ret)
++		return ret;
++
++	pr_info("%s: sys_call_table mirrored! adrp insn patched!\n", __func__);
++
++#if defined(CONFIG_COMPAT)
++	addr = (uintptr_t)compat_sct;
++	base = addr & ~0xFFFUL;
++	offset = addr & 0xFFFUL;
++	new_table = (void *)compat_sys_call_table_mpage + offset;
++
++	target = kallsyms_lookup_name(compat_sym);
++	if (!target)
++		return -ENOENT;
++
++	if (!!copy_from_kernel_nofault((void *)compat_sys_call_table_mpage, (void *)base, 4096 * 2))
++		return -EFAULT;
++
++	pr_info("addr: 0x%lx base: 0x%lx offset: %lu \n", addr, base, offset);
++
++	new_scan_depth = ksu_get_ksym_size(target, scan_depth);
++	pr_info("target: %s @ 0x%lx sz: %zu\n", compat_sym, target, new_scan_depth);
++
++	ret = bruteforce_sct_adrp((uintptr_t *)&compat_sct, target, new_scan_depth, (void *)compat_sys_call_table_mpage, new_table);
++	if (ret)
++		return ret;
++
++	pr_info("%s: compat_sys_call_table mirrored! adrp insn patched!\n", __func__);
++#endif
++	return 0;
++}
++
++static void try_mirror_syscall_table(void)
++{
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
++	int ret = do_mirror_syscall_table("do_el0_svc", "do_el0_svc_compat", 64 * 4);
++	if (!ret)
++		return;
++
++	ret = do_mirror_syscall_table("el0_svc_handler", "el0_svc_compat_handler", 64 * 4);
++	if (!ret)
++		return;
++
++	// for heavily inlined shit
++	do_mirror_syscall_table("el0_svc", "el0_svc_compat", 256 * 4);
++#else
++	do_mirror_syscall_table("el0_svc", "el0_svc_compat", 16 * 4);
++#endif
++}
++
++#else 
++
++#define try_mirror_syscall_table()	do { } while(0)
++#endif
++
++
+diff --git a/drivers/kernelsu/include/arch.h b/drivers/kernelsu/include/arch.h
+--- a/drivers/kernelsu/include/arch.h
++++ b/drivers/kernelsu/include/arch.h
+@@ -6,6 +6,9 @@
+ #if defined(__aarch64__)
+ 
+ #define __PT_PARM1_REG regs[0]
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++#define __PT_SYSCALL_PARM1_REG orig_x0
++#endif
+ #define __PT_PARM2_REG regs[1]
+ #define __PT_PARM3_REG regs[2]
+ #define __PT_SYSCALL_PARM4_REG regs[3]
+diff --git a/drivers/kernelsu/include/ksu.h b/drivers/kernelsu/include/ksu.h
+--- a/drivers/kernelsu/include/ksu.h
++++ b/drivers/kernelsu/include/ksu.h
+@@ -4,6 +4,7 @@
+ #define KERNEL_SU_VERSION KSU_VERSION
+ 
+ struct cred* ksu_cred;
++static bool ksu_late_loaded = false;
+ 
+ #if defined(CONFIG_KSU_DEBUG) || defined(CONFIG_KSU_SHELL_HAS_SU_ALWAYS)
+ static bool allow_shell = true;
+diff --git a/drivers/kernelsu/infra/event_queue.c b/drivers/kernelsu/infra/event_queue.c
+--- a/drivers/kernelsu/infra/event_queue.c
++++ b/drivers/kernelsu/infra/event_queue.c
+@@ -355,9 +355,9 @@
+ 	return copied;
+ }
+ 
+-unsigned __bitwise ksu_event_queue_poll(struct ksu_event_queue *queue, struct file *file, poll_table *wait)
+-{
+-	unsigned __bitwise mask = 0;
++__poll_t ksu_event_queue_poll(struct ksu_event_queue *queue, struct file *file, poll_table *wait)
++{
++	__poll_t mask = 0;
+ 	unsigned long irq_flags;
+ 
+ 	poll_wait(file, &queue->read_wait, wait);
+diff --git a/drivers/kernelsu/infra/event_queue.h b/drivers/kernelsu/infra/event_queue.h
+--- a/drivers/kernelsu/infra/event_queue.h
++++ b/drivers/kernelsu/infra/event_queue.h
+@@ -46,7 +46,7 @@
+ void ksu_event_queue_drop(struct ksu_event_queue *queue);
+ 
+ ssize_t ksu_event_queue_read(struct ksu_event_queue *queue, char __user *buf, size_t count, int file_flags);
+-unsigned __bitwise ksu_event_queue_poll(struct ksu_event_queue *queue, struct file *file, poll_table *wait);
++__poll_t ksu_event_queue_poll(struct ksu_event_queue *queue, struct file *file, poll_table *wait);
+ 
+ void ksu_event_queue_close(struct ksu_event_queue *queue);
+ bool ksu_event_queue_has_data(struct ksu_event_queue *queue);
+diff --git a/drivers/kernelsu/kernel_compat.h b/drivers/kernelsu/kernel_compat.h
+--- a/drivers/kernelsu/kernel_compat.h
++++ b/drivers/kernelsu/kernel_compat.h
+@@ -35,7 +35,7 @@
+ #endif
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0)
+-static noinline void ksu_do_nothing(void *unused) { };
++static void ksu_do_nothing(void *unused) { };
+ __weak void kick_all_cpus_sync(void)
+ {
+ 	smp_mb();
+@@ -113,8 +113,10 @@
+ }
+ #endif
+ 
++/* Electro already supplies strncpy_from_user_nofault() in mm/maccess.c. */
++
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0) // probe_user_read
+-static long ksu_copy_from_user_nofault(void *dst, const void __user *src, size_t size)
++static __always_inline long ksu_copy_from_user_nofault(void *dst, const void __user *src, size_t size)
+ {
+ 	// https://elixir.bootlin.com/linux/v5.8/source/mm/maccess.c#L205
+ 	mm_segment_t old_fs = get_fs();
+@@ -174,8 +176,10 @@
+ #define ksu_is_seccomp_enabled() (!!current->seccomp.mode)
+ #endif
+ 
++/* Electro already provides audit_context() in linux/audit.h. */
++
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+-static noinline ssize_t ksu_kernel_read_compat(struct file *file, void *buf, size_t count, loff_t *pos)
++static ssize_t ksu_kernel_read_compat(struct file *file, void *buf, size_t count, loff_t *pos)
+ {
+ 	mm_segment_t old_fs = get_fs();
+ 	set_fs(get_ds());
+@@ -185,7 +189,7 @@
+ }
+ #define kernel_read ksu_kernel_read_compat
+ 
+-static noinline ssize_t ksu_kernel_write_compat(struct file *file, const void *buf, size_t count, loff_t *pos)
++static ssize_t ksu_kernel_write_compat(struct file *file, const void *buf, size_t count, loff_t *pos)
+ {
+ 	mm_segment_t old_fs = get_fs();
+ 	set_fs(get_ds());
+@@ -448,6 +452,12 @@
+ 
+ #ifndef U16_MAX
+ #define	U16_MAX	((u16)(~0U))
++#endif
++
++/* Electro already supplies __poll_t in uapi/linux/types.h. */
++
++#ifndef in_compat_syscall
++#define in_compat_syscall() is_compat_task()
+ #endif
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION (4, 12, 0) && !defined(EPOLLIN)
+diff --git a/drivers/kernelsu/ksu.c b/drivers/kernelsu/ksu.c
+--- a/drivers/kernelsu/ksu.c
++++ b/drivers/kernelsu/ksu.c
+@@ -7,7 +7,6 @@
+ #ifndef CONFIG_KSU_HEURISTIC_IN_TREE_BUILD
+ 	#define CONFIG_KSU_LSM_SECURITY_HOOKS 1
+ 	#define CONFIG_KSU_HACK_ARM64_BRANCH_LINK 1
+-	#define CONFIG_KSU_FEATURE_SULOG 1
+ 	#define CONFIG_KSU_FEATURE_ADBROOT 1
+ 	#define CONFIG_KSU_THRONE_TRACKER_ALWAYS_THREADED 1
+ #endif // CONFIG_KSU_HEURISTIC_IN_TREE_BUILD
+@@ -176,7 +175,7 @@
+ #undef syscall_table_sucompat_enable
+ #undef syscall_table_sucompat_disable
+ #include "hook/syscall_table_hook_arm64.c"
+-#include "hook/syscall_table_mirror.c"		// attempt to mirror sct
++#include "hook/syscall_table_mirror_arm64.c" // attempt to mirror sct
+ #include "hook/branch_link_hook_arm64.c"
+ #endif
+ 
+@@ -277,16 +276,12 @@
+ 	ksu_feature_init();
+ 	ksu_sucompat_init();
+ 	ksu_kernel_umount_init();
+-#ifdef CONFIG_KSU_FEATURE_SULOG	
+ 	ksu_sulog_init();
+-#endif
+ #ifdef CONFIG_KSU_FEATURE_ADBROOT
+ 	ksu_adb_root_init();
+ #endif
+ 	ksu_selinux_hide_init();
+ 	ksu_shell_su_adb_only_init();
+-
+-	ksu_core_init();
+ 	ksu_supercalls_init();
+ 
+ #if defined(CONFIG_KSU_KPROBES_KSUD) && !defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) && !defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
+@@ -311,6 +306,8 @@
+ #ifdef KSU_CAN_USE_MODULE_BLACKLIST
+ 	ksu_module_blacklist_init(); // Block modules early, before vendor modules are loaded in second stage.
+ #endif
++
++	ksu_lsm_hook_init();
+ 	return 0;
+ }
+ 
+@@ -335,25 +332,29 @@
+ 	// list_del(&THIS_MODULE->list);
+ 	kobject_del(&THIS_MODULE->mkobj.kobj); // tiann/KernelSU fefb02e
+ 
+-#if 0
+ 	if (current->pid == 1)
+ 		return 0;
+ 
+-	escape_to_root_forced();
+-
+-	stop_vfs_read_hook();
++	ksu_late_loaded = true;
++
++	stop_init_rc_hook();
+ 	apply_kernelsu_rules();
+ 	cache_sid();
+ 	setup_ksu_cred();
++	escape_to_root_forced();
++
++	track_throne(false);
+ 	on_post_fs_data();
+ 	on_boot_completed();
++
+ 	ksu_feature_apply_forced();
++	kthread_run(ksu_disable_preinit_branch, nullptr, "kthread");
+ 
+ 	if (!!getenforce())
+ 		return 0;
+ 	pr_info("Permissive SELinux, enforcing\n");
+ 	setenforce(true);
+-#endif
++
+ 	return 0;
+ }
+ 
+diff --git a/drivers/kernelsu/preinit/preinit.c b/drivers/kernelsu/preinit/preinit.c
+--- a/drivers/kernelsu/preinit/preinit.c
++++ b/drivers/kernelsu/preinit/preinit.c
+@@ -100,169 +100,108 @@
+ 
+ 	pr_info("preinit: mmap_page: 0x%lx \n", mmap_page);
+ 
+-	const char __user **argv_user = (const char __user **)*(void ***)u_argv;
+-	const char __user **envp_user = (const char __user **)*(void ***)u_envp;
+-
+-// payload definition
+-	struct execve_payload {
+-		char c_argv0[32];	// "/system/bin/init", mmap_page will point here
+-		char c_argv1[32];	// "selinux_setup"
+-		char filename[32];	// fd_path
+-		uintptr_t argv[3];	// **argv: argv0, argv1, NULL terminator
+-		uintptr_t envp[17];	// envp mirror, pointer extended.
+-	}; // 4 cachelines
+-	static_assert(32 > sizeof(INIT_PATH));
+-// payload definition
+-
+-	struct execve_payload payload = { 0 };
+-	memcpy(payload.c_argv0, INIT_PATH, sizeof(INIT_PATH));
+-	memcpy(payload.c_argv1, "selinux_setup", sizeof("selinux_setup"));
+-	memcpy(payload.filename, fd_path, len + 1);
+-	payload.argv[0] = mmap_page;			// ptr to c_argv0
+-	payload.argv[1] = mmap_page + 32;		// ptr to c_argv1
+-	payload.argv[2] = 0x0;				// nullptr
+-
+-	void __user *u_filename = (void __user *)(mmap_page + offsetof(struct execve_payload, filename));
+-	void __user *u_argv_ptr = (void __user *)(mmap_page + offsetof(struct execve_payload, argv));
+-	void __user *u_envp_ptr = nullptr;
+-
+-	if (!is_compat_task())
+-		goto native;
+-
+-	pr_info("preinit: compat init found! argv: 0x%lx envp: 0x%lx \n", (uintptr_t)argv_user, (uintptr_t)envp_user);
+-
+-	// if compat task we need to mirror original envp with widened ptr
+-	uint32_t __user *u_env32 = (uint32_t __user *)envp_user;
+-	int c = 0;
+-	while (c < 16) {
+-		uint32_t compat = 0;
+-		if (get_user(compat, &u_env32[c]))
++	if (!!copy_to_user((void *)mmap_page, fd_path, sizeof(fd_path)))
++		goto unmap_and_close;
++
++	void __user *argv = (void __user *)(const char __user **)*(void ***)u_argv;
++	void __user *envp = (void __user *)(const char __user **)*(void ***)u_envp;
++	void __user *filename = (void __user *)(const char __user *)mmap_page;
++
++	if (likely(!is_compat_task())) 
++		goto ksyscall_exec;
++
++	pr_info("preinit: compat init detected! \n");
++
++	// now extend the pointers
++	uintptr_t *m_argv = (uintptr_t *)(mmap_page + 1024);
++	uintptr_t *m_envp = (uintptr_t *)(mmap_page + 2048);
++
++	uint32_t buf4;
++	uint32_t __user *c_ptr = (uint32_t __user *)argv;
++	int i = 0;
++
++	while (!get_user(buf4, &c_ptr[i]) && !!buf4 && i < 127) {
++		uintptr_t buf8 = (uintptr_t)buf4;
++		if (!!put_user(buf8, &m_argv[i]))
+ 			break;
+-
+-		if (!compat)
++		i++;
++	}
++
++	// reset
++	buf4 = 0;
++	i = 0;
++	c_ptr = (uint32_t __user *)envp;
++
++	while (!get_user(buf4, &c_ptr[i]) && !!buf4 && i < 127) {
++		uintptr_t buf8 = (uintptr_t)buf4;
++		if (!!put_user(buf8, &m_envp[i]))
+ 			break;
+-
+-		payload.envp[c] = (uintptr_t)compat; // extend
+-		pr_info("preinit: debug: envp: 0x%lx \n", payload.envp[c]);
+-		c++;
+-	}
+-	payload.envp[c] = 0x0;
+-	u_envp_ptr = (void __user *)(mmap_page + offsetof(struct execve_payload, envp));
+-	goto send_payload;
+-
+-native:; // not really needed, we can pass original envp, but its a straight up copy paste anyway
+-	uintptr_t __user *u_env_native = (uintptr_t __user *)envp_user;
+-	int n = 0;
+-	while (n < 16) {
+-		uintptr_t native = 0;
+-		if (get_user(native, &u_env_native[n]))
+-			break;
+-
+-		if (!native)
+-			break;
+-
+-		payload.envp[n] = (uintptr_t)native;
+-		pr_info("preinit: debug: envp: 0x%lx \n", payload.envp[n]);
+-		n++;
+-	}
+-	payload.envp[n] = 0x0;
+-	u_envp_ptr = (void __user *)(mmap_page + offsetof(struct execve_payload, envp));
+-
+-send_payload:
+-	if (!!copy_to_user((void __user *)mmap_page, &payload, sizeof(struct execve_payload))) {
+-		pr_info("preinit: debug: copy_to_user mmap failed \n");
+-		goto unmap_and_close;
+-	}
+-
+-	pr_info("preinit: exec runner via %s\n", fd_path);
+-	pr_info("preinit: syscall(SYS_execve, 0x%lx, 0x%lx, 0x%lx);\n", (uintptr_t)u_filename, (uintptr_t)u_argv_ptr, (uintptr_t)u_envp_ptr);
+-
+-	long eret = ksyscall(execve, u_filename, u_argv_ptr, u_envp_ptr);
+-	pr_info("preinit: sys_execve runner returned: %ld \n", eret);
+-	if (!eret)
++		i++;
++	}
++
++	argv = (char __user **)m_argv;
++	envp = (char __user **)m_envp;
++
++ksyscall_exec:;
++	ret = (int)ksyscall(execve, filename, argv, envp);
++	pr_info("preinit: ksyscall(execve, 0x%lx, 0x%lx, 0x%lx); ret: %d\n", (uintptr_t)filename, (uintptr_t)argv, (uintptr_t)envp, ret);
++	if (!ret)
+ 		return;
+ 
+ unmap_and_close: // not rly needed, but its ok.
+-	vm_munmap(mmap_page, PAGE_SIZE);
++	ksyscall(munmap, mmap_page, PAGE_SIZE);
+ 	ksu_close_fd(fd);
+ 	return;
+ }
+ 
+-static noinline void ksu_preinit_handle_kexecve(void **filename, void *kargv, void *kenvp)
++// filename_kernel is char **, filename_user is void * char __user *
++static noinline void do_ksu_preinit_execve(void **filename_kernel, const char __user **filename_user, void *u_argv, void *u_envp)
+ {
+ 	if (!current->mm || current->pid != 1)
+ 		return;
+ 
+-	assume_dereferenceable(*filename, 32);
++	if (!filename_kernel && !filename_user)
++		return;
+ 
+ 	constexpr char expected[] = INIT_PATH;
+-	if (!!memcmp_inline(*(char **)filename, expected, sizeof(expected)))
+-		return;
+-
+-	pr_info("preinit: kernel_execve: %s \n", INIT_PATH);
+-
+-	struct user_arg_ptr *argv = (struct user_arg_ptr *)kargv;
+-	void ***u_argv = (void ***)&argv->ptr.native;
+-#ifdef CONFIG_COMPAT
+-	if (argv->is_compat)
+-		u_argv = (void ***)&argv->ptr.compat;
+-#endif
+-
+-	if (!is_selinux_setup((const char __user **)*(void ***)u_argv))
+-		return;
+-
+-	struct user_arg_ptr *envp = (struct user_arg_ptr *)kenvp;
+-	void ***u_envp = (void ***)&envp->ptr.native;
+-#ifdef CONFIG_COMPAT
+-	if (envp->is_compat)
+-		u_envp = (void ***)&envp->ptr.compat;
+-#endif
+-
+-	pr_info("preinit: kernel_execve: /system/bin/init with selinux_setup! \n");
++	
++	if (filename_kernel) {
++		assume_dereferenceable(*filename_kernel, 32);
++		if (!!memcmp_inline(*(char **)filename_kernel, expected, sizeof(expected)))
++			return;
++
++		pr_info("preinit: kernel_execve: %s \n", INIT_PATH);	
++		if (!is_selinux_setup((const char __user **)*(void ***)u_argv))
++			return;
++
++		pr_info("preinit: kernel_execve: /system/bin/init with selinux_setup! \n");
++
++		kthread_run(ksu_disable_preinit_branch, nullptr, "kthread");
++	} else {
++		char buf[sizeof(expected) + 1];
++		buf[sizeof(buf) - 1] = 0;
++		if (!!copy_from_user(buf, *filename_user, sizeof(buf) - 1 ))
++			return;
++
++		if (!!strcmp(buf, expected))
++			return;
++
++		pr_info("preinit: sys_execve: %s \n", INIT_PATH);
++		if (!is_selinux_setup((const char __user **)*(void ***)u_argv))
++			return;
++
++		pr_info("preinit: sys_execve: %s with selinux_setup! \n", INIT_PATH);
++	}
+ 
+ 	kthread_run(ksu_disable_preinit_branch, nullptr, "kthread");
+ 
+-	ksu_stage_preinit_binary(u_argv, u_envp);
+-}
+-
+-// filename is void *char __user *
+-static noinline void ksu_preinit_handle_uexecve(const char __user **filename, void *u_argv, void *u_envp)
+-{
+-	if (!current->mm || current->pid != 1)
+-		return;
+-
+-	constexpr char expected[] = INIT_PATH;
+-
+-	char buf[sizeof(expected) + 1];
+-	buf[sizeof(buf) - 1] = 0;
+-	if (!!copy_from_user(buf, *filename, sizeof(buf) - 1 ))
+-		return;
+-
+-	if (!!strcmp(buf, expected))
+-		return;
+-
+-	pr_info("preinit: sys_execve: %s \n", INIT_PATH);
+-
+-	if (!is_selinux_setup((const char __user **)*(void ***)u_argv))
+-		return;
+-
+-	pr_info("preinit: sys_execve: %s with selinux_setup! \n", INIT_PATH);
+-
+-	kthread_run(ksu_disable_preinit_branch, nullptr, "kthread");
+-
+ 	ksu_stage_preinit_binary((void ***)u_argv, (void ***)u_envp);
+ }
+ 
+-static inline void ksu_preinit_kernel_execve_hook(void **filename, void *k_argv, void *k_envp)
++static inline void ksu_preinit_execve(void **filename_kernel, const char __user **filename_user, void *u_argv, void *u_envp)
+ {
+ 	if (static_branch_unlikely(&ksu_preinit_key))
+-		ksu_preinit_handle_kexecve(filename, k_argv, k_envp);
+-}
+-
+-static inline void ksu_preinit_user_execve_hook(const char __user **filename, void *u_argv, void *u_envp)
+-{
+-	if (static_branch_unlikely(&ksu_preinit_key))
+-		ksu_preinit_handle_uexecve(filename, u_argv, u_envp);
++		do_ksu_preinit_execve(filename_kernel, filename_user, u_argv, u_envp);
+ }
+ 
+ void ksu_preinit_release(void) { }
+diff --git a/drivers/kernelsu/preinit/preinit.h b/drivers/kernelsu/preinit/preinit.h
+--- a/drivers/kernelsu/preinit/preinit.h
++++ b/drivers/kernelsu/preinit/preinit.h
+@@ -13,8 +13,7 @@
+ // NOTE: even if this has to be enabled by default, this has better codegen on execve.
+ DEFINE_STATIC_KEY_FALSE(ksu_preinit_key);
+ 
+-static inline void ksu_preinit_kernel_execve_hook(void **filename, void *k_argv, void *k_envp);
+-static inline void ksu_preinit_user_execve_hook(const char __user **filename, void *u_argv, void *u_envp);
++static inline void ksu_preinit_execve(void **filename_kernel, const char __user **filename_user, void *u_argv, void *u_envp);
+ 
+ static int ksu_disable_preinit_branch(void *data)
+ {
+@@ -34,10 +33,9 @@
+ #define ksu_preinit_init() do { } while (0)
+ #define ksu_preinit_exit() do { } while (0)
+ 
+-#define ksu_preinit_kernel_execve_hook(...)	do { } while (0)
+-#define ksu_preinit_user_execve_hook(...)	do { } while (0)
++#define ksu_preinit_execve(...)	do { } while (0)
+ 
+-#define ksu_disable_preinit_branch(...)		do { } while (0)
++static int ksu_disable_preinit_branch(void *data) { return 0; }
+ 
+ #endif // KSU_NO_PREINIT
+ 
+diff --git a/drivers/kernelsu/preinit/runner/runner_xxd.h b/drivers/kernelsu/preinit/runner/runner_xxd.h
+--- a/drivers/kernelsu/preinit/runner/runner_xxd.h
++++ b/drivers/kernelsu/preinit/runner/runner_xxd.h
+@@ -180,8 +180,8 @@
+   0x20, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x69, 0x6e, 0x66, 0x6f, 0x3a, 0x20,
+   0x43, 0x6c, 0x61, 0x6e, 0x67, 0x20, 0x32, 0x33, 0x2e, 0x31, 0x2e, 0x34,
+   0x20, 0x6f, 0x6e, 0x20, 0x7a, 0x69, 0x67, 0x20, 0x30, 0x2e, 0x31, 0x38,
+-  0x2e, 0x30, 0x2d, 0x64, 0x65, 0x76, 0x2e, 0x38, 0x35, 0x32, 0x2b, 0x65,
+-  0x66, 0x61, 0x35, 0x62, 0x66, 0x61, 0x39, 0x62, 0x20, 0x73, 0x74, 0x64,
++  0x2e, 0x30, 0x2d, 0x64, 0x65, 0x76, 0x2e, 0x39, 0x33, 0x35, 0x2b, 0x65,
++  0x61, 0x64, 0x38, 0x66, 0x35, 0x61, 0x37, 0x61, 0x20, 0x73, 0x74, 0x64,
+   0x63, 0x3a, 0x20, 0x32, 0x30, 0x32, 0x33, 0x31, 0x31, 0x4c, 0x00, 0x5b,
+   0x25, 0x73, 0x5d, 0x20, 0x77, 0x72, 0x69, 0x74, 0x65, 0x3a, 0x20, 0x75,
+   0x73, 0x61, 0x67, 0x65, 0x3a, 0x20, 0x77, 0x72, 0x69, 0x74, 0x65, 0x20,
+diff --git a/drivers/kernelsu/sulog/event.c b/drivers/kernelsu/sulog/event.c
+--- a/drivers/kernelsu/sulog/event.c
++++ b/drivers/kernelsu/sulog/event.c
+@@ -16,6 +16,44 @@
+ 	__u32 uid;
+ 	__u32 euid;
+ };
++
++static struct user_arg_ptr ksu_sulog_user_argv(const char __user *const __user *argv_user)
++{
++	struct user_arg_ptr argv;
++
++#ifdef CONFIG_COMPAT
++	if (unlikely(in_compat_syscall())) {
++		argv.is_compat = true;
++		argv.ptr.compat = (const compat_uptr_t __user *)argv_user;
++		return argv;
++	}
++
++	argv.is_compat = false;
++#endif
++	argv.ptr.native = argv_user;
++	return argv;
++}
++
++static const char __user *ksu_sulog_get_user_arg_ptr(struct user_arg_ptr argv, int nr)
++{
++	const char __user *native;
++
++#ifdef CONFIG_COMPAT
++	if (unlikely(argv.is_compat)) {
++		compat_uptr_t compat;
++
++		if (get_user(compat, argv.ptr.compat + nr))
++			return ERR_PTR(-EFAULT);
++
++		return compat_ptr(compat);
++	}
++#endif
++
++	if (get_user(native, argv.ptr.native + nr))
++		return ERR_PTR(-EFAULT);
++
++	return native;
++}
+ 
+ static void ksu_sulog_fill_task_info(struct ksu_sulog_event *event, __u16 event_type, int retval)
+ {
+@@ -39,7 +77,92 @@
+ 	event->euid = identity->euid;
+ }
+ 
+-static struct ksu_sulog_pending_event *ksu_sulog_capture(__u16 event_type, const char *bprm_argv, size_t bprm_argv_len, gfp_t gfp)
++static __u32 ksu_sulog_copy_empty_string(char *dst)
++{
++	dst[0] = '\0';
++	return 1;
++}
++
++static __u32 ksu_sulog_copy_filename(const char __user *filename_user, char *dst, __u32 dst_len)
++{
++	long ret;
++
++	if (!dst_len)
++		return 0;
++
++	if (!filename_user)
++		return ksu_sulog_copy_empty_string(dst);
++
++	ret = strncpy_from_user_nofault(dst, (const void __user *)untagged_addr((unsigned long)filename_user), dst_len);
++	if (ret <= 0)
++		return ksu_sulog_copy_empty_string(dst);
++
++	if (ret >= dst_len) {
++		dst[dst_len - 1] = '\0';
++		return dst_len;
++	}
++
++	return ret + 1;
++}
++
++static __u32 ksu_sulog_flatten_argv(const char __user *const __user *argv_user, char *dst, __u32 dst_len)
++{
++	struct user_arg_ptr argv = ksu_sulog_user_argv(argv_user);
++	char arg[KSU_SULOG_MAX_ARG_CHUNK];
++	__u32 used = 0;
++	int i;
++
++	if (!dst_len)
++		return 0;
++
++	if (!argv_user)
++		return ksu_sulog_copy_empty_string(dst);
++
++	for (i = 0; i < KSU_SULOG_MAX_ARG_STRINGS; i++) {
++		const char __user *arg_user;
++		long copied;
++		size_t arg_len;
++
++		if (fatal_signal_pending(current))
++			break;
++
++		arg_user = ksu_sulog_get_user_arg_ptr(argv, i);
++		if (!arg_user)
++			break;
++		if (IS_ERR(arg_user))
++			return ksu_sulog_copy_empty_string(dst);
++
++		copied =
++			strncpy_from_user_nofault(arg, (const void __user *)untagged_addr((unsigned long)arg_user), sizeof(arg));
++		if (copied <= 0)
++			return ksu_sulog_copy_empty_string(dst);
++
++		if (copied >= sizeof(arg))
++			arg[sizeof(arg) - 1] = '\0';
++
++		arg_len = strnlen(arg, sizeof(arg));
++		if (!arg_len)
++			continue;
++
++		if (used && used < dst_len - 1)
++			dst[used++] = ' ';
++
++		if (used >= dst_len - 1)
++			break;
++
++		arg_len = min_t(size_t, arg_len, dst_len - used - 1);
++		memcpy(dst + used, arg, arg_len);
++		used += arg_len;
++
++		if (used >= dst_len - 1)
++			break;
++	}
++
++	dst[used] = '\0';
++	return used + 1;
++}
++
++static struct ksu_sulog_pending_event *ksu_sulog_capture(__u16 event_type, const char *kernel_filename, const char __user *filename_user, const char __user *const __user *argv_user, gfp_t gfp)
+ {
+ 	struct ksu_sulog_pending_event *pending = NULL;
+ 	struct ksu_sulog_event *event;
+@@ -49,28 +172,10 @@
+ 	__u32 argv_len;
+ 	__u32 remaining;
+ 	char *filename_buf;
+-	bool should_skip_copy = false;
+-
++	char *argv_buf;
+ 	if (!ksu_sulog_is_enabled())
+ 		return NULL;
+-	
+-	if (event_type == KSU_SULOG_EVENT_IOCTL_GRANT_ROOT || event_type == KSU_SULOG_EVENT_SUCOMPAT) {
+-		filename_len = 0;
+-		argv_len = 0;
+-		should_skip_copy = true;
+-		goto alloc;
+-	}
+-
+-	if (!bprm_argv)
+-		return NULL;
+-
+-	if (!bprm_argv_len)
+-		return NULL;
+-
+-	if (bprm_argv_len <= 0)
+-		return NULL;
+-
+-alloc:
++
+ 	pending = kzalloc(sizeof(*pending), gfp);
+ 	if (!pending)
+ 		goto out_drop;
+@@ -82,35 +187,29 @@
+ 	event = payload;
+ 	ksu_sulog_fill_task_info(event, event_type, 0);
+ 
+-	if (should_skip_copy)
+-		goto skip_copy;
+-
+ 	remaining = KSU_SULOG_MAX_PAYLOAD_LEN - sizeof(*event);
+ 	filename_buf = (char *)payload + sizeof(*event);
+-
+-	size_t actual_copy_len = bprm_argv_len;
+-	
+-	if (bprm_argv_len > remaining - 1)
+-		actual_copy_len = remaining - 1 ;
+-
+-	memcpy(filename_buf, bprm_argv, actual_copy_len);
+-	filename_buf[actual_copy_len] = '\0';
+-
+-	filename_len = strlen(filename_buf) + 1 ; // argv0 + null terminator
+-
+-	if (actual_copy_len > filename_len)
+-		argv_len = actual_copy_len - (filename_len);
+-	else
+-		argv_len = 0;
+-
+-skip_copy:
++	if (!kernel_filename) {
++		filename_len = ksu_sulog_copy_filename(filename_user, filename_buf, min(remaining, KSU_SULOG_MAX_FILENAME_LEN));
++		if (!filename_len)
++			goto out_free_payload;
++	} else {
++		filename_len = strscpy(filename_buf, kernel_filename, KSU_SULOG_MAX_FILENAME_LEN);
++		if (!filename_len || filename_len < 0)
++			goto out_free_payload;		
++	}
++
++	remaining -= filename_len;
++	argv_buf = filename_buf + filename_len;
++	argv_len = ksu_sulog_flatten_argv(argv_user, argv_buf, remaining);
++	if (!argv_len)
++		goto out_free_payload;
++
+ 	event->filename_len = filename_len;
+ 	event->argv_len = argv_len;
+-	
+-	payload_len = (__u32)sizeof(*event) + filename_len + argv_len;
+-
+-	// unlikely
+-	if (payload_len > KSU_SULOG_MAX_PAYLOAD_LEN || (__u32)sizeof(*event) > payload_len)
++
++	if (check_add_overflow((__u32)sizeof(*event), filename_len, &payload_len) ||
++		check_add_overflow(payload_len, argv_len, &payload_len))
+ 		goto out_free_payload;
+ 
+ 	pending->event_type = event_type;
+@@ -132,7 +231,7 @@
+ 	struct ksu_sulog_pending_event *pending;
+ 	struct ksu_sulog_event *event;
+ 
+-	pending = ksu_sulog_capture(KSU_SULOG_EVENT_IOCTL_GRANT_ROOT, NULL, 0, gfp);
++	pending = ksu_sulog_capture(KSU_SULOG_EVENT_IOCTL_GRANT_ROOT, NULL, NULL, NULL, gfp);
+ 	if (!pending)
+ 		return NULL;
+ 
+@@ -141,13 +240,13 @@
+ 	return pending;
+ }
+ 
+-int ksu_sulog_events_init(void)
++int __init ksu_sulog_events_init(void)
+ {
+ 	ksu_event_queue_init(&sulog_queue, KSU_SULOG_MAX_QUEUED, KSU_SULOG_MAX_PAYLOAD_LEN);
+ 	return 0;
+ }
+ 
+-void ksu_sulog_events_exit(void)
++void __exit ksu_sulog_events_exit(void)
+ {
+ 	ksu_event_queue_destroy(&sulog_queue);
+ }
+@@ -158,6 +257,16 @@
+ 		return;
+ 	kfree(pending->payload);
+ 	kfree(pending);
++}
++
++struct ksu_sulog_pending_event *ksu_sulog_capture_root_execve(const char *filename_kernel, const char __user *filename_user, const char __user *const __user *argv_user, gfp_t gfp)
++{
++	return ksu_sulog_capture(KSU_SULOG_EVENT_ROOT_EXECVE, filename_kernel, filename_user, argv_user, gfp);
++}
++
++struct ksu_sulog_pending_event *ksu_sulog_capture_sucompat(const char *filename_kernel, const char __user *filename_user, const char __user *const __user *argv_user, gfp_t gfp)
++{
++	return ksu_sulog_capture(KSU_SULOG_EVENT_SUCOMPAT, filename_kernel, filename_user, argv_user, gfp);
+ }
+ 
+ void ksu_sulog_emit_pending(struct ksu_sulog_pending_event *pending, int retval, gfp_t gfp)
+@@ -173,11 +282,8 @@
+ 	ksu_sulog_free_pending(pending);
+ }
+ 
+-static int ksu_sulog_emit_grant_root(int retval, __u32 uid, __u32 euid, gfp_t gfp)
+-{
+-	if (!ksu_sulog_is_enabled())
+-		return 0;
+-
++int ksu_sulog_emit_grant_root(int retval, __u32 uid, __u32 euid, gfp_t gfp)
++{
+ 	struct ksu_sulog_pending_event *pending;
+ 	struct ksu_sulog_identity identity = {
+ 		.uid = uid,
+@@ -192,72 +298,6 @@
+ 	return 0;
+ }
+ 
+-static int ksu_sulog_emit(__u16 event_type, const char *bprm_argv, size_t bprm_argv_len, gfp_t gfp)
+-{
+-	if (!ksu_sulog_is_enabled())
+-		return 0;
+-
+-	struct ksu_sulog_pending_event *pending;
+-
+-	pending = ksu_sulog_capture(event_type, bprm_argv, bprm_argv_len, gfp);
+-	if (!pending)
+-		return 0;
+-
+-	ksu_sulog_emit_pending(pending, 0, gfp);
+-	return 0;
+-}
+-
+-static noinline void do_ksu_sulog_emit_bprm(const char *filename)
+-{
+-	// maybe tag the process instead?
+-	if (!is_ksu_domain())
+-		return;
+-
+-	if (!current->mm)
+-		return;
+-
+-	unsigned long arg_start = current->mm->arg_start;
+-	unsigned long arg_end = current->mm->arg_end;
+-	size_t arg_len = arg_end - arg_start;
+-
+-	if (arg_len <= 0)
+-		return;
+-
+-#define ARGV_MAX_BPRM 128
+-	char args[ARGV_MAX_BPRM] = {0};
+-
+-	size_t argv_copy_len = (arg_len > ARGV_MAX_BPRM) ? ARGV_MAX_BPRM : arg_len;
+-
+-	// we cant use strncpy on here, else it will truncate once it sees \0
+-	if (!!copy_from_user(args, (void __user *)arg_start, argv_copy_len))
+-		return;
+-
+-	args[argv_copy_len - 1] = '\0';
+-
+-	// we grab strlen of argv0 as that needs to be kept as \0, basically to skip it
+-	size_t argv0_len = strnlen(args, argv_copy_len);
+-	char *buf = args + argv0_len + 1;
+-
+-flatten:
+-	if (buf >= args + argv_copy_len - 1)
+-		goto flatten_done;
+-
+-	int len = strlen(buf);
+-	if (!len)
+-		goto flatten_done;
+-	
+-	*(buf + len) = ' ';
+-	buf = buf + len + 1;
+-
+-	if (buf - args < argv_copy_len - argv0_len - 1)
+-		goto flatten;
+-
+-flatten_done:
+-	//	this should look like
+-	//      /system/bin/sh\0-c sh -c id
+-	ksu_sulog_emit(KSU_SULOG_EVENT_ROOT_EXECVE, args, argv_copy_len, GFP_KERNEL);
+-}
+-
+ struct ksu_event_queue *ksu_sulog_get_queue(void)
+ {
+ 	return &sulog_queue;
+diff --git a/drivers/kernelsu/sulog/event.h b/drivers/kernelsu/sulog/event.h
+--- a/drivers/kernelsu/sulog/event.h
++++ b/drivers/kernelsu/sulog/event.h
+@@ -7,19 +7,39 @@
+ int ksu_sulog_events_init(void);
+ void ksu_sulog_events_exit(void);
+ 
++struct ksu_sulog_pending_event *ksu_sulog_capture_root_execve(const char *filename_kernel, const char __user *filename_user, const char __user *const __user *argv_user, gfp_t gfp);
++struct ksu_sulog_pending_event *ksu_sulog_capture_sucompat(const char *filename_kernel, const char __user *filename_user, const char __user *const __user *argv_user, gfp_t gfp);
+ void ksu_sulog_emit_pending(struct ksu_sulog_pending_event *pending, int retval, gfp_t gfp);
++int ksu_sulog_emit_grant_root(int retval, __u32 uid, __u32 euid, gfp_t gfp);
+ 
+-static int ksu_sulog_emit_grant_root(int retval, __u32 uid, __u32 euid, gfp_t gfp);
+-static int ksu_sulog_emit(__u16 event_type, const char *bprm_argv, size_t bprm_argv_len, gfp_t gfp);
+-static noinline void do_ksu_sulog_emit_bprm(const char *filename);
++struct ksu_event_queue *ksu_sulog_get_queue(void);
++
++static noinline void do_ksu_sulog_emit_sucompat_pre(const char *filename_kernel, const char __user *filename_user, void ***argv)
++{
++	const char __user *const __user *argv_user = (const char __user *const __user *)*argv;
++	struct ksu_sulog_pending_event *pending_root_execve = ksu_sulog_capture_root_execve(filename_kernel, filename_user, argv_user, GFP_KERNEL);
++	ksu_sulog_emit_pending(pending_root_execve, 0, GFP_KERNEL);
++}
++
++static noinline void do_ksu_sulog_emit_sucompat_post(const char *filename_kernel, const char __user *filename_user, void ***argv)
++{
++	const char __user *const __user *argv_user = (const char __user *const __user *)*argv;
++	struct ksu_sulog_pending_event *pending_sucompat = ksu_sulog_capture_sucompat(filename_kernel, filename_user, argv_user, GFP_KERNEL);
++	ksu_sulog_emit_pending(pending_sucompat, 0, GFP_KERNEL);
++}
+ 
+ #ifdef KSU_CAN_USE_JUMP_LABEL // see kernel_compat.h
+-
+ DEFINE_STATIC_KEY_FALSE(ksu_sulog_key);
+-static __always_inline void ksu_sulog_emit_bprm(const char *filename)
++static __always_inline void ksu_sulog_emit_sucompat_pre(const char *filename_kernel, const char __user *filename_user, void ***argv)
+ {
+ 	if (static_branch_unlikely(&ksu_sulog_key))
+-		do_ksu_sulog_emit_bprm(filename);
++		do_ksu_sulog_emit_sucompat_pre(filename_kernel, filename_user, argv);
++}
++
++static __always_inline void ksu_sulog_emit_sucompat_post(const char *filename_kernel, const char __user *filename_user, void ***argv)
++{
++	if (static_branch_unlikely(&ksu_sulog_key))
++		do_ksu_sulog_emit_sucompat_post(filename_kernel, filename_user, argv);
+ }
+ 
+ static inline void ksu_sulog_branch_enable() { static_branch_enable(&ksu_sulog_key); smp_mb(); }
+@@ -27,16 +47,22 @@
+ 
+ #else /* !KSU_CAN_USE_JUMP_LABEL */
+ static bool ksu_sulog_enabled __read_mostly;
+-static __always_inline void ksu_sulog_emit_bprm(const char *filename)
++
++static __always_inline void ksu_sulog_emit_sucompat_pre(const char *filename_kernel, const char __user *filename_user, void ***argv)
+ {
+ 	if (unlikely(ksu_sulog_enabled))
+-		do_ksu_sulog_emit_bprm(filename);
++		do_ksu_sulog_emit_sucompat_pre(filename_kernel, filename_user, argv);
+ }
++
++static __always_inline void ksu_sulog_emit_sucompat_post(const char *filename_kernel, const char __user *filename_user, void ***argv)
++{
++	if (unlikely(ksu_sulog_enabled))
++		do_ksu_sulog_emit_sucompat_post(filename_kernel, filename_user, argv);
++}
++
+ static inline void ksu_sulog_branch_enable() { } // no-op
+ static inline void ksu_sulog_branch_disable() { } // no-op
+ 
+ #endif  /* !KSU_CAN_USE_JUMP_LABEL */
+ 
+-struct ksu_event_queue *ksu_sulog_get_queue(void);
+-
+ #endif
+diff --git a/drivers/kernelsu/sulog/fd.c b/drivers/kernelsu/sulog/fd.c
+--- a/drivers/kernelsu/sulog/fd.c
++++ b/drivers/kernelsu/sulog/fd.c
+@@ -6,7 +6,7 @@
+ 	return ksu_event_queue_read(ksu_sulog_get_queue(), buf, count, file->f_flags);
+ }
+ 
+-static unsigned __bitwise ksu_sulog_poll(struct file *file, poll_table *wait)
++static __poll_t ksu_sulog_poll(struct file *file, poll_table *wait)
+ {
+ 	return ksu_event_queue_poll(ksu_sulog_get_queue(), file, wait);
+ }
+diff --git a/drivers/kernelsu/supercall/dispatch.c b/drivers/kernelsu/supercall/dispatch.c
+--- a/drivers/kernelsu/supercall/dispatch.c
++++ b/drivers/kernelsu/supercall/dispatch.c
+@@ -10,10 +10,8 @@
+ 
+ 	pr_info("allow root for: %d\n", audit_uid);
+ 	ret = escape_with_root_profile();
+-
+-#ifdef CONFIG_KSU_FEATURE_SULOG
+ 	ksu_sulog_emit_grant_root(ret, audit_uid, audit_euid, GFP_KERNEL);
+-#endif
++
+ 	return ret;
+ }
+ 
+@@ -23,6 +21,9 @@
+ 
+ #ifdef MODULE
+ 	cmd.flags |= KSU_GET_INFO_FLAG_LKM;
++	if (ksu_late_loaded) {
++		cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
++	}
+ #endif
+ 
+ 	if (is_manager()) {
+@@ -793,8 +794,8 @@
+ }
+ 
+ /* These describe the actual pinned backslashxx driver, not a FinaSU kernel. */
+-#define KSU_COMPAT_VERSION_TAG "v3.3.1-38"
+-#define KSU_COMPAT_VERSION_FULL "v3.3.1-38-backslashxx-Electro"
++#define KSU_COMPAT_VERSION_TAG "v3.3.1+50"
++#define KSU_COMPAT_VERSION_FULL "v3.3.1+50-backslashxx-Electro"
+ 
+ static int ksu_metadata_to_user(void __user *arg, const void *data, size_t size)
+ {
+diff --git a/drivers/kernelsu/supercall/supercall.c b/drivers/kernelsu/supercall/supercall.c
+--- a/drivers/kernelsu/supercall/supercall.c
++++ b/drivers/kernelsu/supercall/supercall.c
+@@ -73,7 +73,7 @@
+ int ksu_install_su_fd(void)
+ {
+ 	// This descriptor must be installed after the exec into ksud.
+-	return ksu_install_fd_with_permissions(0, KSU_DRIVER_PERMISSION_SU_SESSION);
++	return ksu_install_fd_with_permissions(O_CLOEXEC, KSU_DRIVER_PERMISSION_SU_SESSION);
+ }
+ 
+ bool ksu_is_su_session_fd(const struct file *filp)
+diff --git a/tools/testing/selftests/bbr3/test_provenance.py b/tools/testing/selftests/bbr3/test_provenance.py
+--- a/tools/testing/selftests/bbr3/test_provenance.py
++++ b/tools/testing/selftests/bbr3/test_provenance.py
+@@ -101,4 +101,9 @@
+ 
+ 
+ if __name__ == '__main__':
++    # KSU +50 removes an obsolete config selector, not filesystem/TCP policy.
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
++    from update50 import legacy_main
++    legacy_main(__file__)
+     main()
+diff --git a/tools/testing/selftests/fs_backport/test_f2fs_sysfs.py b/tools/testing/selftests/fs_backport/test_f2fs_sysfs.py
+--- a/tools/testing/selftests/fs_backport/test_f2fs_sysfs.py
++++ b/tools/testing/selftests/fs_backport/test_f2fs_sysfs.py
+@@ -101,4 +101,9 @@
+ 
+ 
+ if __name__ == '__main__':
++    # KSU +50 removes an obsolete config selector, not filesystem/TCP policy.
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
++    from update50 import legacy_main
++    legacy_main(__file__)
+     main()
+diff --git a/tools/testing/selftests/kernelsu/test_finasu.py b/tools/testing/selftests/kernelsu/test_finasu.py
+--- a/tools/testing/selftests/kernelsu/test_finasu.py
++++ b/tools/testing/selftests/kernelsu/test_finasu.py
+@@ -161,4 +161,9 @@
+ 
+ 
+ if __name__ == '__main__':
++    # Validate the current +50 layer, then replay this legacy suite on copies.
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
++    from update50 import legacy_main
++    legacy_main(__file__)
+     sys.exit(main())
+diff --git a/tools/testing/selftests/kernelsu/test_integration.py b/tools/testing/selftests/kernelsu/test_integration.py
+--- a/tools/testing/selftests/kernelsu/test_integration.py
++++ b/tools/testing/selftests/kernelsu/test_integration.py
+@@ -105,4 +105,9 @@
+ 
+ 
+ if __name__ == '__main__':
++    # Validate the current +50 layer, then replay this legacy suite on copies.
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
++    from update50 import legacy_main
++    legacy_main(__file__)
+     sys.exit(main())
+diff --git a/tools/testing/selftests/kernelsu/test_update.py b/tools/testing/selftests/kernelsu/test_update.py
+--- a/tools/testing/selftests/kernelsu/test_update.py
++++ b/tools/testing/selftests/kernelsu/test_update.py
+@@ -216,4 +216,9 @@
+ 
+ 
+ if __name__ == '__main__':
++    # Validate the current +50 layer, then replay this legacy suite on copies.
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
++    from update50 import legacy_main
++    legacy_main(__file__)
+     main()
+diff --git a/tools/testing/selftests/susfs/test_integration.py b/tools/testing/selftests/susfs/test_integration.py
+--- a/tools/testing/selftests/susfs/test_integration.py
++++ b/tools/testing/selftests/susfs/test_integration.py
+@@ -247,4 +247,9 @@
+ 
+ 
+ if __name__ == '__main__':
++    # Validate the current +50 layer, then replay this legacy suite on copies.
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
++    from update50 import legacy_main
++    legacy_main(__file__)
+     sys.exit(main())
+diff --git a/tools/testing/selftests/susfs/test_provenance_overlays.py b/tools/testing/selftests/susfs/test_provenance_overlays.py
+--- a/tools/testing/selftests/susfs/test_provenance_overlays.py
++++ b/tools/testing/selftests/susfs/test_provenance_overlays.py
+@@ -155,4 +155,9 @@
+ 
+ 
+ if __name__ == '__main__':
++    # Validate the current +50 layer, then replay this legacy suite on copies.
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
++    from update50 import legacy_main
++    legacy_main(__file__)
+     main()

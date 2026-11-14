@@ -1,3 +1,29 @@
+Current NoMount v2.3 / API23 dev update
+======================================
+
+    python3 tools/testing/selftests/nomount/test_update23.py --self-test-negatives --historical
+
+Validates the current exact dev pin, hardened Kconfig/Makefile, sealed additive
+receipt, preserved integrations and inverse/forward source replay. Extracts
+CURRENT source bodies into model23.c and io_model23.c (GCC/UBSan required).
+Checks 44 gate cases, 131072 native/compat cookies (with fragments), 400384 UID
+operations/isolation cases, 1001 range/fallback cases plus scope edge cases,
+108241 overlap/exclusion pairs and UINT_MAX boundaries, and 21840 child-index
+lookup/removal cases across linear/bucket thresholds and full-hash collisions.
+Native4.14 VFS mocks exercise cached-file ownership, independent seek positions,
+backing xattr dispatch/read-only/error handling and retire/reclaim reference
+ordering. Nine compiled semantic mutants and closed-layer tamper cases must be
+rejected by runtime assertions. Mocks do NOT prove SMP, LSM or filesystem safety.
+
+The old test_integration.py CLI below is preserved for CI/config consumers.
+It first validates the CURRENT23 sealed source/integrations, then explicitly
+replays the API22 predecessor on detached copies; --host-tests there tests22.
+Use test_update23.py for the CURRENT23 behavioral models. No userspace/module
+was installed. Device tests and an exact production ARM64 build remain required.
+
+Legacy API22 tests / historical import description
+==================================================
+
 NoMount offline integration and extracted-source tests
 =====================================================
 

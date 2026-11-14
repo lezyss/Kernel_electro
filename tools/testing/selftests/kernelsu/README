@@ -63,3 +63,17 @@ extracted-source uaccess/strscpy/readonly-slot model cases with4 helper negative
 controls and2 additional FinaSU version/body negative controls. SUSFS provenance now includes24 negative controls and a strict
 Makefile/dispatch successor, preserving the immutable original import seal.
 Host models do not certify a target build, real page protections, SMP or boot.
+
+Current v3.3.1+50 update
+-----------------------
+Run python3 tools/testing/selftests/kernelsu/test_update50.py \
+    --self-test-negatives --historical
+
+This checks the current104 blobs/overrides, version32730 and config/artifact
+seals; runs extracted CURRENT SUSFS exec/authorization/SELinux-no-mutation and
+FinaSU/SUSFS models; then reverse/forward-replays the additive update before
+running older immutable suites on detached predecessor copies. Legacy KSU,
+SUSFS and config-sealed F2FS/BBR provenance entry points use that explicit replay
+rather than silently resealing old expectations. Replay is not execution of
+new kernel code. See Documentation/dev-tools/kernelsu-updates/v3.3.1+50.md.
+No target build, real syscall execution, manager/ksud execution or boot proof.

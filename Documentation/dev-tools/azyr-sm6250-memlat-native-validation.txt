@@ -1,0 +1,141 @@
+Corrected native memlat bounded validation
+==========================================
+Exact source/compiler identities, per-object Kbuild commands and limitations:
+  azyr-sm6250-memlat-native-validation.json
+Source patch: azyr-sm6250-memlat-native.diff
+
+Target: built-in miatoll; output-only LLVM_POLLY=n, as in production CI.
+Host-only prerequisites: bc 7.2.0 built with pinned Clang; generated OpenSSL
+3.0.20 headers and system libcrypto.so.3 cache symlink. No target config/source
+workaround. No complete image/modules link, ARM32 build, CI or device execution.
+
+Compiler:
+Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/user/.cache/memlat-fix/aosp/bin
+
+Final forced rebuild of BOTH target objects (exit 0):
+make[1]: Entering directory '/home/user/.cache/memlat-fix/out'
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      drivers/devfreq/arm-memlat-mon.o
+  CC      drivers/soc/qcom/scm.o
+make[1]: Leaving directory '/home/user/.cache/memlat-fix/out'
+
+LTO native code-generation results:
+memlat.native.o:
+  Class:                             ELF64
+  Data:                              2's complement, little endian
+  Type:                              REL (Relocatable file)
+  Machine:                           AArch64
+scm.native.o:
+  Class:                             ELF64
+  Data:                              2's complement, little endian
+  Type:                              REL (Relocatable file)
+  Machine:                           AArch64
+
+SCM-disabled header probe (not a whole disabled-profile build):
+
+/home/user/.cache/memlat-fix/scm-disabled-probe.native.o:	file format elf64-littleaarch64
+
+Disassembly of section .text.memlat_disabled_scm_probe:
+
+0000000000000000 <memlat_disabled_scm_probe>:
+       0: 2a1f03e0     	mov	w0, wzr
+       4: d65f03c0     	ret
+
+Final source-closed host models: pinned Clang + UBSan (exit 0):
+python3 tools/testing/selftests/memlat/test_memlat.py --cc <pinned-clang> --self-test-negatives
+PASS: exact three-source inverse patch/hash provenance, unchanged ARMv8 assembly bodies and unchanged legacy workers
+PASS: public async API, completion ownership, sparse allocation, unguarded teardown and non-pinning SCM wrapper contracts
+PASS: observed idle/isolated CPUs receive no sampling IPI; idle votes clear without losing elapsed baseline, isolated epochs reset
+PASS: extracted async samples, completion orders, sparse masks, read/send faults, SCM skips, epochs, zero cycles, allocation unwind and busy teardown
+PASS: 20484 extracted u64 stall-percent cases, including overflow and zero cycles
+PASS: three extracted SCM C wrappers preserve inputs/outputs/errors and balance nested global accounting (mock secure workers)
+PASS: compiled semantic mutant rejected: skip-drain
+PASS: compiled semantic mutant rejected: skip-busy-cleanup
+PASS: compiled semantic mutant rejected: partial-publication
+PASS: compiled semantic mutant rejected: skip-creation-unwind
+PASS: compiled semantic mutant rejected: missing-hotplug-lock
+PASS: compiled semantic mutant rejected: wake-observed-idle
+PASS: compiled semantic mutant rejected: sample-isolated
+
+Final integration regression commands (all exit 0):
+python3 tools/testing/selftests/susfs/test_integration.py --config <out>/.config --profile full --host-tests --cc "<pinned-clang> -Wno-pointer-bool-conversion"
+python3 tools/testing/selftests/susfs/test_provenance_overlays.py
+python3 tools/testing/selftests/kernelsu/test_update.py --self-test-negatives
+python3 tools/testing/selftests/nomount/test_integration.py --config <out>/.config --host-tests --cc <pinned-clang>
+
+SUSFS pinned source/hooks and full configuration: PASS
+SUSFS reboot command authorization: 272 cases PASS
+KSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS
+Readlink truncation/count/fault/hash collision: 3010 cases PASS
+Pagemap byte accounting/buffer bounds: 2404 cases PASS
+Flag negation and mount-ID ownership: PASS
+PASS: rejected full-profile priority filter disablement
+PASS: rejected header tamper
+PASS: rejected broken SUSFS preimage
+PASS: rejected broken pre-BPF chain
+PASS: rejected broadened overlay scope
+PASS: rejected patch tamper
+PASS: rejected unsafe patch path
+PASS: rejected missing overlay
+PASS: rejected missing BPF manifest
+PASS: rejected duplicate BPF record
+PASS: rejected changed BPF postimage
+PASS: rejected unrelated SUSFS hook tamper
+PASS: rejected FinaSU dispatch tamper
+PASS: rejected wrong reference revision
+PASS: rejected missing Phoenix overlay
+PASS: rejected Phoenix patch tamper
+PASS: rejected Phoenix preimage tamper
+PASS: rejected Phoenix scope broadening
+PASS: rejected unsafe Phoenix patch
+PASS: rejected missing KSU update
+PASS: rejected KSU patch tamper
+PASS: rejected KSU preimage tamper
+PASS: rejected KSU postimage tamper
+PASS: rejected KSU scope broadening
+PASS: rejected unsafe KSU patch
+PASS: rejected missing 2.4 successor
+PASS: rejected 2.4 patch tamper
+PASS: rejected 2.4 source tamper
+PASS: rejected 2.4 manifest reseal
+PASS: rejected 2.4 scope broadening
+PASS: rejected unsafe 2.4 patch
+PASS: reviewed overlay and all 30 provenance negative controls
+PASS: pinned 16-file upstream delta + honest display update, exact inverse/forward replay and source hashes
+PASS: rejected FinaSU false-version
+PASS: rejected FinaSU resealed-body
+PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases
+PASS: rejected fault-status
+PASS: rejected address-limit
+PASS: rejected fallback
+PASS: rejected zero-size
+LIMITS: host models only; not a pinned-Clang kernel build, real RO mappings, SMP, module loading or device boot proof.
+NoMount vendored-source, wiring and configuration checks: PASS
+Capability/payload-pointer gate: 44 cases PASS
+Native/compat directory-cookie roundtrips: 131072 cases PASS
+UID bloom/add/delete/isolation checks: 400384 cases PASS
+Rule range/exclusion/fallback selection: 1001 cases PASS
+
+Preserved #6 ARM64 Kconfig SHA256: 017ebc1342b1ea78c6cd9462f30ab863c06609291637b3f19511b492672f33bd
+
+LIMITS:
+- SCM tracking covers the native ARMv8 workers, not legacy SCM/other direct firmware calls; it is a conservative global hint, not synchronization.
+- SCM can begin after the hint check. An accepted callback is always drained; there is no bounded completion timeout or guaranteed worst-case latency.
+- Repeated failures/SCM skips retain previous governor data, potentially stale votes; benefit/power effects need measurement.
+- Observed idle/isolated CPUs are not dispatched sampling IPIs, preserving native no-wakeup intent; a CPU can change state after selection, so this is not a no-wakeup race guarantee.
+- Host mocks are sequential; no claim of real SMP, CPU-hotplug, perf-scheduling, firmware, suspend or runtime safety proof.
+- Native AArch64 object/codegen only, not a complete image/modules link, boot or device/performance test.
+- Shipped built-in miatoll configuration only: perf_event_read_local is not exported; existing governor registration functions are also unexported. Module linkage requires separate integration; no private helper export was added.
+- ARM32 raw body preserved and C wrapper modeled, but no ARM32 target object compiled.

@@ -1,14 +1,14 @@
 # Vendored KernelSU driver
 
 - Fork: https://github.com/backslashxx/KernelSU
-- Tag: `v3.3.1-38`
-- Commit: `feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb`
+- Tag: `v3.3.1+50`
+- Commit: `ae63c92098d94bdad1696c74a3ad2e96692118bf`
 - Imported directory: `kernel/` (104 files, including licenses and preinit runner source/data)
 - License: GPL-2.0-only; see `LICENSE` and retained component license notices.
 - Storage: ordinary files under `drivers/kernelsu/`, not a symlink, submodule,
   embedded Git repository, or a dependency downloaded at build time.
 
-`UPSTREAM.json` records each upstream Git blob ID and the SHA-256 of the 15
+`UPSTREAM.json` records each upstream Git blob ID and the SHA-256 of the 20
 locally adapted files (including the SUSFS and FinaSU-manager overlays). These
 hashes record source identity, not a security audit or independent signature
 verification of the fork.
@@ -81,3 +81,19 @@ eligibility and post-exec SU-only FD handling. Manager/certificate/FinaSU,
 NoMount, fork and selected hook strategy are retained. Priority filtering
 remains default-off. Combined target-build evidence is recorded separately in
 `backport-2.4.0-validation.json`; the earlier KSU update record stays historical.
+
+## Update to v3.3.1+50
+
+See Documentation/dev-tools/kernelsu-updates/v3.3.1+50.md and its additive
+receipt/patch. Numeric version is32730 (not a FinaSU version). The upstream
+syscall-table-mirror implementation was renamed; selected syscall-table hooks
+are retained. For CONFIG_KSU_SUSFS + CONFIG_KSU_TAMPER_SYSCALL_TABLE only, keep
+the reviewed original-native/compat-exec-once front end and successful-return
+SU-fd installation, rather than mixing it with upstream's nested native exec
+and compat argv conversion. Adapt that front end to unified ADB/preinit and
+runtime sulog APIs. Other configurations retain the new upstream front end.
+Native SUSFS typed SELinux filtering remains authoritative: both procattr and
+new xattr mutation hooks are no-ops with SUSFS. Native audit_context(), __poll_t
+and strncpy_from_user_nofault() already exist and are not shadowed by new shims.
+Upstream removed the SULOG build option: logging is now always built with a
+runtime-off default; only its obsolete defconfig line was removed.

@@ -2,10 +2,10 @@
 
 - Upstream: https://github.com/maxsteeel/nomount
 - Requested branch: `dev`
-- Pinned commit: `04af0552bb29c7cee1b78c3eea69d7ed98b80bf2`
-- Upstream commit subject: `kernel: drain reclaim work on shutdown`
+- Pinned commit: `5e9feb6f3fce42423f56b37e344052c59ec16b66`
+- Upstream commit subject: `module: prefer ksud/apd insmod over lkmloader during install` (kernel source pinned at this repository revision)
 - Source: `kernel/src/{Kconfig,Makefile,nomount.c,nomount.h}` and `kernel/LICENSE`
-- Kernel API base version: `22`, unchanged from upstream.
+- Kernel API base version: `23`, unchanged from upstream.
 - License: retained GPL-2 license in `LICENSE`.
 
 This is a real `fs/nomount/` directory, not a symlink, submodule, nested clone or
@@ -36,3 +36,13 @@ behavior. Upstream marks this VFS-layer project as research/development.
 The Android NoMount userspace/metamodule is NOT installed by this kernel import.
 Use a compatible version after building/flashing and validating the KSU kernel.
 Do not try to load an additional NoMount LKM over this built-in implementation.
+
+## v2.3 update
+
+The dev branch is retained (not switched to master); see
+Documentation/filesystems/nomount-update-23.md and its additive receipt/patch.
+Only the C/header and provenance advance; Kconfig and hardened Makefile remain
+unchanged. Source version23 is not evidence that a v2.3 userspace/module is
+installed. List continuation now uses an explicit completion sentinel, so use
+matching userspace for rule management. No install script or module binary was
+run, and no rules or bypass UIDs were preconfigured by this source update.

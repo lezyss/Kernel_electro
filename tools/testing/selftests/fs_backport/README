@@ -118,3 +118,16 @@ See Documentation/filesystems/f2fs-staged/implementation.md and UPSTREAM.json
 for exact boundaries, local ARM64 build configurations, provenance and limits.
 The donor's full filesystem refresh and default mount-policy changes remain
 excluded; the GC/checkpoint merge options are implemented but default off.
+
+F2FS sysfs integer-width fix (local adaptation of3fcb7aa3)
+-------------------------------------------------------
+
+    python3 tools/testing/selftests/fs_backport/test_f2fs_sysfs.py \
+        --sanitize --self-test-negatives
+
+Extracts actual sysfs functions/macros, with host fixtures. Tests 1/2/4/8-byte
+access, guard bytes, full u64 values, boolean/custom handlers, indexed long
+members, special-case locks/errors and five compiled semantic negatives.
+Checks an additive patch's reverse/forward endpoints and preservation seals.
+No actual filesystem or sysfs node is accessed. ARM64 build/device validation
+is still required. See Documentation/filesystems/f2fs-sysfs-width.rst.

@@ -1,0 +1,109 @@
+{
+  "status": "Review only; no kernel/DT/config edit, commit/push/CI. Prior shortlist remains unapplied.",
+  "review_item": 110,
+  "stable_id": "A01-110",
+  "next_review_item": 111,
+  "review_items": [
+    {
+      "role": "submitted A01-110",
+      "commit": "c3ff9a15471ccb3f7f00d02666c61d459d3eb778",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/c3ff9a15471ccb3f7f00d02666c61d459d3eb778",
+      "message": "drivers: gpu: Prevent userspace from changing GPU idle timeout\n\nOriginal commit: https://github.com/kerneltoast/android_kernel_google_floral/commit/5f8e1090b979fe2ec476743dbea78124fc617f94\n\nCo-authored-by: Sultan Alsawaf <sultan@kerneltoast.com>\nSigned-off-by: Fiqri Ardyansyah <fiqri191002@gmail.com>",
+      "files": [
+        "drivers/gpu/msm/kgsl_pwrctrl.c"
+      ],
+      "reviewed_patch": "--- a/drivers/gpu/msm/kgsl_pwrctrl.c\n+++ b/drivers/gpu/msm/kgsl_pwrctrl.c\n@@ -907,6 +907,7 @@ static ssize_t __timer_store(struct device *dev, struct device_attribute *attr,\n \tstruct kgsl_device *device = kgsl_device_from_dev(dev);\n \tint ret;\n \n+\treturn count;\n \tif (device == NULL)\n \t\treturn 0;\n \n",
+      "patch_sha256": "61337a0740be98cda1766580fb3a9d102ee38979025e24942113261eb2c6c0b4",
+      "standalone_check_pass": true,
+      "diagnostic": ""
+    },
+    {
+      "role": "original provenance, not a second ID",
+      "commit": "5f8e1090b979fe2ec476743dbea78124fc617f94",
+      "url": "https://github.com/kerneltoast/android_kernel_google_floral/commit/5f8e1090b979fe2ec476743dbea78124fc617f94",
+      "message": "arm64: dts: sm8150: Force GPU idle timeout to 58 ms\n\nThis matches the ULPS timeout used in msm_drm, which is defined as 58 ms\nby IDLE_POWERCOLLAPSE_DURATION. No need to keep the GPU running after\nthe display enters a low-power state.\n\nThis also prevents userspace from changing the GPU idle timeout.\n\nSigned-off-by: Sultan Alsawaf <sultan@kerneltoast.com>",
+      "files": [
+        "arch/arm64/boot/dts/qcom/sm8150-gpu.dtsi",
+        "drivers/gpu/msm/kgsl_pwrctrl.c"
+      ],
+      "reviewed_patch": "--- a/arch/arm64/boot/dts/qcom/sm8150-gpu.dtsi\n+++ b/arch/arm64/boot/dts/qcom/sm8150-gpu.dtsi\n@@ -82,7 +82,7 @@\n \t\tqcom,gpu-quirk-secvid-set-once;\n \t\tqcom,gpu-quirk-cx-gdsc;\n \n-\t\tqcom,idle-timeout = <80>; //msecs\n+\t\tqcom,idle-timeout = <58>; //msecs\n \t\tqcom,no-nap;\n \n \t\tqcom,highest-bank-bit = <15>;\n--- a/drivers/gpu/msm/kgsl_pwrctrl.c\n+++ b/drivers/gpu/msm/kgsl_pwrctrl.c\n@@ -944,6 +944,7 @@ static ssize_t __timer_store(struct device *dev, struct device_attribute *attr,\n \tstruct kgsl_device *device = kgsl_device_from_dev(dev);\n \tint ret;\n \n+\treturn count;\n \tif (device == NULL)\n \t\treturn 0;\n \n",
+      "patch_sha256": "efd6fa0c34eb61bcdc95cd6aa6bd8aa842d06fa2946924a4098d305f9bc8142f",
+      "standalone_check_pass": true,
+      "diagnostic": ""
+    }
+  ],
+  "source_sha256": {
+    "drivers/gpu/msm/kgsl_pwrctrl.c": "819557770426b6727f5d8c7c9d682af688a30284e603d2e87270cce4cffc0867",
+    "drivers/gpu/msm/adreno.c": "097ecba1a81d11e75855ab4a2920edf49658886f93cf9bada177fc88cbc1b11c",
+    "drivers/gpu/msm/kgsl_device.h": "a6f86e5e8bd8518770d8f2e5ed71c7421baf948873e27e8e6977ec84e1560516",
+    "drivers/gpu/drm/msm/sde/sde_encoder.h": "67757cb1792c4997c629ad2398da4e90d64fe9549bcc6e4f36f710453e56aa5f",
+    "drivers/gpu/drm/msm/sde/sde_encoder.c": "cbc3a2b7f72456dbf00b1a538cbcc39e1e7fe985f3511b8a48afeb38bc1f29ca",
+    "arch/arm64/boot/dts/qcom/sdmmagpie-gpu.dtsi": "c85f0b90bfc9f7985c023c4add52f136e0958139ef69e1b37905b83fe32f7ee4",
+    "arch/arm64/boot/dts/qcom/atoll.dtsi": "722c8ef4aa6691fd197c02767f997a0cca1a68e7ab26d1edad77036b22b3538b",
+    "arch/arm64/boot/dts/qcom/atoll-ab.dtsi": "751fa1c41ea083dcb96899ca2a8d605e7f0dbe33654792c01325aaa4398d79ac",
+    "arch/arm64/boot/dts/qcom/curtana-atoll-ab-idp-overlay.dts": "ed921ed45eab3719f0abffa1dfc6b81dac23bfc7e8ea3679652907a7a6362fab",
+    "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig": "62a05a0271c59709b5475a09834def4c8a600ab1548cf496cdefb93da36cd0ee",
+    "arch/arm64/boot/dts/qcom/sm8150-gpu.dtsi": "77d956f589764009170db8956c442da4fbc1ebcda0eec98f3addeca45374fe7a"
+  },
+  "configuration": {
+    "method": "shipped Kconfig parser, external O=, ARCH=arm64 HOSTCC=gcc CC=gcc; no target compilation",
+    "sha256": "5db6637f0914c83e5eeaf0af681180587c1653f5e5c989060d1c458ef67f1567",
+    "CONFIG_HZ": 100,
+    "CONFIG_QCOM_KGSL": "y",
+    "CONFIG_DRM_MSM": "y"
+  },
+  "probe": {
+    "method": "actual native/donor __timer_store bodies; modeled parser/mutex/device and bounded100Hz conversion; source lifetime unchanged",
+    "fixture": "#include <stdio.h>\n#include <stdlib.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include <errno.h>\n#include <limits.h>\n#include <sys/types.h>\nstruct device {int valid;};struct device_attribute {int unused;};struct kgsl_device {int mutex;struct {unsigned long interval_timeout;} pwrctrl;};\nenum kgsl_pwrctrl_timer_type {KGSL_PWR_IDLE_TIMER};\nstatic struct kgsl_device gpu;static int parses,locks;\nstatic struct kgsl_device *kgsl_device_from_dev(struct device *d){return d&&d->valid?&gpu:NULL;}\nstatic int kgsl_sysfs_store(const char *s,unsigned *v){char *end;unsigned long long n;parses++;if(*s=='-')return -EINVAL;errno=0;n=strtoull(s,&end,0);if(end==s)return -EINVAL;if(*end=='\\n')end++;if(*end)return -EINVAL;if(errno||n>UINT_MAX)return -ERANGE;*v=n;return 0;}\n/* 100Hz conversion for these small values; range test limit is a fixture. */\n#define MAX_JIFFY_OFFSET 100000UL\n#define jiffies_to_usecs(j) ((j)*10000UL)\n#define msecs_to_jiffies(ms) (((unsigned long)(ms)+9UL)/10UL)\n#define mutex_lock(p) (++locks)\n#define mutex_unlock(p) ((void)0)\nstatic ssize_t native(struct device *dev, struct device_attribute *attr,\n\t\t\t\t\tconst char *buf, size_t count,\n\t\t\t\t\tenum kgsl_pwrctrl_timer_type timer)\n{\n\tunsigned int val = 0;\n\tstruct kgsl_device *device = kgsl_device_from_dev(dev);\n\tint ret;\n\n\tif (device == NULL)\n\t\treturn 0;\n\n\tret = kgsl_sysfs_store(buf, &val);\n\tif (ret)\n\t\treturn ret;\n\n\t/*\n\t * We don't quite accept a maximum of 0xFFFFFFFF due to internal jiffy\n\t * math, so make sure the value falls within the largest offset we can\n\t * deal with\n\t */\n\n\tif (val > jiffies_to_usecs(MAX_JIFFY_OFFSET))\n\t\treturn -EINVAL;\n\n\tmutex_lock(&device->mutex);\n\t/* Let the timeout be requested in ms, but convert to jiffies. */\n\tif (timer == KGSL_PWR_IDLE_TIMER)\n\t\tdevice->pwrctrl.interval_timeout = msecs_to_jiffies(val);\n\n\tmutex_unlock(&device->mutex);\n\n\treturn count;\n}\nstatic ssize_t donor(struct device *dev, struct device_attribute *attr,\n\t\t\t\t\tconst char *buf, size_t count,\n\t\t\t\t\tenum kgsl_pwrctrl_timer_type timer)\n{\n\tunsigned int val = 0;\n\tstruct kgsl_device *device = kgsl_device_from_dev(dev);\n\tint ret;\n\n\treturn count;\n\tif (device == NULL)\n\t\treturn 0;\n\n\tret = kgsl_sysfs_store(buf, &val);\n\tif (ret)\n\t\treturn ret;\n\n\t/*\n\t * We don't quite accept a maximum of 0xFFFFFFFF due to internal jiffy\n\t * math, so make sure the value falls within the largest offset we can\n\t * deal with\n\t */\n\n\tif (val > jiffies_to_usecs(MAX_JIFFY_OFFSET))\n\t\treturn -EINVAL;\n\n\tmutex_lock(&device->mutex);\n\t/* Let the timeout be requested in ms, but convert to jiffies. */\n\tif (timer == KGSL_PWR_IDLE_TIMER)\n\t\tdevice->pwrctrl.interval_timeout = msecs_to_jiffies(val);\n\n\tmutex_unlock(&device->mutex);\n\n\treturn count;\n}\n\nint main(void){const char *inputs[]={\"58\\n\",\"200\\n\",\"0\\n\",\"bad\\n\",\"4294967296\\n\"};int v,c;struct device d={1};for(v=0;v<2;v++)for(c=0;c<6;c++){const char *s=inputs[c<5?c:0];size_t n=0;ssize_t ret;while(s[n])n++;gpu.pwrctrl.interval_timeout=7;parses=locks=0;d.valid=c!=5;ret=v?donor(&d,NULL,s,n,KGSL_PWR_IDLE_TIMER):native(&d,NULL,s,n,KGSL_PWR_IDLE_TIMER);printf(\"%s case=%d ret=%ld ticks=%lu parses=%d locks=%d\\n\",v?\"donor\":\"native\",c,(long)ret,gpu.pwrctrl.interval_timeout,parses,locks);}return 0;}\n",
+    "results": [
+      "native case=0 ret=3 ticks=6 parses=1 locks=1",
+      "native case=1 ret=4 ticks=20 parses=1 locks=1",
+      "native case=2 ret=2 ticks=0 parses=1 locks=1",
+      "native case=3 ret=-22 ticks=7 parses=1 locks=0",
+      "native case=4 ret=-34 ticks=7 parses=1 locks=0",
+      "native case=5 ret=0 ticks=7 parses=0 locks=0",
+      "donor case=0 ret=3 ticks=7 parses=0 locks=0",
+      "donor case=1 ret=4 ticks=7 parses=0 locks=0",
+      "donor case=2 ret=2 ticks=7 parses=0 locks=0",
+      "donor case=3 ret=4 ticks=7 parses=0 locks=0",
+      "donor case=4 ret=11 ticks=7 parses=0 locks=0",
+      "donor case=5 ret=3 ticks=7 parses=0 locks=0"
+    ],
+    "cases": [
+      "write58",
+      "write200",
+      "write0",
+      "invalid text",
+      "u32 overflow",
+      "NULL device result"
+    ],
+    "compiler": "gcc (Debian 12.2.0-14+deb12u1) 12.2.0"
+  },
+  "findings": {
+    "provenance": "submitted helper hunk identical to original; submitted omits original SM8150 DT80->58",
+    "atoll_gpu_DT": "atoll.dtsi includes sdmmagpie-gpu.dtsi: qcom,idle-timeout64; no relevant Atoll/miatoll override found in inspected tree",
+    "driver_default": "adreno DT reader falls back64ms",
+    "sysfs": "idle_timer remains0644 with unchanged show, but early return consumes all writes without parse/validation/update",
+    "display": "IDLE_POWERCOLLAPSE_DURATION=(66-16/2)=58; LP2 uses IDLE_SHORT_TIMEOUT; autorefresh/frame activity can defer/prevent delayed-off work",
+    "jiffies": "CONFIG_HZ100:64ms=>7ticks nominal70ms;58ms=>6ticks nominal60ms, not a measured timer firing deadline",
+    "risk": "blocks both unwanted and legitimate HAL/performance-manager/root tuning; no live ROM write evidence or measured benefit",
+    "recommendation": "skip exact silent no-op for default integration; audit runtime writers/current idle_timer first; test timing separately from locking; explicit read-only or rejected-write policy only with approval/ABI assessment",
+    "dependencies": "no need for shortlisted58; original SM8150 DT change is not an Atoll timing change"
+  },
+  "preservation_checks": {
+    "inspected_sources_unchanged": true,
+    "review10_sources_unchanged": true,
+    "approved_memlat_unchanged": true,
+    "approved36_41_unchanged": true,
+    "approved6_unchanged": true
+  },
+  "limits": [
+    "No production AOSP ARM64 build, DTB extraction, phone GPU/display/ROM test or measured power/performance outcome.",
+    "Host parser/device/mutex/range adapters are not a full kernel sysfs ABI test.",
+    "Nominal jiffy conversion is not GPU/display synchronization or exact wall-clock timeout."
+  ],
+  "repository": {
+    "branch": "arena/e63a046d-kernel-electro",
+    "head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183"
+  }
+}

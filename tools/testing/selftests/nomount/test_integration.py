@@ -132,4 +132,6 @@ def main():
 
 
 if __name__ == '__main__':
+    from update23 import legacy_main
+    legacy_main(__file__)
     sys.exit(main())

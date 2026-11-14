@@ -101,4 +101,9 @@ def main():
 
 
 if __name__ == '__main__':
+    # KSU +50 removes an obsolete config selector, not filesystem/TCP policy.
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
+    from update50 import legacy_main
+    legacy_main(__file__)
     main()
