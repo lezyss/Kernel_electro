@@ -1,0 +1,253 @@
+CI integration preflight local reproduction and validation
+Production build logs unavailable due redirected-host network restriction.
+Host GCC config/models only: not an AOSP target compile/link or device proof.
+
+=== Before: original relative output config ===
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies
+KernelSU integration check FAILED: [Errno 2] No such file or directory: '/tmp/ksu50-base-q9egh2v7/tree/out/.config'
+
+=== Before: absolute output config reveals stale selector ===
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies
+KernelSU integration check FAILED: missing CONFIG_KSU_FEATURE_SULOG=y
+
+=== Before: SUSFS2.4 exact-source model on updated KSU ===
+Traceback (most recent call last):
+  File "/home/user/Kernel_electro/tools/testing/selftests/susfs/test_backport_240.py", line 334, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/user/Kernel_electro/tools/testing/selftests/susfs/test_backport_240.py", line 304, in main
+    previous = reviewed_preimages(ROOT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Kernel_electro/tools/testing/selftests/susfs/provenance_240.py", line 67, in reviewed_preimages
+    require(sha(current[name]) == manifest['postimage_sha256'][name],
+  File "/home/user/Kernel_electro/tools/testing/selftests/susfs/provenance_240.py", line 31, in require
+    raise ValueError('SUSFS 2.4 successor: ' + message)
+ValueError: SUSFS 2.4 successor: source changed: drivers/kernelsu/feature/selinux_hide.c
+
+=== After: complete new integration preflight with generated output config ===
+Integration preflight: CURRENT resolved config /home/user/Kernel_electro/out/.config
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: current selected KSU/SUSFS/NoMount/compat profile; no obsolete sulog selector
+PASS: current selected auth/exec/post-success-fd and SUSFS no-mutation handlers, 1024 host cases
+PASS: compiled current semantic mutant rejected: allowlist-bypass
+PASS: compiled current semantic mutant rejected: early-fd
+PASS: compiled current semantic mutant rejected: lost-session
+PASS: all8 native/compat exec wrappers, unified hook APIs and native helper bindings
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 945 checks PASS (Kprobes)
+FinaSU extracted-source auth/UID/scanner/metadata: 947 checks PASS (Manual)
+SUSFS reboot command authorization: 272 cases PASS
+KSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS
+Readlink truncation/count/fault/hash collision: 3010 cases PASS
+Pagemap byte accounting/buffer bounds: 2404 cases PASS
+Flag negation and mount-ID ownership: PASS
+FinaSU deliberate regression caught: certificate bypass
+FinaSU deliberate regression caught: wrong package UID
+FinaSU deliberate regression caught: stop before verification
+FinaSU deliberate regression caught: unverified cache
+FinaSU deliberate regression caught: wrong 64-byte ABI
+FinaSU deliberate regression caught: ignored copy fault
+CURRENT PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases
+PASS: current helper semantic mutant rejected: fault-status
+PASS: current helper semantic mutant rejected: address-limit
+PASS: current helper semantic mutant rejected: fallback
+PASS: current helper semantic mutant rejected: zero-size
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: current closed-layer tamper rejected: pin
+PASS: current closed-layer tamper rejected: version
+PASS: current closed-layer tamper rejected: exec-source
+PASS: current closed-layer tamper rejected: config
+PASS: current closed-layer tamper rejected: patch
+PASS: current closed-layer tamper rejected: receipt-reseal
+PASS: current closed-layer tamper rejected: unsafe-patch
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies
+KernelSU: 104 vendored files/provenance, wiring and built-in configuration PASS
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 945 checks PASS (Kprobes)
+FinaSU extracted-source auth/UID/scanner/metadata: 947 checks PASS (Manual)
+FinaSU: pinned six-source overlay, secure package binding and honest display ABI PASS
+FinaSU deliberate regression caught: certificate bypass
+FinaSU deliberate regression caught: wrong package UID
+FinaSU deliberate regression caught: stop before verification
+FinaSU deliberate regression caught: unverified cache
+FinaSU deliberate regression caught: wrong 64-byte ABI
+FinaSU deliberate regression caught: ignored copy fault
+PASS: pinned 16-file upstream delta + honest display update, exact inverse/forward replay and source hashes
+PASS: rejected FinaSU false-version
+PASS: rejected FinaSU resealed-body
+PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases
+PASS: rejected fault-status
+PASS: rejected address-limit
+PASS: rejected fallback
+PASS: rejected zero-size
+LIMITS: host models only; not a pinned-Clang kernel build, real RO mappings, SMP, module loading or device boot proof.
+SUSFS pinned source/hooks and full configuration: PASS
+SUSFS reboot command authorization: 272 cases PASS
+KSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS
+Readlink truncation/count/fault/hash collision: 3010 cases PASS
+Pagemap byte accounting/buffer bounds: 2404 cases PASS
+Flag negation and mount-ID ownership: PASS
+PASS: rejected full-profile priority filter disablement
+PASS: rejected header tamper
+PASS: rejected broken SUSFS preimage
+PASS: rejected broken pre-BPF chain
+PASS: rejected broadened overlay scope
+PASS: rejected patch tamper
+PASS: rejected unsafe patch path
+PASS: rejected missing overlay
+PASS: rejected missing BPF manifest
+PASS: rejected duplicate BPF record
+PASS: rejected changed BPF postimage
+PASS: rejected unrelated SUSFS hook tamper
+PASS: rejected FinaSU dispatch tamper
+PASS: rejected wrong reference revision
+PASS: rejected missing Phoenix overlay
+PASS: rejected Phoenix patch tamper
+PASS: rejected Phoenix preimage tamper
+PASS: rejected Phoenix scope broadening
+PASS: rejected unsafe Phoenix patch
+PASS: rejected missing KSU update
+PASS: rejected KSU patch tamper
+PASS: rejected KSU preimage tamper
+PASS: rejected KSU postimage tamper
+PASS: rejected KSU scope broadening
+PASS: rejected unsafe KSU patch
+PASS: rejected missing 2.4 successor
+PASS: rejected 2.4 patch tamper
+PASS: rejected 2.4 source tamper
+PASS: rejected 2.4 manifest reseal
+PASS: rejected 2.4 scope broadening
+PASS: rejected unsafe 2.4 patch
+PASS: reviewed overlay and all 30 provenance negative controls
+NoMount vendored-source, wiring and configuration checks: PASS
+LIMITS: host models/config/replay only; no exact-AOSP ARM64 image/link, root/manager/device proof.
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+NoMount vendored-source, wiring and configuration checks: PASS
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+Capability/payload-pointer gate: 44 cases PASS
+Native/compat directory-cookie roundtrips: 131072 cases PASS
+UID bloom/add/delete/isolation checks: 400384 cases PASS
+Rule range/exclusion/fallback selection: 1001 cases PASS
+UID overlap/exclusion oracle: 108241 pairs + UINT_MAX boundaries PASS
+Child bucket rebuild/lookup/removal/collision/singleton: 21840 checks PASS
+PASS: compiled NoMount23 semantic mutant rejected: no-capability
+PASS: compiled NoMount23 semantic mutant rejected: wrong-compat-cookie
+PASS: compiled NoMount23 semantic mutant rejected: no-uid-bloom
+PASS: compiled NoMount23 semantic mutant rejected: name-collision
+PASS: compiled NoMount23 semantic mutant rejected: lost-fallback
+PASS: actual cache ownership/release, independent seek, backing xattr dispatch/errors and retire/RCU-order fixtures
+PASS: compiled NoMount23 IO semantic mutant rejected: borrowed-fput
+PASS: compiled NoMount23 IO semantic mutant rejected: pre-RCU-free
+PASS: compiled NoMount23 IO semantic mutant rejected: xattr-bypass
+PASS: compiled NoMount23 IO semantic mutant rejected: shared-seek
+PASS: NoMount23 closed-layer tamper rejected: pin
+PASS: NoMount23 closed-layer tamper rejected: source
+PASS: NoMount23 closed-layer tamper rejected: hardening
+PASS: NoMount23 closed-layer tamper rejected: config
+PASS: NoMount23 closed-layer tamper rejected: preserved-KSU
+PASS: NoMount23 closed-layer tamper rejected: current-model
+PASS: NoMount23 closed-layer tamper rejected: receipt
+PASS: NoMount23 closed-layer tamper rejected: patch
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+NoMount vendored-source, wiring and configuration checks: PASS
+Capability/payload-pointer gate: 44 cases PASS
+Native/compat directory-cookie roundtrips: 131072 cases PASS
+UID bloom/add/delete/isolation checks: 400384 cases PASS
+Rule range/exclusion/fallback selection: 1001 cases PASS
+LIMITS: host mocks/replay only; no target link/boot, actual VFS/xattr/RCU stress or userspace install.
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies
+SUSFS pinned source/hooks and full configuration: PASS
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies
+PASS: rejected full-profile priority filter disablement
+PASS: rejected header tamper
+PASS: rejected broken SUSFS preimage
+PASS: rejected broken pre-BPF chain
+PASS: rejected broadened overlay scope
+PASS: rejected patch tamper
+PASS: rejected unsafe patch path
+PASS: rejected missing overlay
+PASS: rejected missing BPF manifest
+PASS: rejected duplicate BPF record
+PASS: rejected changed BPF postimage
+PASS: rejected unrelated SUSFS hook tamper
+PASS: rejected FinaSU dispatch tamper
+PASS: rejected wrong reference revision
+PASS: rejected missing Phoenix overlay
+PASS: rejected Phoenix patch tamper
+PASS: rejected Phoenix preimage tamper
+PASS: rejected Phoenix scope broadening
+PASS: rejected unsafe Phoenix patch
+PASS: rejected missing KSU update
+PASS: rejected KSU patch tamper
+PASS: rejected KSU preimage tamper
+PASS: rejected KSU postimage tamper
+PASS: rejected KSU scope broadening
+PASS: rejected unsafe KSU patch
+PASS: rejected missing 2.4 successor
+PASS: rejected 2.4 patch tamper
+PASS: rejected 2.4 source tamper
+PASS: rejected 2.4 manifest reseal
+PASS: rejected 2.4 scope broadening
+PASS: rejected unsafe 2.4 patch
+PASS: reviewed overlay and all 30 provenance negative controls
+PASS: NoMount API23 dev pin,5 upstream blobs/adaptations, closed source/config/hardening seals
+PASS: NoMount23 reverse/forward endpoints; predecessor checks run on detached copies
+PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals
+PASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies
+SUSFS2.4 models: verified detached PRE-KSU+50 sources
+PASS: real SELinux core preserved; physical-unmount guards, 8 ARM64 native/compat ABI wrappers, atomic writers and cmdline contracts
+PASS: 4396 extracted type/AV full-key, collision, first-value and allocation cases
+PASS: 40 extracted post-exec SU-session FD authorization/result cases
+PASS: 33 extracted statfs flags/fallback/security/error cases
+PASS: 33 extracted post-lookup SUS_PATH/FUSE/create/fault/lifetime cases
+PASS: extracted LP64 command-payload sizes and 45 field offsets
+PASS: rejected type-bucket
+PASS: rejected av-tuple
+PASS: rejected pre-exec-fd
+PASS: rejected overwrite-flags
+PASS: rejected lookup-before-inode
+
+=== Dispatcher regression tests ===
+.Integration preflight: CURRENT resolved config /tmp/ci-dispatch-sb5_qznt/out/.config
+SUSFS2.4 models: verified detached PRE-KSU+50 sources
+.Integration preflight: CURRENT resolved config /tmp/ci-dispatch-aaorgmea/out/.config
+SUSFS2.4 models: verified detached PRE-KSU+50 sources
+.Integration preflight: CURRENT resolved config /tmp/ci-dispatch-wdy3nxwi/out/.config
+.Integration preflight: CURRENT resolved config /tmp/ci-dispatch-s9bo8xxv/out/.config
+..Integration preflight: CURRENT resolved config /tmp/ci-dispatch-7edw_1ov/out/.config
+SUSFS2.4 models: verified detached PRE-KSU+50 sources
+.Integration preflight: CURRENT resolved config /tmp/ci-dispatch-6_8jlt_w/out/.config
+SUSFS2.4 models: verified detached PRE-KSU+50 sources
+.Integration preflight: CURRENT resolved config /tmp/ci-dispatch-8bmb15_0/out/.config
+SUSFS2.4 models: verified detached PRE-KSU+50 sources
+.
+----------------------------------------------------------------------
+Ran 9 tests in 0.010s
+
+OK
+
+PASS: actual preflight rejects obsolete SULOG selector and missing full-UID checks.
+PASS: bash -n scripts/ci/build-kernel.sh

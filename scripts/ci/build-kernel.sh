@@ -65,22 +65,13 @@ make "${make_args[@]}" "$DEFCONFIG" 2>&1 | tee out/configure.log
 # Keep ThinLTO and the other device settings, changing only the output config.
 scripts/config --file out/.config --disable LLVM_POLLY
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
-# Vendored KSU needs no network fetch or installer at build time. Verify the
-# pinned source and resolved hook/security policy before spending time building.
-if grep -qx 'CONFIG_KSU=y' "arch/arm64/configs/$DEFCONFIG"; then
-    python3 tools/testing/selftests/kernelsu/test_integration.py --config out/.config
-    python3 tools/testing/selftests/kernelsu/test_finasu.py
-fi
-# NoMount is also vendored: require its keyring dependency and exact source.
-if grep -qx 'CONFIG_NOMOUNT=y' "arch/arm64/configs/$DEFCONFIG"; then
-    python3 tools/testing/selftests/nomount/test_integration.py --config out/.config
-fi
-# SUSFS is a pinned in-tree port on the vendored KSU, not a setup-time fetch.
-if grep -qx 'CONFIG_KSU_SUSFS=y' "arch/arm64/configs/$DEFCONFIG"; then
-    python3 tools/testing/selftests/susfs/test_integration.py --config out/.config
-    python3 tools/testing/selftests/susfs/test_provenance_overlays.py --config out/.config
-    python3 tools/testing/selftests/susfs/test_backport_240.py --cc "$TOOLCHAIN_DIR/bin/clang" --self-test-negatives
-fi
+# Validate today's resolved config with current checkers. Historical exact-source
+# suites run ONLY on verified detached predecessors, not the updated KSU source.
+# Keep build-output paths absolute: replay trees intentionally exclude out/.
+python3 scripts/ci/check-integrations.py \
+    --config "$ROOT/out/.config" \
+    --defconfig "$ROOT/arch/arm64/configs/$DEFCONFIG" \
+    --cc "$TOOLCHAIN_DIR/bin/clang" 2>&1 | tee out/integrations.log
 # A requested accelerator must survive dependency resolution; do not silently
 # report a successful C-only build as validation of the optional assembly.
 if grep -qx 'CONFIG_LZ4_ARM64_ACCEL=y' "arch/arm64/configs/$DEFCONFIG"; then
