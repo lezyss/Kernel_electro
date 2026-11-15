@@ -34,6 +34,7 @@
 #include <linux/backing-dev.h>
 #include <linux/compaction.h>
 #include <linux/syscalls.h>
+#include <linux/compat.h>
 #include <linux/hugetlb.h>
 #include <linux/hugetlb_cgroup.h>
 #include <linux/gfp.h>
@@ -128,7 +129,7 @@ int isolate_movable_page(struct page *page, isolate_mode_t mode)
 
 	/* Driver shouldn't use PG_isolated bit of page->flags */
 	WARN_ON_ONCE(PageIsolated(page));
-	__SetPageIsolated(page);
+	SetPageIsolated(page);
 	unlock_page(page);
 
 	return 0;
@@ -152,7 +153,7 @@ void putback_movable_page(struct page *page)
 
 	mapping = page_mapping(page);
 	mapping->a_ops->putback_page(page);
-	__ClearPageIsolated(page);
+	ClearPageIsolated(page);
 }
 
 /*
@@ -185,7 +186,7 @@ void putback_movable_pages(struct list_head *l)
 			if (PageMovable(page))
 				putback_movable_page(page);
 			else
-				__ClearPageIsolated(page);
+				ClearPageIsolated(page);
 			unlock_page(page);
 			put_page(page);
 		} else {
@@ -943,7 +944,7 @@ static int move_to_new_page(struct page *newpage, struct page *page,
 		VM_BUG_ON_PAGE(!PageIsolated(page), page);
 		if (!PageMovable(page)) {
 			rc = MIGRATEPAGE_SUCCESS;
-			__ClearPageIsolated(page);
+			ClearPageIsolated(page);
 			goto out;
 		}
 
@@ -965,7 +966,7 @@ static int move_to_new_page(struct page *newpage, struct page *page,
 			 * We clear PG_movable under page_lock so any compactor
 			 * cannot try to migrate this page.
 			 */
-			__ClearPageIsolated(page);
+			ClearPageIsolated(page);
 		}
 
 		/*
@@ -1167,7 +1168,7 @@ static ICE_noinline int unmap_and_move(new_page_t get_new_page,
 		if (unlikely(__PageMovable(page))) {
 			lock_page(page);
 			if (!PageMovable(page))
-				__ClearPageIsolated(page);
+				ClearPageIsolated(page);
 			unlock_page(page);
 		}
 		if (put_new_page)
@@ -1236,7 +1237,7 @@ out:
 			if (PageMovable(page))
 				putback_movable_page(page);
 			else
-				__ClearPageIsolated(page);
+				ClearPageIsolated(page);
 			unlock_page(page);
 			put_page(page);
 		}
@@ -1776,10 +1777,10 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
  * Move a list of pages in the address space of the currently executing
  * process.
  */
-SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
-		const void __user * __user *, pages,
-		const int __user *, nodes,
-		int __user *, status, int, flags)
+static int kernel_move_pages(pid_t pid, unsigned long nr_pages,
+			     const void __user * __user *pages,
+			     const int __user *nodes,
+			     int __user *status, int flags)
 {
 	struct task_struct *task;
 	struct mm_struct *mm;
@@ -1837,6 +1838,36 @@ out:
 	put_task_struct(task);
 	return err;
 }
+
+SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
+		const void __user * __user *, pages,
+		const int __user *, nodes,
+		int __user *, status, int, flags)
+{
+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
+}
+
+#ifdef CONFIG_COMPAT
+COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
+		       compat_uptr_t __user *, pages32,
+		       const int __user *, nodes,
+		       int __user *, status,
+		       int, flags)
+{
+	const void __user * __user *pages;
+	int i;
+
+	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
+	for (i = 0; i < nr_pages; i++) {
+		compat_uptr_t p;
+
+		if (get_user(p, pages32 + i) ||
+			put_user(compat_ptr(p), pages + i))
+			return -EFAULT;
+	}
+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
+}
+#endif /* CONFIG_COMPAT */
 
 #ifdef CONFIG_NUMA_BALANCING
 /*

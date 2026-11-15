@@ -39,6 +39,7 @@
 #include <linux/prefetch.h>
 #include <linux/ratelimit.h>
 #include <linux/list_lru.h>
+#include <linux/freezer.h>
 
 #include "internal.h"
 #include "mount.h"
@@ -1859,8 +1860,13 @@ static bool is_vendor_path(struct dentry *entry)
 		if (parent &&
 		    parent->d_name.len == sizeof("system") - 1 &&
 		    !memcmp(parent->d_name.name, "system",
-			    sizeof("system") - 1))
-			match = true;
+			    sizeof("system") - 1)) {
+			struct dentry *grandparent = READ_ONCE(parent->d_parent);
+
+			if (parent == grandparent ||
+			    (grandparent && IS_ROOT(grandparent)))
+				match = true;
+		}
 		rcu_read_unlock();
 	}
 	return match;
@@ -2492,7 +2498,7 @@ static void d_wait_lookup(struct dentry *dentry)
 		do {
 			set_current_state(TASK_UNINTERRUPTIBLE);
 			spin_unlock(&dentry->d_lock);
-			schedule();
+			freezable_schedule_unsafe();
 			spin_lock(&dentry->d_lock);
 		} while (d_in_lookup(dentry));
 	}
