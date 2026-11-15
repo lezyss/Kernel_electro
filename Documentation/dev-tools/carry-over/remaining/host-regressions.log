@@ -1,0 +1,268 @@
+
+RUN: carry_over/verify.py
+PASS: 73279 base paths/modes checked; 412 carried source paths reproduced by ordered patch replay; repaired LZ4/build sources unchanged.
+PASS: 140 inventory references covered; 0 pending; E143 native equivalent (reference unresolved); LZ4 superseded by 1.11.1; BBRplus excluded.
+PASS: historical receipts, batch evidence, new test hashes and no-unreviewed-old-carry-over checks.
+LIMITS: source/provenance only; no whole-image, device, concurrency or performance qualification.
+
+RUN: bore/test_backport.py --cc clang
+BORE extracted-source model group=0: PASS (104996 math/weight cases, inheritance/cache/budget checks)
+BORE extracted-source model group=1: PASS (104996 math/weight cases, inheritance/cache/budget checks)
+BORE source integration guards: PASS (BBRplus excluded)
+
+RUN: cambyses/test_backport.py --cc clang --self-test-negatives
+PREEMPT=0 WALT=0 PASS: rotation/budget/timeout/redo/filters/churn; 3000 exact legacy comparisons; 12000 mixed-feature cases
+PREEMPT=1 WALT=0 PASS: rotation/budget/timeout/redo/filters/churn; 3000 exact legacy comparisons; 12000 mixed-feature cases
+PREEMPT=0 WALT=1 PASS: rotation/budget/timeout/redo/filters/churn; 3000 exact legacy comparisons; 12000 mixed-feature cases
+PREEMPT=1 WALT=1 PASS: rotation/budget/timeout/redo/filters/churn; 3000 exact legacy comparisons; 12000 mixed-feature cases
+PASS: rejected mutant single-node-rotation
+PASS: rejected mutant no-concession
+PASS: rejected mutant stale-cursor
+PASS: rejected mutant no-pre-detach-flush
+PASS: rejected mutant no-sticky-progress
+PASS: rejected mutant bypass-filters
+PASS: rejected mutant post-timeout-concession
+PASS: rejected mutant lose-two-task-exception
+PASS: rejected mutant overflow-concession
+PASS: rejected mutant no-timeout
+PASS: rejected mutant no-lb-min
+PASS: rejected mutant zero-load-cost
+
+RUN: mglru/test_backport.py --cc clang
+Shadow cleanup range model: PASS (2006 cases)
+Backport source guards: PASS
+
+RUN: mm_backport/test_backport.py --cc clang
+Filemap guarded callback/lock cases: 36 PASS
+Readahead cleanup/plug/bulk-fallback cases: 792 PASS
+Swap PSI route/nesting/disabled/flag-change cases: 160 PASS
+Compaction retry cases: 3456 + feedback/escalation PASS
+Shrinker zero/positive seeks/debt/batching/stop cases: 11440 PASS
+quiet_vmstat branch outcomes: 12 PASS
+Integration/default source guards: PASS
+
+RUN: vmalloc_backport/test_backport.py --cc clang
+Search/overflow vs independent oracles: 400000 PASS
+Allocation/split/merge/GFP/failure operations: 30016 PASS
+Lazy TLB quarantine/proc iterator and lock balance: PASS
+Boot occupied/free metadata failure injection: 6 PASS
+Per-CPU allocation/oracle/rollback cases: 4014 PASS
+Vmalloc integration guards: PASS
+
+RUN: procfs_backport/test_backport.py --cc clang
+Extracted-source procfs models: PASS (58806 formatting cases, status units, PSS, rollup retries/empty-mm/reference balance)
+Source integration guards: PASS
+
+RUN: fs_backport/test_backport.py --cc clang
+Writeback completion/freeing cases CGWB=0: 16384 PASS
+Dirty-inode handoff/list/legacy-time cases CGWB=0: 46080 PASS
+Epoll temporary-reference/mask/close cases: 4096 PASS
+Compression dnode/checkpoint-lock branch cases: 2592 PASS
+GC inline-data/reference/diagnostic ordering: PASS
+Atomic-file ioctl guard/unwind cases: 18 PASS
+Writeback completion/freeing cases CGWB=1: 16384 PASS
+Dirty-inode handoff/list/legacy-time cases CGWB=1: 46080 PASS
+Epoll temporary-reference/mask/close cases: 4096 PASS
+Compression dnode/checkpoint-lock branch cases: 2592 PASS
+GC inline-data/reference/diagnostic ordering: PASS
+Atomic-file ioctl guard/unwind cases: 18 PASS
+Selected fixes/skipped policy integration guards: PASS
+
+RUN: fs_backport/test_f2fs_sysfs.py --models-only --sanitize --self-test-negatives
+PASS: actual F2FS sysfs helpers/dispatch/macros: widths, canaries, u64, special cases, locking and parser errors
+PASS: compiled semantic mutant rejected: four-byte-show
+PASS: compiled semantic mutant rejected: four-byte-store
+PASS: compiled semantic mutant rejected: truncate-u64
+PASS: compiled semantic mutant rejected: wrong-stat-size
+PASS: compiled semantic mutant rejected: wrong-RW-size
+PASS: all42 local RW/stat declarations use size metadata; special-case store and locking wrapper preserved
+LIMIT: historical checkpoint seals not asserted; use carry_over/verify.py for ordered source provenance
+
+RUN: fs_backport/test_f2fs_merge.py --cc clang
+IPU extracted-source selector/accounting/immediate-completion/retry tests: PASS
+GC extracted admission/batching/spurious-wake/stop/restart/self/freeze: 800 requests PASS
+CP extracted worker/requests: 1200 batched + 4 freeze/quota fallbacks, errors/start/stop/bypass PASS
+Selected fixes/skipped policy integration guards: PASS
+Stage B2 checks: PASS (not a durability/concurrency proof)
+
+RUN: bbr3/test_backport.py --cc clang --self-test-negatives
+EDT BBR forecast: 120 rate/gain/fallback/horizon cases plus past deadline PASS
+BBRv3 extracted-source models: PASS (10,000 wrap cases; 74,100 split/merge cases; 1,188 TSO cases; CC switches, loss bounds, phases, TLP, BPF and ABI)
+BBRv3 source/config/ABI guards: PASS
+PASS: runtime assertion rejected byte-as-packets
+PASS: runtime assertion rejected no-wrap
+PASS: runtime assertion rejected no-loss-snapshot
+PASS: runtime assertion rejected no-loss-hook
+PASS: runtime assertion rejected no-split
+PASS: runtime assertion rejected no-merge
+PASS: runtime assertion rejected no-switch-guard
+PASS: runtime assertion rejected no-loss-tag-guard
+PASS: runtime assertion rejected no-ce-snapshot
+PASS: runtime assertion rejected required-native-hooks
+PASS: runtime assertion rejected bpf-native-exposure
+PASS: runtime assertion rejected cached-mss
+PASS: runtime assertion rejected no-legacy-refresh
+PASS: runtime assertion rejected no-edt-forecast
+PASS: runtime assertion rejected edt-without-fq
+
+RUN: bbr3/test_edt.py --self-test-negatives
+PASS: miatoll BBRv3 + built-in fq/default fq; fq_codel available
+EDT actual TCP/FQ bodies: clocks, commit/failure, controls, ordering, rearm, maxrate, allocation fallback, legacy/nopacing; 6400 sorted packets PASS
+PASS: compiled semantic mutant rejected: no-deadline
+PASS: compiled semantic mutant rejected: double-socket-rate
+PASS: compiled semantic mutant rejected: no-maxrate
+PASS: compiled semantic mutant rejected: ack-erases-frontier
+PASS: compiled semantic mutant rejected: clock-domain
+PASS: compiled semantic mutant rejected: no-sort
+PASS: compiled semantic mutant rejected: no-rearm
+PASS: compiled semantic mutant rejected: internal-bypass
+PASS: send/clone/GSO-header/IPv4+IPv6-fragment/RX/scrub/BPF/legacy opt-in wiring
+
+RUN: carry_over/test_security.py
+PASS: exact KSU +50/FinaSU and NoMount API23 vendored identities/local adaptations
+PASS: current selected auth/exec/post-success-fd and SUSFS no-mutation handlers, 1024 host cases
+PASS: compiled current semantic mutant rejected: allowlist-bypass
+PASS: compiled current semantic mutant rejected: early-fd
+PASS: compiled current semantic mutant rejected: lost-session
+PASS: all8 native/compat exec wrappers, unified hook APIs and native helper bindings
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)
+FinaSU extracted-source auth/UID/scanner/metadata: 945 checks PASS (Kprobes)
+FinaSU extracted-source auth/UID/scanner/metadata: 947 checks PASS (Manual)
+SUSFS reboot command authorization: 272 cases PASS
+KSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS
+Readlink truncation/count/fault/hash collision: 3010 cases PASS
+Pagemap byte accounting/buffer bounds: 2404 cases PASS
+Flag negation and mount-ID ownership: PASS
+FinaSU deliberate regression caught: certificate bypass
+FinaSU deliberate regression caught: wrong package UID
+FinaSU deliberate regression caught: stop before verification
+FinaSU deliberate regression caught: unverified cache
+FinaSU deliberate regression caught: wrong 64-byte ABI
+FinaSU deliberate regression caught: ignored copy fault
+CURRENT PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases
+PASS: current helper semantic mutant rejected: fault-status
+PASS: current helper semantic mutant rejected: address-limit
+PASS: current helper semantic mutant rejected: fallback
+PASS: current helper semantic mutant rejected: zero-size
+Capability/payload-pointer gate: 44 cases PASS
+Native/compat directory-cookie roundtrips: 131072 cases PASS
+UID bloom/add/delete/isolation checks: 400384 cases PASS
+Rule range/exclusion/fallback selection: 1001 cases PASS
+UID overlap/exclusion oracle: 108241 pairs + UINT_MAX boundaries PASS
+Child bucket rebuild/lookup/removal/collision/singleton: 21840 checks PASS
+PASS: compiled NoMount23 semantic mutant rejected: no-capability
+PASS: compiled NoMount23 semantic mutant rejected: wrong-compat-cookie
+PASS: compiled NoMount23 semantic mutant rejected: no-uid-bloom
+PASS: compiled NoMount23 semantic mutant rejected: name-collision
+PASS: compiled NoMount23 semantic mutant rejected: lost-fallback
+PASS: actual cache ownership/release, independent seek, backing xattr dispatch/errors and retire/RCU-order fixtures
+PASS: compiled NoMount23 IO semantic mutant rejected: borrowed-fput
+PASS: compiled NoMount23 IO semantic mutant rejected: pre-RCU-free
+PASS: compiled NoMount23 IO semantic mutant rejected: xattr-bypass
+PASS: compiled NoMount23 IO semantic mutant rejected: shared-seek
+PASS: native signal/clone3/vendor-path preservation, pidfd errors/nonaliasing, writeback ordering and IDA decision snapshot
+LIMITS: mocked authorization/RCU/VFS; no runtime security certification, APK fingerprint audit or installation test
+
+RUN: susfs/test_backport_240.py --cc clang --models-only --self-test-negatives
+LIMIT: historical checkpoint seals not asserted; run carry_over/verify.py
+PASS: 4396 extracted type/AV full-key, collision, first-value and allocation cases
+PASS: 40 extracted post-exec SU-session FD authorization/result cases
+PASS: 33 extracted statfs flags/fallback/security/error cases
+PASS: 33 extracted post-lookup SUS_PATH/FUSE/create/fault/lifetime cases
+PASS: extracted LP64 command-payload sizes and 45 field offsets
+PASS: rejected type-bucket
+PASS: rejected av-tuple
+PASS: rejected pre-exec-fd
+PASS: rejected overwrite-flags
+PASS: rejected lookup-before-inode
+
+RUN: bpf_upgrade/test_jmp32.py --self-test-negatives
+PASS: requested sanitizer runtime probes
+PASS: 923120 generated-code cases; 22 JMP32 + 22 JMP forms; signed/unsigned/JSET, immediates, high halves, dry/emission passes and forward/backward targets
+PASS: rejected missing-jmp32
+PASS: rejected all-64-bit
+PASS: rejected all-32-bit
+PASS: rejected cmp-width
+PASS: rejected test-width
+PASS: rejected immediate-width
+PASS: rejected wrong-condition
+PASS: rejected branch-offset
+
+RUN: bpf_upgrade/test_core.py --self-test-negatives
+PASS: kernel/tools BPF UAPI byte-identical (including timer helper IDs)
+PASS: 3369783 build-ID/pidfd/tnum/scalar-bound checks (extracted production functions, mocked fd primitives)
+PASS: rejected note-bounds
+PASS: rejected gnu-name
+PASS: rejected pidfd-type
+PASS: rejected pidfd-reference
+PASS: rejected tnum-mask
+PASS: rejected scalar-bound
+
+RUN: bpf_upgrade/test_atomics.py --self-test-negatives
+PASS: 200000 real ARM64 atomic code cases, widths/LSE/aliases/offsets/exclusive retries/interference/barrier paths
+PASS: rejected address-alias
+PASS: rejected cmp-failure-barrier
+PASS: rejected fetch-operand
+
+RUN: bpf_upgrade/test_softirq.py --self-test-negatives
+PASS: requested sanitizer runtime probes
+PASS: 1200895 extracted timer checks; base/mode selection, expiry/exclusion, offsets, hard/soft dispatch, nested hard IRQ, restart/free and pinned migration
+PASS: rejected hard-clock-base
+PASS: rejected wrong-expiry-mask
+PASS: rejected lose-pinned
+PASS: rejected exclude-mutates-cache
+PASS: rejected hardirq-soft-callback
+PASS: rejected migrate-pinned
+PASS: rejected migrate-running-soft
+PASS: rejected unconditional-bh-enable
+PASS: rejected stale-soft-deadline
+PASS: rejected pin-only-active
+PASS: rejected cpu-reset-seq
+PASS: rejected clock-expiry-cache
+
+RUN: bpf_upgrade/test_lockdep.py --self-test-negatives
+PASS: 80001 dynamic lockdep key checks; registration, duplicate rejection, full-subkey retirement, grace/IRQ context and debug-disabled UAF avoidance (mocked platform)
+PASS: rejected unregistered
+PASS: rejected retirement-range
+PASS: rejected grace-period
+
+RUN: bpf_upgrade/test_timer_lifetime.py --self-test-negatives
+PASS: 230005 BPF timer helper/lifetime/accounting checks; array/hash, callback replacement, cancel, self-delete/free, reference and error paths (mocked platform)
+PASS: rejected hard-mode
+PASS: rejected self-cancel
+PASS: rejected prog-reference
+PASS: rejected self-free
+PASS: rejected timer-charge
+PASS: compiled runtime negative rejected: bore/test_backport.py --donor-idle
+PASS: compiled runtime negative rejected: bore/test_backport.py --legacy-nice
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py donor-psi
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py old-trace
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py old-shrinker
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py old-retry
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py donor-search
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py missing-unlock
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py boot-skip
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py wrong-gfp
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py early-reuse
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py no-file-pin
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py missing-fput
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py donor-freeing
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py late-freeing
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py no-cp-lock
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py gc-after-iput
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py atomic-bypass
+PASS: compiled runtime negative rejected: procfs_backport/test_backport.py --donor-padding
+PASS: compiled runtime negative rejected: procfs_backport/test_backport.py --donor-locked-pss
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py null-selector
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py missing-accounting
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py bounce-accounting
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py no-ipu-drain
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py gc-freezer-window
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-late-counter
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-no-umount-protection
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-no-lifetime-gate
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-drop-error
+
+PASS: 19 expanded host suites and requested runtime negative controls
+LIMITS: extracted functions/mocked platforms only; not an image link, device boot, concurrency or performance qualification

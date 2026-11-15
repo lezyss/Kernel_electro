@@ -15,6 +15,7 @@
 struct linux_binprm;
 
 #ifdef CONFIG_IMA
+extern int ima_inode_hash(struct inode *inode, char *buf, size_t buf_size);
 extern int ima_bprm_check(struct linux_binprm *bprm);
 extern int ima_file_check(struct file *file, int mask, int opened);
 extern void ima_file_free(struct file *file);
@@ -30,6 +31,11 @@ extern void ima_add_kexec_buffer(struct kimage *image);
 #endif
 
 #else
+static inline int ima_inode_hash(struct inode *inode, char *buf, size_t buf_size)
+{
+	return -EOPNOTSUPP;
+}
+
 static inline int ima_bprm_check(struct linux_binprm *bprm)
 {
 	return 0;

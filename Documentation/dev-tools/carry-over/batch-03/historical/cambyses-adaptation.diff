@@ -1,0 +1,200 @@
+diff --git a/include/linux/list.h b/include/linux/list.h
+--- a/include/linux/list.h
++++ b/include/linux/list.h
+@@ -257,6 +257,19 @@
+ static inline int list_is_singular(const struct list_head *head)
+ {
+ 	return !list_empty(head) && (head->next == head->prev);
++}
++
++/**
++ * list_rotate_to_front - make an entry the first one, preserving cyclic order
++ * @list: entry in @head, or @head itself for a no-op
++ * @head: list head
++ */
++static inline void list_rotate_to_front(struct list_head *list,
++					struct list_head *head)
++{
++	/* Move the sentinel before @list, not @list before the sentinel. */
++	if (list != head)
++		list_move_tail(head, list);
+ }
+ 
+ static inline void __list_cut_position(struct list_head *list,
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -9271,6 +9271,8 @@
+ #define LBF_NEED_BREAK	0x02
+ #define LBF_DST_PINNED  0x04
+ #define LBF_SOME_PINNED	0x08
++/* Sticky across more_balance retries; never stores a task pointer. */
++#define LBF_MOVED		0x40
+ #define LBF_IGNORE_BIG_TASKS 0x100
+ #define LBF_IGNORE_PREFERRED_CLUSTER_TASKS 0x200
+ 
+@@ -9565,6 +9567,33 @@
+ static const unsigned int sched_nr_migrate_break = 32;
+ 
+ /*
++ * Cambyses v0.6.0 load-budget and block-rotation ideas by Masahito Suzuki,
++ * adapted to this tail-first 4.14 balancer.  A concession is valid only while
++ * the source rq remains locked: WALT detach_task() can drop that lock.
++ */
++struct lb_concession {
++	struct task_struct *p;
++	unsigned long cost;
++};
++
++static bool lb_cost_fits(struct lb_env *env, struct lb_concession *concession,
++			 struct task_struct *p, unsigned long cost, bool strict)
++{
++	if (!strict)
++		return (cost / 2) <= (unsigned long)env->imbalance;
++
++	if (cost <= (unsigned long)env->imbalance)
++		return true;
++
++	if (!(env->flags & LBF_MOVED) &&
++	    (!concession->p || cost < concession->cost)) {
++		concession->p = p;
++		concession->cost = cost;
++	}
++	return false;
++}
++
++/*
+  * detach_tasks() -- tries to detach up to imbalance weighted load from
+  * busiest_rq, as part of a balancing operation within domain "sd".
+  *
+@@ -9574,6 +9603,11 @@
+ {
+ 	struct list_head *tasks = &env->src_rq->cfs_tasks;
+ 	struct task_struct *p;
++	struct lb_concession concession = { NULL, 0 };
++	struct list_head *cursor;
++	bool rotate = sched_feat(LB_ROTATE_BLOCK);
++	bool strict = sched_feat(LB_STRICT_BUDGET);
++	bool scan_timed_out = false;
+ 	unsigned long load = 0;
+ 	int detached = 0;
+ 	int orig_loop = env->loop;
+@@ -9593,7 +9627,13 @@
+ 	}
+ 
+ redo:
++	concession.p = NULL;
++	concession.cost = 0;
++	cursor = tasks->prev;
+ 	while (!list_empty(tasks)) {
++		if (rotate && cursor == tasks)
++			break;
++
+ 		/*
+ 		 * We don't want to steal all, otherwise we may be treated likewise,
+ 		 * which could at worst lead to a livelock crash.
+@@ -9601,7 +9641,10 @@
+ 		if (env->idle != CPU_NOT_IDLE && env->src_rq->nr_running <= 1)
+ 			break;
+ 
+-		p = list_last_entry(tasks, struct task_struct, se.group_node);
++		if (rotate)
++			p = list_entry(cursor, struct task_struct, se.group_node);
++		else
++			p = list_last_entry(tasks, struct task_struct, se.group_node);
+ 
+ 		env->loop++;
+ 		/* We've more or less seen every task there is, call it quits */
+@@ -9609,8 +9652,10 @@
+ 			break;
+ 
+ 		/* Abort the loop, if we spent more than 5 msec */
+-		if (rq_clock(env->src_rq) - start_t > 5000000)
++		if (rq_clock(env->src_rq) - start_t > 5000000) {
++			scan_timed_out = true;
+ 			break;
++		}
+ 
+ 		/* take a breather every nr_migrate tasks */
+ 		if (env->loop > env->loop_break) {
+@@ -9618,6 +9663,9 @@
+ 			env->flags |= LBF_NEED_BREAK;
+ 			break;
+ 		}
++
++		/* First unexamined entry, walking towards the head. */
++		cursor = p->se.group_node.prev;
+ 
+ 		if (!can_migrate_task(p, env))
+ 			goto next;
+@@ -9645,11 +9693,22 @@
+ 		 */
+ 		if (((cpu_rq(env->src_cpu)->nr_running > 2) ||
+ 			(env->flags & LBF_IGNORE_BIG_TASKS)) &&
+-			((load / 2) > env->imbalance))
++			!lb_cost_fits(env, &concession, p, load, strict))
+ 			goto next;
+ 
++		/*
++		 * Flush preceding rejects before detach_task(): its WALT path
++		 * can release src_rq->lock.  Retain neither a cursor nor a
++		 * candidate across that call; restart from the new tail.
++		 */
++		if (rotate && p->se.group_node.next != tasks)
++			list_rotate_to_front(p->se.group_node.next, tasks);
++		cursor = NULL;
++		concession.p = NULL;
++		env->flags |= LBF_MOVED;
+ 		detach_task(p, env);
+ 		list_add(&p->se.group_node, &env->tasks);
++		cursor = tasks->prev;
+ 
+ 		detached++;
+ 		env->imbalance -= load;
+@@ -9678,7 +9737,30 @@
+ 				env->src_grp_type, p->pid, load, task_util(p),
+ 				cpumask_bits(&p->cpus_allowed)[0]);
+ #endif
+-		list_move(&p->se.group_node, tasks);
++		if (!rotate)
++			list_move(&p->se.group_node, tasks);
++	}
++
++	/* Make the first unexamined entry the new tail, in one list operation. */
++	if (rotate && cursor != tasks && cursor->next != tasks)
++		list_rotate_to_front(cursor->next, tasks);
++
++	/*
++	 * Only candidates that passed can_migrate_task() and LB_MIN reach
++	 * here.  No detach has occurred, so src_rq->lock still protects the
++	 * saved task.  Finish rotation before the possible WALT lock drop.
++	 * Respect the existing scan timeout rather than doing extra work.
++	 */
++	if (strict && concession.p && !(env->flags & LBF_MOVED) &&
++	    !scan_timed_out) {
++		p = concession.p;
++		concession.p = NULL;
++		env->flags |= LBF_MOVED;
++		detach_task(p, env);
++		list_add(&p->se.group_node, &env->tasks);
++		/* Overshoot ends the budget, even for costs above LONG_MAX. */
++		env->imbalance -= min_t(unsigned long, concession.cost, LONG_MAX);
++		detached++;
+ 	}
+ 
+ 	if (env->flags & (LBF_IGNORE_BIG_TASKS |
+diff --git a/kernel/sched/features.h b/kernel/sched/features.h
+--- a/kernel/sched/features.h
++++ b/kernel/sched/features.h
+@@ -82,6 +82,11 @@
+ SCHED_FEAT(LB_MIN, false)
+ SCHED_FEAT(ATTACH_AGE_LOAD, true)
+ 
++/* Batch rejected-task list updates; sampled once per detach_tasks() call. */
++SCHED_FEAT(LB_ROTATE_BLOCK, true)
++/* Fit the actual remaining load budget, with one bounded progress concession. */
++SCHED_FEAT(LB_STRICT_BUDGET, true)
++
+ SCHED_FEAT(WA_IDLE, true)
+ SCHED_FEAT(WA_WEIGHT, true)
+ SCHED_FEAT(WA_BIAS, true)

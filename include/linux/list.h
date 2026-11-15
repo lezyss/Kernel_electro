@@ -259,6 +259,19 @@ static inline int list_is_singular(const struct list_head *head)
 	return !list_empty(head) && (head->next == head->prev);
 }
 
+/**
+ * list_rotate_to_front - make an entry the first one, preserving cyclic order
+ * @list: entry in @head, or @head itself for a no-op
+ * @head: list head
+ */
+static inline void list_rotate_to_front(struct list_head *list,
+					struct list_head *head)
+{
+	/* Move the sentinel before @list, not @list before the sentinel. */
+	if (list != head)
+		list_move_tail(head, list);
+}
+
 static inline void __list_cut_position(struct list_head *list,
 		struct list_head *head, struct list_head *entry)
 {

@@ -1,0 +1,33 @@
+BORE backport host models
+========================
+
+  python3 tools/testing/selftests/bore/test_backport.py --cc clang
+
+Requires Python 3 and a host C compiler. HOSTCC is supported; default is cc.
+The runner extracts production burst math/smoothing/scoring, priority tables,
+load-weight setup, reweight helpers and inheritance/cache functions. It builds
+and runs group-on and group-off models in a temporary directory. Assertions
+are explicitly enabled even if NDEBUG is supplied.
+
+Each model covers 104,996 math/weight cases, plus cache/inheritance cases:
+* binary smoothing for all valid old/new penalties and smoothing settings;
+* log/penalty boundaries, saturation, nice/score combinations and idle policy;
+* queued/off-rq reweight accounting and old-weight PELT callback ordering;
+* direct/topological averages, cache expiry and weighted subtree reuse;
+* a 3,072-node chain/wide tree, shared traversal budget and one depth snapshot
+  even when the simulated sysctl changes during that read.
+
+Negative controls (both MUST fail with C assertions):
+
+  python3 tools/testing/selftests/bore/test_backport.py --cc clang --donor-idle
+  python3 tools/testing/selftests/bore/test_backport.py --cc clang --legacy-nice
+
+The model's locks, lists, clocks, runqueues and PELT callbacks are shims. It
+cannot test actual concurrency, PELT integration, update_curr re-entry, CFS
+bandwidth throttling, scheduler migration, cpufreq, CPU hotplug, fairness or
+responsiveness. Source guards and kernel object builds supplement it but do
+not replace running-kernel stress tests. model.c is a runner template, not a
+standalone kernel selftest binary or a runtime scheduler interface.
+
+See Documentation/scheduler/bore-backport.rst for provenance, deviations,
+configuration, compile coverage and important runtime validation limits.

@@ -1,0 +1,81 @@
+{
+  "base_sha256": {
+    "block/ioprio.c": "2e322ee5ef7744b521228711f62f1c09a6c6da576f28587bc4cfccd96174cb43",
+    "drivers/kernelsu/Kconfig": "097c27a389f2d9d671fae55d74e69a7032cec03523e5ccec9f9e2013cc9ca711",
+    "drivers/kernelsu/feature/kernel_umount.c": "1dfeada54e47b47d3b70f2496c67c2527b7878448da85952c5f86c759fa276e0",
+    "drivers/kernelsu/feature/selinux_hide.c": "2ef498a498fe312016e28193d30bb9b08534519e350d7c9fe0bcff0edd8e0218",
+    "drivers/kernelsu/feature/sucompat.c": "b2a27e3ea5a5b274ffaca90d5af9297e823ef0bbfca970a33a65b498ae01a095",
+    "drivers/kernelsu/hook/syscall_table_hook_arm64.c": "ff020f14cd702ba2ea621890b37d025e31dd21c072eb6a3d0a2c865992eab59f",
+    "drivers/kernelsu/selinux/sepolicy.c": "0b6e2200692d04303d4ee6e66f24cccf31cd2f5533d250fea11e15971b3c0919",
+    "drivers/kernelsu/supercall/supercall.c": "e5a8c1330f191802aa46c2beb7b90d16e435c9fc11429d80729f7fec510cf61d",
+    "fs/namei.c": "326e44ca470da8d7681e218ba4ee1f98258c0ee8a15f3492ffd90430818dfdfb",
+    "fs/namespace.c": "242281ce1db1c88573487a4061663631d2ee90e3317150240579b58502b3c222",
+    "fs/statfs.c": "600d85a8e6b45763c116c33da075300693cc39be531e5acbb17111bd66fe3c54",
+    "fs/susfs.c": "ca2e8cad1d9de99b121b34957cdf925b2a4177578e9b5e620e03f76f5041e6fa",
+    "include/linux/susfs.h": "11453da718f4171aa583b9ecd504705b5034b63c8af64e346ab3b7d0a67aa7bf",
+    "include/linux/susfs_def.h": "6b33f766144bd84cabd8f7b9fd377d80ce6fb2a8f23d27db1426a7571556b064",
+    "kernel/sys.c": "52935e3d343e823bc97a9b88ed61385f98d51e2623e24e1190fd795d22021382",
+    "security/selinux/avc.c": "e8434d71819029aec2f7b850474e077094c78dfba219514628516b542f0fab38",
+    "security/selinux/hooks.c": "edae3b82e6f5b58f5da0f0d53e164af9b569fbd0402044fd9ceca3057056247d",
+    "security/selinux/include/security.h": "88e6f57d5d76e1e1900c5e5942d0b04e678e8617339c4022ba0e56256ad0fe1c",
+    "security/selinux/selinuxfs.c": "89537764b83a113110b6ced592918679d45c3ffdd8be22e3dd436beafb7f75aa",
+    "security/selinux/ss/services.c": "4b803fb1561b870d77a9125cc0f04ab0e94f948f9553a1be28b35224e0a5e37d"
+  },
+  "branch": "gki-android12-5.10",
+  "commit": "45a057536ddba12fd59fb583a8f5375f83be703e",
+  "ksu_revision": "feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb",
+  "original_sources": {
+    "kernel_patches/50_add_susfs_in_gki-android12-5.10.patch": {
+      "git_blob_sha1": "c3571c88c765a68d2f22b555f92c5b22182a4ad5",
+      "sha256": "f17439344475ae8ae91b80c46a14e87c475db2a6a396cf6adfe142f1ee6a8b74"
+    },
+    "kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch": {
+      "git_blob_sha1": "d011bd4d2d54521a00c9e299eb58607ee89d5f67",
+      "sha256": "56a2b26dbbd0549f46516f7d45485fbbcc32374068da5fd87ed83d03b1ecbaa2"
+    },
+    "kernel_patches/fs/susfs.c": {
+      "git_blob_sha1": "a33a809393568d099702925c90dcc7437a96012c",
+      "sha256": "eb192f62a9ec70b0c00b0e800d5734a7e51f357bb3d001e10d1e3be9f76e9b0d"
+    },
+    "kernel_patches/include/linux/susfs.h": {
+      "git_blob_sha1": "ec6f93123d7acc7969db273a89671c3f83917eac",
+      "sha256": "1dbe8e9d31211bf07eacf5c28054b7f3bb27d034565b88f1ddff371c356c4dd6"
+    },
+    "kernel_patches/include/linux/susfs_def.h": {
+      "git_blob_sha1": "588c1ed02e15d97144416f41560854b7642be64b",
+      "sha256": "cb441cb566d009bce20c1f4ce43fa10ce3472daafd0f37e144cdf1be87b3f88e"
+    }
+  },
+  "patch": "Documentation/filesystems/susfs/backport-2.4.0.diff",
+  "patch_sha256": "48130365518c732d6d09619963bb265628fd0e3b4844bdbcc5424004cd75f2eb",
+  "postimage_sha256": {
+    "block/ioprio.c": "7818be852a936e9687a4fdf83e7d3a4e0a7830620db7e048d45c64d859a29fdd",
+    "drivers/kernelsu/Kconfig": "43569500b5ca62ebc8d48040c110e0d6b00ec4cacf46b7a33010d2a1bf28c952",
+    "drivers/kernelsu/feature/kernel_umount.c": "623dc6ed18495b0750167aa2b41308f19702be75e449b19a228f42f783d90814",
+    "drivers/kernelsu/feature/selinux_hide.c": "a9d5498af2a12708899c7cf21387a1c9a356fae82b095bb6d32f3fdb320e9126",
+    "drivers/kernelsu/feature/sucompat.c": "dcb481463c12146d97b7430c42f6eb06e3c81d267ee6ec094f9a1f106458ebb6",
+    "drivers/kernelsu/hook/syscall_table_hook_arm64.c": "1bb3632fd9b8a2073536dd2eaa523fc3b9add91eb7984f1b3c581580e05f0724",
+    "drivers/kernelsu/selinux/sepolicy.c": "92a952aaa175d7872c3a59b794f89d6ec90adf305869d5bb1020d53061312e37",
+    "drivers/kernelsu/supercall/supercall.c": "f7352355b70c1f605319bfb255328fde60fbc7511209acda53fc8e1b30216357",
+    "fs/namei.c": "30037cadbf794323e20cb6d434543e656a0d93ab4abecc4267a042d213ea96d8",
+    "fs/namespace.c": "e88fe67b17695311fb9d432339dcca8c7b94b622a90e32a852e76b7eb46cc77a",
+    "fs/statfs.c": "46b0ae0b7d46f40bc7e1469dc921d085069496a6b585a28027530d6a4432096f",
+    "fs/susfs.c": "70501d51b64e5e733750aa971766be6880c9fb98db73b8c9e8591e416cf20f78",
+    "include/linux/susfs.h": "a012ba68c3637c171e8656c3facb73470ecd84dc359cf1ff30296ed06b444dff",
+    "include/linux/susfs_def.h": "4d64b904cc7dd73e9d8c92b8dc88f4c9253adacec96283cf0d2f7c7ba7304f87",
+    "kernel/sys.c": "503bdaf83522075beded29a1b30e638528a63ba94f9021b215017de35f0978a3",
+    "security/selinux/avc.c": "2c3a9e98b5dbed4b0bf10380eb5b2bf9d1d161dcd6075e5b2606cfcf756c3661",
+    "security/selinux/hooks.c": "b76e1ebe92f11d47ce15509c96b733abb753fd0396f7d47f81984b16420581de",
+    "security/selinux/include/security.h": "ac9fd2feeee6aa5f29ad96aedd87bc8815b1f45291fd0decbac67ec1a9c9a17d",
+    "security/selinux/selinuxfs.c": "58a9e9add45e475f234ca0b062e4989bac83af302ba89bb55301e33d5135e159",
+    "security/selinux/ss/services.c": "f9a2e9892fcd366dc6160eb0bd5f580e1148dd8aa9860dd14bc73c8f3a157062"
+  },
+  "predecessor_susfs": "c931cae8ca19e4b738e3d9eda8fec4cdb7947473",
+  "priority_uid_filter_default": "n",
+  "repository": "https://gitlab.com/simonpunk/susfs4ksu",
+  "schema": 1,
+  "transport_mirror": "https://github.com/ShirkNeko/susfs4ksu",
+  "transport_note": "Identical original Git commit/tree objects; no mirror-specific changes.",
+  "tree": "a90aee9a6a867ce1954b89bb4dd95d77872b0193",
+  "version": "2.4.0"
+}

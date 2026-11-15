@@ -12,6 +12,16 @@
 #ifndef __MACH_SCM_H
 #define __MACH_SCM_H
 
+#if IS_ENABLED(CONFIG_QCOM_SCM)
+/* Best-effort ARMv8 hint, not a serialization or teardown predicate. */
+bool scm_call_in_progress(void);
+#else
+static inline bool scm_call_in_progress(void)
+{
+	return false;
+}
+#endif
+
 #define SCM_SVC_BOOT			0x1
 #define SCM_SVC_PIL			0x2
 #define SCM_SVC_UTIL			0x3

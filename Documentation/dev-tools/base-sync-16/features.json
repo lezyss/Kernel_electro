@@ -1,0 +1,119 @@
+[
+  {
+    "name": "ext4_dot_last",
+    "path": "fs/ext4/dir.c",
+    "probe": "'.' directory cannot be the last in data block",
+    "present_in_base": true,
+    "base_exists": true,
+    "identical_to_previous_file": true,
+    "base_sha256": "33462e7c1ff0b1814a3b60285cca139ff5d5021c919f1889337c785d7d5e7073"
+  },
+  {
+    "name": "ext4_early_ibody_check",
+    "path": "fs/ext4/inode.c",
+    "probe": "xattr_check_inode(inode, IHDR",
+    "present_in_base": false,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "d5e6ad6ccf2b690bdf1ad5d4b5fe95ca237e72ef1df13c1aadb60475cd9af5fa"
+  },
+  {
+    "name": "bore",
+    "path": "include/linux/sched.h",
+    "probe": "burst_score",
+    "present_in_base": false,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "03d4020f7917c585b0582d2afe8ec1b62a06810938ae3126c4764349e194dd88"
+  },
+  {
+    "name": "mglru",
+    "path": "mm/Kconfig",
+    "probe": "config LRU_GEN",
+    "present_in_base": false,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "67cd6d4975f838c323f2a75b9ecd4d9c08db0ae0a1d600b9b77e21935816d492"
+  },
+  {
+    "name": "memlat_async",
+    "path": "drivers/devfreq/arm-memlat-mon.c",
+    "probe": "smp_call_function_single_async",
+    "present_in_base": false,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "a625eb98a765240d26939498e6222f12217d30c7aa37a2d69497a65f1830789d"
+  },
+  {
+    "name": "f2fs_gc_merge",
+    "path": "fs/f2fs/super.c",
+    "probe": "gc_merge",
+    "present_in_base": false,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "81643c93f123aa74f936163d3e51b0293116ecee185c9a866bab8bce28c1ad75"
+  },
+  {
+    "name": "f2fs_checkpoint_merge",
+    "path": "fs/f2fs/super.c",
+    "probe": "checkpoint_merge",
+    "present_in_base": false,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "81643c93f123aa74f936163d3e51b0293116ecee185c9a866bab8bce28c1ad75"
+  },
+  {
+    "name": "f2fs_sysfs_width",
+    "path": "fs/f2fs/sysfs.c",
+    "probe": "sizeof_field",
+    "present_in_base": false,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "2d906b0341ef3216d7cc616b755d2785d175a0e5e4551290b006fd1d3bb0682f"
+  },
+  {
+    "name": "bpf_task_storage",
+    "path": "kernel/bpf/bpf_task_storage.c",
+    "probe": "pidfd",
+    "present_in_base": false,
+    "base_exists": false,
+    "identical_to_previous_file": false,
+    "base_sha256": null
+  },
+  {
+    "name": "native_tcp_edt",
+    "path": "include/linux/tcp.h",
+    "probe": "tcp_wstamp_ns",
+    "present_in_base": true,
+    "base_exists": true,
+    "identical_to_previous_file": false,
+    "base_sha256": "b5fd83a00d5507bd5565ea621e35f21cd3eaf1d40455264f1258cb1e9636b22f"
+  },
+  {
+    "name": "arm64_lz4_accel",
+    "path": "lib/lz4/lz4armv8/lz4armv8.S",
+    "probe": "lz4",
+    "present_in_base": false,
+    "base_exists": false,
+    "identical_to_previous_file": false,
+    "base_sha256": null
+  },
+  {
+    "name": "ci_build_script",
+    "path": "scripts/ci/build-kernel.sh",
+    "probe": "make",
+    "present_in_base": false,
+    "base_exists": false,
+    "identical_to_previous_file": false,
+    "base_sha256": null
+  },
+  {
+    "name": "ci_package_script",
+    "path": "scripts/ci/package-anykernel.sh",
+    "probe": "zip",
+    "present_in_base": false,
+    "base_exists": false,
+    "identical_to_previous_file": false,
+    "base_sha256": null
+  }
+]

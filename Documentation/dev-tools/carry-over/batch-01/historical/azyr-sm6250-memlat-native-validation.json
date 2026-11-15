@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "review_items": [
+    27,
+    28,
+    29,
+    30
+  ],
+  "status": "corrected native adaptation applied locally; bounded validation PASS; exact donor patches not applied",
+  "source_repository": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250",
+  "inspiration_commits": [
+    "d73dae72f581c0b3fd6c4966773bbe14c6a4be74",
+    "12798fd3c654f0584f54afadb027f96a07461555",
+    "143f07a8f3e77aae7dcb48979d424cd1e17b2c4a",
+    "d7fda10ad1dbb38279b6d24fdd9fbf40fca53b73"
+  ],
+  "patch": "Documentation/dev-tools/azyr-sm6250-memlat-native.diff",
+  "patch_sha256": "67b8b0f113c3a7d0b5fe47172f938825d019812773148b672883bb5e3b6f9658",
+  "preimage_sha256": {
+    "drivers/devfreq/arm-memlat-mon.c": "a625eb98a765240d26939498e6222f12217d30c7aa37a2d69497a65f1830789d",
+    "drivers/soc/qcom/scm.c": "ffad66e99020a9369ffb7dafbc890deb297a7b90142c61147d68639311b3811f",
+    "include/soc/qcom/scm.h": "622b7bf5872320c13b9c795d42411d7e0e21fe724a250c1554b36f4d4c814cb8"
+  },
+  "postimage_sha256": {
+    "drivers/devfreq/arm-memlat-mon.c": "bfca49d2d67161deed60b229c8d36415c8b777cd098ecb83967bbb20e8ccdd20",
+    "drivers/soc/qcom/scm.c": "db33cb2916ed7fbebe6c09b18756a80e592002c459ac6879384bb18be14eb439",
+    "include/soc/qcom/scm.h": "17dd25138048b6a7b3ce243152449047503198e1024af35e7c5229c3198c0060"
+  },
+  "toolchain": {
+    "repository": "https://github.com/msft-mirror-aosp/platform.prebuilts.clang.host.linux-x86",
+    "commit": "3b86e40facfff1eab4065614255d573293c10373",
+    "version": "Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)",
+    "selected_blob_count": 340,
+    "extraction": "selected tools, dependencies and resource headers extracted from pinned Git objects; every extracted blob verified against its Git SHA1",
+    "key_git_blobs": {
+      "bin/clang": "a37922b5518c7de12f9e6813e6634a95f7eeda3a",
+      "bin/clang-23": "5bdeae5638da6b57380da4d1d286eed31c4dd1b0",
+      "bin/lld": "f421e419d4b6a17ccd9587905df7d030672abe54",
+      "bin/llvm-ar": "8a2f6ebb607f79472a1330c2da5a466f5bf2e433",
+      "bin/llvm-nm": "82e97864c9689e8660aa0b2984c2d30231b83676",
+      "bin/llvm-readobj": "ba9ce0fddaf93997872c36abf29962fe46b83e50",
+      "bin/llvm-objdump": "ca459671a823f9303f6dd44a6a1bee4d99fa3fad",
+      "lib/libLLVM.so": "7f67f36aab081684f34fe1a6ef39c3a477b206f7",
+      "lib/libxml2.so.16": "fd54f618f7072ac8a5f188a5f2d063f4da09e119",
+      "lib/clang/23/lib/x86_64-unknown-linux-gnu/libclang_rt.ubsan_standalone.a": "b3f358e7d242751a0ff840763712b4ad4f630d37"
+    },
+    "host_bc": {
+      "repository": "https://github.com/gavinhoward/bc",
+      "commit": "1a8e2e652a0bdfc60349be7b352c954690eaa179",
+      "version": "7.2.0; built with pinned AOSP Clang, host-only build prerequisite"
+    },
+    "host_openssl": "3.0.20 tag headers generated locally; linked existing /usr/lib/x86_64-linux-gnu/libcrypto.so.3 via cache-only symlink; no kernel config or source workaround"
+  },
+  "target": {
+    "defconfig": "vendor/xiaomi/miatoll_defconfig",
+    "output_config_sha256": "eb449da09778c3043d2bfefcf6528433e50cd947b781c465b5ca7b5c0b250897",
+    "profile": "same output-only LLVM_POLLY=n adjustment as scripts/ci/build-kernel.sh; ThinLTO retained; no source defconfig change",
+    "relevant_settings": {
+      "CONFIG_PREEMPT": "y",
+      "CONFIG_NR_CPUS": "8",
+      "CONFIG_PERF_EVENTS": "y",
+      "CONFIG_ARM_MEMLAT_MON": "y",
+      "CONFIG_DEVFREQ_GOV_MEMLAT": "y",
+      "CONFIG_QCOM_SCM": "y",
+      "CONFIG_LTO_CLANG": "y",
+      "CONFIG_THINLTO": "y",
+      "CONFIG_CFI_CLANG": "n",
+      "CONFIG_KSU": "y",
+      "CONFIG_KSU_SUSFS": "y",
+      "CONFIG_KSU_SUSFS_SUS_PRIORITY": "n"
+    },
+    "objects": {
+      "drivers/devfreq/arm-memlat-mon.o": {
+        "kbuild_command": "/home/user/.cache/memlat-fix/aosp/bin/clang -Wp,-MD,drivers/devfreq/.arm-memlat-mon.o.d -nostdinc -isystem /home/user/.cache/memlat-fix/aosp/lib/clang/23/include -I/home/user/Kernel_electro/arch/arm64/include -I./arch/arm64/include/generated  -I/home/user/Kernel_electro/include -I./include -I/home/user/Kernel_electro/arch/arm64/include/uapi -I./arch/arm64/include/generated/uapi -I/home/user/Kernel_electro/include/uapi -I./include/generated/uapi -include /home/user/Kernel_electro/include/linux/kconfig.h  -I/home/user/Kernel_electro/drivers/devfreq -Idrivers/devfreq -D__KERNEL__ -Qunused-arguments -mlittle-endian -DKASAN_SHADOW_SCALE_SHIFT=3 -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -pipe -fno-strict-aliasing -fno-common -fshort-wchar -Werror-implicit-function-declaration -Wno-format-security -std=gnu89 --target=aarch64-linux-gnu -Werror=unknown-warning-option -Wno-misleading-indentation -Wno-bool-operation -Wno-unsequenced -fuse-ld=lld -fno-PIE -mgeneral-regs-only -DCONFIG_AS_LSE=1 -fno-asynchronous-unwind-tables -fno-pic -ffixed-x18 -DCONFIG_ARCH_SUPPORTS_INT128 -Wno-asm-operand-widths -DKASAN_SHADOW_SCALE_SHIFT=3 -fno-delete-null-pointer-checks -Wno-frame-address -Wno-format-truncation -Wno-format-overflow -Wno-int-in-bool-context -Wno-address-of-packed-member -O2 -mcpu=cortex-a55 -mtune=cortex-a55 -mllvm -inline-threshold=2000 -mllvm -inlinehint-threshold=3000 -mllvm -unroll-threshold=1200 --param=allow-store-data-races=0 -DCC_HAVE_ASM_GOTO -fno-stack-protector -Wno-format-invalid-specifier -Wno-gnu -Wno-duplicate-decl-specifier -Wno-tautological-constant-out-of-range-compare -Wno-sometimes-uninitialized -Wno-tautological-compare -mno-global-merge -fno-delete-null-pointer-checks -Wno-unused-but-set-variable -Wno-unused-const-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -flto=thin -fvisibility=default -fsplit-lto-unit -fsanitize=shadow-call-stack -Wdeclaration-after-statement -Wno-pointer-sign -Wno-array-bounds -fno-strict-overflow -fno-stack-check -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -Werror=incompatible-pointer-types -fmacro-prefix-map=/home/user/Kernel_electro/= -Wno-default-const-init-unsafe -Wno-initializer-overrides -Wno-unused-value -Wno-format -Wno-sign-compare -Wno-format-zero-length -Wno-uninitialized -Wno-pointer-to-enum-cast -Wno-unaligned-access -Wno-cast-function-type-strict -Wno-enum-compare-conditional -Wno-enum-enum-conversion    -DKBUILD_BASENAME='\"arm_memlat_mon\"'  -DKBUILD_MODNAME='\"arm_memlat_mon\"' -c -o drivers/devfreq/.tmp_arm-memlat-mon.o /home/user/Kernel_electro/drivers/devfreq/arm-memlat-mon.c",
+        "thinlto_sha256": "9b2cbe0746237777b5285d20f321319cf1062ebff66b4a78b937f2dca236de54",
+        "native_sha256": "b31c15ac0a84c682986ed048d383b10b040c6b6198cd9cb31fe948c3a7f6023c",
+        "native_bytes": 14744,
+        "native_type": "ELF64 little-endian AArch64 relocatable",
+        "native_codegen_command": [
+          "ld.lld",
+          "-r",
+          "-m",
+          "aarch64elf",
+          "--lto-O2",
+          "drivers/devfreq/arm-memlat-mon.o",
+          "-o",
+          "memlat.native.o"
+        ]
+      },
+      "drivers/soc/qcom/scm.o": {
+        "kbuild_command": "/home/user/.cache/memlat-fix/aosp/bin/clang -Wp,-MD,drivers/soc/qcom/.scm.o.d -nostdinc -isystem /home/user/.cache/memlat-fix/aosp/lib/clang/23/include -I/home/user/Kernel_electro/arch/arm64/include -I./arch/arm64/include/generated  -I/home/user/Kernel_electro/include -I./include -I/home/user/Kernel_electro/arch/arm64/include/uapi -I./arch/arm64/include/generated/uapi -I/home/user/Kernel_electro/include/uapi -I./include/generated/uapi -include /home/user/Kernel_electro/include/linux/kconfig.h  -I/home/user/Kernel_electro/drivers/soc/qcom -Idrivers/soc/qcom -D__KERNEL__ -Qunused-arguments -mlittle-endian -DKASAN_SHADOW_SCALE_SHIFT=3 -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -pipe -fno-strict-aliasing -fno-common -fshort-wchar -Werror-implicit-function-declaration -Wno-format-security -std=gnu89 --target=aarch64-linux-gnu -Werror=unknown-warning-option -Wno-misleading-indentation -Wno-bool-operation -Wno-unsequenced -fuse-ld=lld -fno-PIE -mgeneral-regs-only -DCONFIG_AS_LSE=1 -fno-asynchronous-unwind-tables -fno-pic -ffixed-x18 -DCONFIG_ARCH_SUPPORTS_INT128 -Wno-asm-operand-widths -DKASAN_SHADOW_SCALE_SHIFT=3 -fno-delete-null-pointer-checks -Wno-frame-address -Wno-format-truncation -Wno-format-overflow -Wno-int-in-bool-context -Wno-address-of-packed-member -O2 -mcpu=cortex-a55 -mtune=cortex-a55 -mllvm -inline-threshold=2000 -mllvm -inlinehint-threshold=3000 -mllvm -unroll-threshold=1200 --param=allow-store-data-races=0 -DCC_HAVE_ASM_GOTO -fno-stack-protector -Wno-format-invalid-specifier -Wno-gnu -Wno-duplicate-decl-specifier -Wno-tautological-constant-out-of-range-compare -Wno-sometimes-uninitialized -Wno-tautological-compare -mno-global-merge -fno-delete-null-pointer-checks -Wno-unused-but-set-variable -Wno-unused-const-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -flto=thin -fvisibility=default -fsplit-lto-unit -fsanitize=shadow-call-stack -Wdeclaration-after-statement -Wno-pointer-sign -Wno-array-bounds -fno-strict-overflow -fno-stack-check -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -Werror=incompatible-pointer-types -fmacro-prefix-map=/home/user/Kernel_electro/= -Wno-default-const-init-unsafe -Wno-initializer-overrides -Wno-unused-value -Wno-format -Wno-sign-compare -Wno-format-zero-length -Wno-uninitialized -Wno-pointer-to-enum-cast -Wno-unaligned-access -Wno-cast-function-type-strict -Wno-enum-compare-conditional -Wno-enum-enum-conversion    -DKBUILD_BASENAME='\"scm\"'  -DKBUILD_MODNAME='\"scm\"' -c -o drivers/soc/qcom/.tmp_scm.o /home/user/Kernel_electro/drivers/soc/qcom/scm.c",
+        "thinlto_sha256": "3803306437dc56d73eaf5f5d6fea331b3d338801929f3fded8e60623a90aa677",
+        "native_sha256": "cd6c901e27f04493d244689fd421e6041e548b46afd149cd84aa9b61ed992f9d",
+        "native_bytes": 48312,
+        "native_type": "ELF64 little-endian AArch64 relocatable",
+        "native_codegen_command": [
+          "ld.lld",
+          "-r",
+          "-m",
+          "aarch64elf",
+          "--lto-O2",
+          "drivers/soc/qcom/scm.o",
+          "-o",
+          "scm.native.o"
+        ]
+      }
+    },
+    "raw_workers_aarch64": {
+      "__scm_call_armv8_64_raw": {
+        "disassembly_sha256": "86e720fbcd6c726fc4cab0c4d108e115c0aa8d858edb0a801873ba0a02b7ae30",
+        "smc_instructions": 2,
+        "intervening_c_calls": false
+      },
+      "__scm_call_armv8_32_raw": {
+        "disassembly_sha256": "fb753efd7c86a0a73ae5007967eee8da3331d35c27aeef55f19037674db35fb3",
+        "smc_instructions": 2,
+        "intervening_c_calls": false
+      }
+    },
+    "scm_disabled_header_probe": "Real AArch64 Kbuild compiler invocation with CONFIG_QCOM_SCM undefined before including SCM header; generated function mov w0,wzr;ret, no undefined scm_call_in_progress reference; not a full SCM-disabled profile",
+    "full_image_link": false,
+    "module_link": false,
+    "arm32_target_compile": false
+  },
+  "host_validation": {
+    "command": "python3 tools/testing/selftests/memlat/test_memlat.py --cc /path/to/clang-r614150/bin/clang --self-test-negatives",
+    "compiler": "same pinned AOSP Clang; UBSan enabled for executable models",
+    "arithmetic_cases": 20484,
+    "compiled_semantic_negatives": [
+      "skip-drain",
+      "skip-busy-cleanup",
+      "partial-publication",
+      "skip-creation-unwind",
+      "missing-hotplug-lock",
+      "wake-observed-idle",
+      "sample-isolated"
+    ],
+    "scm_wrappers": "all three extracted C wrappers with mock raw workers; nested global accounting and arguments/returns/errors preserved",
+    "assembly_source_preservation": "all three original raw ARMv8 worker bodies byte-for-byte unchanged; seven legacy worker functions unchanged; checked using inverse patch preimages",
+    "gates": [
+      "SUSFS full configuration and extracted host integration tests",
+      "30 SUSFS provenance negative controls and priority-filter activation negative",
+      "KernelSU update provenance and extracted helper/negative tests",
+      "NoMount configuration and extracted host models"
+    ],
+    "rwlock_item_6_preserved_sha256": "017ebc1342b1ea78c6cd9462f30ab863c06609291637b3f19511b492672f33bd"
+  },
+  "limitations": [
+    "SCM tracking covers the native ARMv8 workers, not legacy SCM/other direct firmware calls; it is a conservative global hint, not synchronization.",
+    "SCM can begin after the hint check. An accepted callback is always drained; there is no bounded completion timeout or guaranteed worst-case latency.",
+    "Repeated failures/SCM skips retain previous governor data, potentially stale votes; benefit/power effects need measurement.",
+    "Observed idle/isolated CPUs are not dispatched sampling IPIs, preserving native no-wakeup intent; a CPU can change state after selection, so this is not a no-wakeup race guarantee.",
+    "Host mocks are sequential; no claim of real SMP, CPU-hotplug, perf-scheduling, firmware, suspend or runtime safety proof.",
+    "Native AArch64 object/codegen only, not a complete image/modules link, boot or device/performance test.",
+    "Shipped built-in miatoll configuration only: perf_event_read_local is not exported; existing governor registration functions are also unexported. Module linkage requires separate integration; no private helper export was added.",
+    "ARM32 raw body preserved and C wrapper modeled, but no ARM32 target object compiled."
+  ],
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "ci_dispatched": false
+  },
+  "next_review_item": 34
+}

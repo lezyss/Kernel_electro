@@ -1,0 +1,409 @@
+{
+  "schema": 1,
+  "tag": "v3.3.1+50",
+  "commit": "ae63c92098d94bdad1696c74a3ad2e96692118bf",
+  "repository": "https://github.com/backslashxx/KernelSU",
+  "numeric_version": 32730,
+  "previous_revision": {
+    "commit": "feeec8e4059e3bb0ecdd1827b687b69f1cf4a2fb",
+    "tag": "v3.3.1-38"
+  },
+  "status": "Applied locally; no commit/push/CI. No production ARM64 compile/link or device proof.",
+  "changes": [
+    {
+      "path": "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig",
+      "before_sha256": "80b9fc1f879e7c9bbdd58f4557266303d15d71af8000ca76a7f38a63ccccfaae",
+      "after_sha256": "2179fa82d8e579ebcb010d5f02f01fb8cfa477737ecedff389c6647130420d51"
+    },
+    {
+      "path": "drivers/kernelsu/INTERNAL.md",
+      "before_sha256": "56f8f4adfbd752454adebc83b1433a09288217655cc366ac4e9c17cf56615421",
+      "after_sha256": "566e97cfd7c91c72647212f387b88bc7f84314972e9ed37c85c78d9417b73299"
+    },
+    {
+      "path": "drivers/kernelsu/Kconfig",
+      "before_sha256": "43569500b5ca62ebc8d48040c110e0d6b00ec4cacf46b7a33010d2a1bf28c952",
+      "after_sha256": "889a8cf782699b7c70465d40779a9ca2b2ab13079cfaf73211f0f68e1150dec7"
+    },
+    {
+      "path": "drivers/kernelsu/Makefile",
+      "before_sha256": "21de5e1c525b12d3f3de6595fe888112b8dd73871a176bd6beb0cd8dfc236e33",
+      "after_sha256": "68b9f1de2842f9529347e49f48a02cb791c5ab09c9ae9904b495f6ed27eb7497"
+    },
+    {
+      "path": "drivers/kernelsu/UPSTREAM.json",
+      "before_sha256": "614185ecdf6381ee20def95bbe7d8b9730e71730da32238adc44b05c5dd9900f",
+      "after_sha256": "07dfca54b1685e409f436066d2ceba1ac44302f762f7f4c969f65b12dba157e1"
+    },
+    {
+      "path": "drivers/kernelsu/UPSTREAM.md",
+      "before_sha256": "75ed8d1988f6eaac8209052001f635204f32a277791d53de09e63233bd42f6fd",
+      "after_sha256": "f0729b4db2fb53b8ae0fc1aff020f22aef2b3c4048433449bf2c0560f57dc01d"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/deprecated/ksu_getpriority.h",
+      "before_sha256": "000fcb548538134623915e450b0da8ea78d0944c21b79038404eefae4052b90b",
+      "after_sha256": "c167e225d626b18bf94d6bd0e4ee7b232166e0a5b1109682f99d1945caa14b6c"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/deprecated/module_blacklist.h",
+      "before_sha256": "9b0b38b9418c90e45474aa260f631ffe82a6e3e64277b4cd8d6a5cd6c38ef79e",
+      "after_sha256": "489fa41358085ebfca4b0094195fdaebf8a60c58ebe61d9f53eb3e91ab9efb14"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/kallsyms_common.h",
+      "before_sha256": "6d5f095ff3df6b34b02142ac585a0cb31e3385f315b97c0a08be7e7fe5617c71",
+      "after_sha256": "1e8f8aa7dcd3383c84321ae1879c8dd08eb05dc0e370aa56b8db2d172aefae4e"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/ksu_hostsredirect.h",
+      "before_sha256": "49b8c599f3ae488422627147707c244d8dbde7347a1d3514e88526e8bc4c9039",
+      "after_sha256": "1888892bebf9c1555c1b48296cf363ed1dc568da24ff03e51fd9e0693233e908"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/syscall_table_common.h",
+      "before_sha256": "869671492245b93774d917a34cca7b6ed0670760506db9904be3a6870129289b",
+      "after_sha256": "e7eb0b36e7bd02dcd78a452d2993e4b57e0d4f2cfe11044bfb4e108b26516276"
+    },
+    {
+      "path": "drivers/kernelsu/downstream/vmap_patch.h",
+      "before_sha256": "b7969958ce78e8c3c5c02adb98d5aa67818a2ac301afe44dea108fc77ce6464f",
+      "after_sha256": "35bb36584234a0aa99ea3e24df5255fd675d415c5b7240cf117b41e8c3968037"
+    },
+    {
+      "path": "drivers/kernelsu/feature/adb_root.c",
+      "before_sha256": "5192904a6ec6f02c64d9294776791af6dfbb93fb57be9cbac784ff84d42a1030",
+      "after_sha256": "967551592a5b55804b4e8c9be4c7496d3080301c9a78f81fa8abb188b949238c"
+    },
+    {
+      "path": "drivers/kernelsu/feature/adb_root.h",
+      "before_sha256": "07324e411c96123c4a416d1d2f2d8ed23fd804f6979a30e1fe3869de269161ff",
+      "after_sha256": "657e1163a7e9f78f66e8f7581236584163efa7a7f2eb5babccad0410d1cbfb97"
+    },
+    {
+      "path": "drivers/kernelsu/feature/kernel_umount.c",
+      "before_sha256": "623dc6ed18495b0750167aa2b41308f19702be75e449b19a228f42f783d90814",
+      "after_sha256": "108a8e9e57b5f7ba854649296bd020cd91c045cff0c7b3afd853bbc80c41b310"
+    },
+    {
+      "path": "drivers/kernelsu/feature/module_blacklist.c",
+      "before_sha256": "1a94dc5714eadbaee14766b8baa4a6c028812eeac3e141e105eabd85301d66dd",
+      "after_sha256": "7a8adbf7328457d3f4ef217519863f471e3db472a7aea9a8a60ea466d4c28017"
+    },
+    {
+      "path": "drivers/kernelsu/feature/selinux_hide.c",
+      "before_sha256": "a9d5498af2a12708899c7cf21387a1c9a356fae82b095bb6d32f3fdb320e9126",
+      "after_sha256": "724aa403444094548cb269144fe6c4cbd2f223a652fb057b5f2b9a07e0513ea9"
+    },
+    {
+      "path": "drivers/kernelsu/feature/selinux_hide.h",
+      "before_sha256": "297f718e9dc40e0acebbd743f1bc5e6734ea943a53419aac4a4a65b0ecce68f9",
+      "after_sha256": "6324f9a0d4c548eddafb66c009758e452822f2bfee8342720f77247c6fa564be"
+    },
+    {
+      "path": "drivers/kernelsu/feature/sucompat.c",
+      "before_sha256": "dcb481463c12146d97b7430c42f6eb06e3c81d267ee6ec094f9a1f106458ebb6",
+      "after_sha256": "260b21f1e5a4f91eae1d8305675c98c56c346185543337703c6ae0a160ccb715"
+    },
+    {
+      "path": "drivers/kernelsu/hook/lsm_hooks_list.c",
+      "before_sha256": "dfb7fa824f8cbb631a6a7937f7c8aff25bf2885927745b4dc4ad6feab339a50b",
+      "after_sha256": "973ed13b4082fc37771c86d48b3376fd9b0e43757c241cdef25e21a478ad9d38"
+    },
+    {
+      "path": "drivers/kernelsu/hook/lsm_hooks_manual.c",
+      "before_sha256": "dcdd4ce8776ce6b063b4b2e5ef994743ae46daa56da08af9f3240f42b2bc5b00",
+      "after_sha256": "269cdad9a391848c11cda107beb5db1a88bb8404ed724e34304840ad1687b017"
+    },
+    {
+      "path": "drivers/kernelsu/hook/lsm_hooks_static.c",
+      "before_sha256": "20401012e5b8566bcb01c7a00128f0ee309cd9da7b818b8fe31d71e2309228f3",
+      "after_sha256": "42f5f851c901126875bb24f16ff5c0ee4f7f6e9f1c6fb755841601d679cf9948"
+    },
+    {
+      "path": "drivers/kernelsu/hook/lsm_hooks_ultralegacy.c",
+      "before_sha256": "9b4a741589924240a3a1840963a02b120ef97dd1e1df753239f0a0781ad2e8ae",
+      "after_sha256": "c19d89921b9e551eaa124419dba0ca6e0615a9790a9fe29cc471e5fd5c59f86b"
+    },
+    {
+      "path": "drivers/kernelsu/hook/syscall_table_hook_arm.c",
+      "before_sha256": "5d0978fc827e8774778b2959d429043a1ade43fd52a77ffe5024532a90144758",
+      "after_sha256": "a5df142dc588fe391425f3af07912a8e2947cfaad0a0bc4d01b935caedd51dcf"
+    },
+    {
+      "path": "drivers/kernelsu/hook/syscall_table_hook_arm64.c",
+      "before_sha256": "1bb3632fd9b8a2073536dd2eaa523fc3b9add91eb7984f1b3c581580e05f0724",
+      "after_sha256": "d209d7105ae69db52bc0c1c4b13a559756634b5b8f52b81c2c3ddc359410493a"
+    },
+    {
+      "path": "drivers/kernelsu/hook/syscall_table_mirror.c",
+      "before_sha256": "3df594b8b0d9e6641214055fe914bb427a9ced2bcddefd2eaf468d62a46d7b7d",
+      "after_sha256": null
+    },
+    {
+      "path": "drivers/kernelsu/hook/syscall_table_mirror_arm64.c",
+      "before_sha256": null,
+      "after_sha256": "3d0c0a186b7740acf61ce6abda5a85365d85995c22980987a3d00a015a9a3864"
+    },
+    {
+      "path": "drivers/kernelsu/include/arch.h",
+      "before_sha256": "32817860ff7f10807e23e24a98866a4fe7a070231da36a7d29341b319ca0aa6a",
+      "after_sha256": "b375e51a8f51d439e23173527548c1befb29e2253a99cd5d88d886968aa08078"
+    },
+    {
+      "path": "drivers/kernelsu/include/ksu.h",
+      "before_sha256": "f70db80638e03b75e2d8494f4cc97754755b8a4c4b53ec38e0cb800b9b262f69",
+      "after_sha256": "02dc5c3820fff3f285e431bf510b4785357f073b9a75885af751e028282da2a0"
+    },
+    {
+      "path": "drivers/kernelsu/infra/event_queue.c",
+      "before_sha256": "7c6a859b2beef11d790bcc0adbe2a0161c34371c75374e16d0dc5b93ae19c88e",
+      "after_sha256": "4a1d45356c99fe23ef04d1b113da0e606ac70db2a3a0951771a60ba00537da46"
+    },
+    {
+      "path": "drivers/kernelsu/infra/event_queue.h",
+      "before_sha256": "8b565e4456a722c8a116c3223f2b41e0684b034d574781d7fdd775f5e02f36fa",
+      "after_sha256": "d937d9dfb424dc3ab733823562a69fc0f8c75cd694bc5134a026c2494c23ed75"
+    },
+    {
+      "path": "drivers/kernelsu/kernel_compat.h",
+      "before_sha256": "56394210605ebd1cb02164f70b50d5b59bf9d9ef8c14423c40040ec13116d9a7",
+      "after_sha256": "6f031603430373b969ab88fcf0916b22b9d6f56fa63205ad6901367f81d0c67d"
+    },
+    {
+      "path": "drivers/kernelsu/ksu.c",
+      "before_sha256": "e1bfda42c5970a03f8f781140db7c3be49442f0948fbef01d02d753b6421407b",
+      "after_sha256": "730de966974b8916a2cfae21d218d4ef12ffacb68a022ccb856495cbbd3e09f3"
+    },
+    {
+      "path": "drivers/kernelsu/preinit/preinit.c",
+      "before_sha256": "81cc5aa200af83f3f222f842c5610f761ae44116d41df98d61e0a028282f1698",
+      "after_sha256": "97aa7f548b446f179afccd8279f50b6f34f30c33b256b52197aec3abfe8f4efa"
+    },
+    {
+      "path": "drivers/kernelsu/preinit/preinit.h",
+      "before_sha256": "893459be84197187a4b7a38e17f990413b64d3b0eb2bcad16507b84939f3b1c5",
+      "after_sha256": "81c892e8965e115f8913ed9bdc3c56af70fdffb04d7910339dd7bfd6d7f9f8c9"
+    },
+    {
+      "path": "drivers/kernelsu/preinit/runner/runner_xxd.h",
+      "before_sha256": "9308fe7e01d61fe6240cb45b523c157bebb78ae113bf5d65b59644265bc321ec",
+      "after_sha256": "c53e800dfb6a32594d01a8750f4b3430eeafe2b88f3fa55f4b1ca7a2f2e7e2a2"
+    },
+    {
+      "path": "drivers/kernelsu/sulog/event.c",
+      "before_sha256": "d9f7d893e29da924c4bf0856c86c10d1181d8a746070355a2557b2a1dbd6932c",
+      "after_sha256": "4cedae62927c4408a6df7f69d2e346ddf13c8803933ad4b96f260a18f5115abf"
+    },
+    {
+      "path": "drivers/kernelsu/sulog/event.h",
+      "before_sha256": "9ff8e280716e184dbbf8672076cf332583b528defc7f8d4ca5bc9c78c07285ad",
+      "after_sha256": "3d45c5e6c5e061bd55686670357f9f011d271b9fca46de2f0d35a1812fbcf827"
+    },
+    {
+      "path": "drivers/kernelsu/sulog/fd.c",
+      "before_sha256": "63042b4e5df81faeab76765fe4b0959e40cd4801a7fc14245cad2e59593c01bf",
+      "after_sha256": "be15be79b6a7cbbf4e6c8c76eeda67b583f90c8ee4ae82a7b22325958d032609"
+    },
+    {
+      "path": "drivers/kernelsu/supercall/dispatch.c",
+      "before_sha256": "cef984f9b25701acc8dd7c3d6f218a893b3266a0e3e35643c1cc598133e23393",
+      "after_sha256": "45d11411529f3394e0b37efc391802e2ddc699ec2d8c8b6724e9f2cea3d288bb"
+    },
+    {
+      "path": "drivers/kernelsu/supercall/supercall.c",
+      "before_sha256": "f7352355b70c1f605319bfb255328fde60fbc7511209acda53fc8e1b30216357",
+      "after_sha256": "9461745a108d7fd5d6adf6f64553201fef661aaec60bdd28d1c4546ad9e64c5d"
+    },
+    {
+      "path": "tools/testing/selftests/bbr3/test_provenance.py",
+      "before_sha256": "648a1fb46e26f62ca6fc0e9cd8cab02a1d00717d7e1ad539d1f4b066d154ae10",
+      "after_sha256": "954a358cdb1ec9d6992a95754ed503af15ae3e425abf439a63d3cd3fe447ed10"
+    },
+    {
+      "path": "tools/testing/selftests/fs_backport/test_f2fs_sysfs.py",
+      "before_sha256": "03d6118e0da867c9825e8e841b46fecb4a63d5842848154177cdec48c8b6e2d0",
+      "after_sha256": "a2436f283c0929824b2f412b3ef71a31b41bb759642c8823482b82bc97186fb3"
+    },
+    {
+      "path": "tools/testing/selftests/kernelsu/test_finasu.py",
+      "before_sha256": "0f5409ae0c1b124899c9528efd236b47a895e45d97fb91cbc00d4bb93feab6d8",
+      "after_sha256": "d601d08507d2e7cdd49406ecaf2f09f0c2aed7b4d27e328947fa8f2cc1ee1c05"
+    },
+    {
+      "path": "tools/testing/selftests/kernelsu/test_integration.py",
+      "before_sha256": "c26de1eadb82203bea829bec799c67ad19291ce3618768a831d16b47b2219ec9",
+      "after_sha256": "161c5a6e51db96017e604db6c7c77b6af4fffb98fa07eb226ded73276ca3ee91"
+    },
+    {
+      "path": "tools/testing/selftests/kernelsu/test_update.py",
+      "before_sha256": "d1c10cd0a1668cdd20c58d1442985e47977a078ee462c8aaa54c2f616923ae3d",
+      "after_sha256": "275c3c36af213db839357deccdb1d095f47cabc32362f5aa9350722e21ea657f"
+    },
+    {
+      "path": "tools/testing/selftests/susfs/test_integration.py",
+      "before_sha256": "e9b16439c5dc78683142e1bf3f84c5649e17c55007e54602ab3736ed5c24a700",
+      "after_sha256": "f56c203532d4f93e290f97590831b7db6ddba96eed445856496f958fb269c95e"
+    },
+    {
+      "path": "tools/testing/selftests/susfs/test_provenance_overlays.py",
+      "before_sha256": "e7277bd86ddb24c894515defd8a52693b7189fdbc7593f2d5eef4867bd4bc99c",
+      "after_sha256": "c26f379c693c8b4ea95ca5da2e3ef14ac1ea73caed98f9f2cf776a3537aeb762"
+    }
+  ],
+  "patch": "Documentation/dev-tools/kernelsu-updates/v3.3.1+50.diff",
+  "patch_sha256": "5b53a01d82a3c488bfff53477d84cce585b20442c8b86e633ac6fc9c5fcf77a8",
+  "upstream_changed_paths": [
+    "INTERNAL.md",
+    "Kconfig",
+    "Makefile",
+    "downstream/deprecated/ksu_getpriority.h",
+    "downstream/deprecated/module_blacklist.h",
+    "downstream/kallsyms_common.h",
+    "downstream/ksu_hostsredirect.h",
+    "downstream/syscall_table_common.h",
+    "downstream/vmap_patch.h",
+    "feature/adb_root.c",
+    "feature/adb_root.h",
+    "feature/kernel_umount.c",
+    "feature/module_blacklist.c",
+    "feature/selinux_hide.c",
+    "feature/selinux_hide.h",
+    "feature/sucompat.c",
+    "hook/lsm_hooks_list.c",
+    "hook/lsm_hooks_manual.c",
+    "hook/lsm_hooks_static.c",
+    "hook/lsm_hooks_ultralegacy.c",
+    "hook/syscall_table_hook_arm.c",
+    "hook/syscall_table_hook_arm64.c",
+    "hook/syscall_table_mirror.c",
+    "hook/syscall_table_mirror_arm64.c",
+    "include/arch.h",
+    "include/ksu.h",
+    "infra/event_queue.c",
+    "infra/event_queue.h",
+    "kernel_compat.h",
+    "ksu.c",
+    "preinit/preinit.c",
+    "preinit/preinit.h",
+    "preinit/runner/runner_xxd.h",
+    "sulog/event.c",
+    "sulog/event.h",
+    "sulog/fd.c",
+    "supercall/dispatch.c",
+    "supercall/supercall.c"
+  ],
+  "source_count": 104,
+  "local_overrides": [
+    "Kconfig",
+    "Makefile",
+    "feature/kernel_umount.c",
+    "feature/selinux_hide.c",
+    "feature/sucompat.c",
+    "hook/syscall_table_hook_arm64.c",
+    "include/uapi/supercall.h",
+    "kernel_compat.h",
+    "kernel_includes.h",
+    "ksu.c",
+    "manager/apk_sign.c",
+    "manager/apk_sign.h",
+    "manager/manager_identity.h",
+    "manager/throne_tracker.c",
+    "selinux/rules.c",
+    "selinux/selinux.c",
+    "selinux/selinux.h",
+    "selinux/sepolicy.c",
+    "supercall/dispatch.c",
+    "supercall/supercall.c"
+  ],
+  "preserved_sha256": {
+    "drivers/Kconfig": "b4d53814c044b31f993e62d086020c75cf02cbbf9fc34cc894b0df6d412f1176",
+    "drivers/Makefile": "1b1d3e169f21e20b3c46e8b5250eb2d626377197fee78a3bef77da72d81e6fc1",
+    "fs/Makefile": "493577695adbb407513b77c941a314904df22736ff335235ab38ad559f495833",
+    "fs/Kconfig": "a81a4dd65ed53aeb52bb7493e9301c233f8f69bd09fa5ab5bc3968b808cb6477",
+    "fs/f2fs/sysfs.c": "21f1e9bfdf1fb4c3d107648ceac0d3b4859972de6f14dfad1b363b44f7d63eec",
+    "fs/f2fs/Kconfig": "8a45659ca8272babee586c727c5189062472e0d855128ca6f459e95032b8d655",
+    "Documentation/filesystems/f2fs-sysfs-width-validation.json": "d99e98bc8d7f9edf23c2f957ca824e4967a2c1306a8ff2e3674dc71ea1914c1a",
+    "Documentation/filesystems/f2fs-sysfs-width.rst": "ac59e8e21e1591a98d991d43c52dcc4c09e537028c30b03827bfa888e3381b0b",
+    "fs/susfs.c": "70501d51b64e5e733750aa971766be6880c9fb98db73b8c9e8591e416cf20f78",
+    "include/linux/susfs.h": "a012ba68c3637c171e8656c3facb73470ecd84dc359cf1ff30296ed06b444dff",
+    "include/linux/susfs_def.h": "4d64b904cc7dd73e9d8c92b8dc88f4c9253adacec96283cf0d2f7c7ba7304f87",
+    "fs/nomount/nomount.c": "b73f86def96e9aebecd04961cf8209fd8a5e1535a9cd3b6468f5ef64692c84a2",
+    "security/selinux/hooks.c": "b76e1ebe92f11d47ce15509c96b733abb753fd0396f7d47f81984b16420581de",
+    "net/ipv4/tcp_bbr3.c": "f1486393609416e3076b5e567ae27093f7563442fcb59c0b4ebfb8b59deb1f86",
+    "net/ipv4/Kconfig": "95d6b417762642f86717f8b7a2df46f548913ab8c7caf319fa3b886ade946313",
+    "net/sched/sch_fq.c": "4f4f70b5bb8997fa8fe356b90295ccbde7b06b84491aa4776f411ff06982a43a",
+    "Documentation/networking/bbr3-edt-validation.json": "25c2b63ee3072955bfc4fa814154252544ba363d1b2e661e4ceaa453b89afc40",
+    "Documentation/networking/bbr3-edt.diff": "64558eeccab2b1823cc6517544ad65a2592e3a51824de1d8b29ab252232c2dc3",
+    "Documentation/dev-tools/kernelsu-updates/v3.3.1-38.json": "08956ab328811f1a5534acd00b28688bbbcfea65ea2e54daa7192ecbf81e02cd",
+    "Documentation/dev-tools/kernelsu-updates/v3.3.1-38.diff": "5f52c92abcf7cfc8ab19951e0183b8fb632d19c23f39795fcd974edcde422d19",
+    "Documentation/dev-tools/finasu-manager.json": "9969b5a111624d3b72b1123171c27bc3dad2e71d6ea91097e4aaa4dbd6ba79d8",
+    "Documentation/filesystems/susfs/backport-2.4.0.json": "56cb00f9efa712bbbea16ca68aa633f19264630ebe4dac4e0dce80db7432e10d",
+    "Documentation/filesystems/susfs/backport-2.4.0.diff": "48130365518c732d6d09619963bb265628fd0e3b4844bdbcc5424004cd75f2eb",
+    ".github/workflows/build-kernel.yml": "c35a90504f92b88dc85d840483d6d4f5c9e444ea9e1aa10a2e8727a799b11ca7"
+  },
+  "artifact_sha256": {
+    "Documentation/dev-tools/kernelsu-vendoring.md": "ba942af407ea426a31814bb5b86d164c5331ec520c7c67fccd3fea08f60ef28f",
+    "Documentation/dev-tools/kernelsu-updates/v3.3.1+50.md": "7171eb9bf16f207c2b71a33c7958fe8449b8f9321c8b957039789274320d3431",
+    "tools/testing/selftests/kernelsu/README": "a8e5f9cd859504b133d256585de40f09edbb1f7a4e5456d0b8ef8824b9824030",
+    "tools/testing/selftests/kernelsu/test_update50.py": "c30986ca6b00ff4f4fdaa02a65f4aabb27631bf9c8105b61d03bf68214d35053",
+    "tools/testing/selftests/kernelsu/update50_model.c": "a6365cd18c571cea4ea2a621e427ecae1d0daa81748061a9743c7c28573fdd7e"
+  },
+  "configuration": {
+    "method": "shipped Kconfig, external O=, ARCH=arm64 HOSTCC=gcc CC=gcc; not target compilation",
+    "log": "make[1]: Entering directory '/home/user/.cache/ksu50/config'\n  HOSTCC  scripts/basic/fixdep\n  GEN     ./Makefile\n  HOSTCC  scripts/kconfig/conf.o\n  SHIPPED scripts/kconfig/zconf.tab.c\n  SHIPPED scripts/kconfig/zconf.lex.c\n  HOSTCC  scripts/kconfig/zconf.tab.o\n  HOSTLD  scripts/kconfig/conf\n#\n# configuration written to .config\n#\nmake[1]: Leaving directory '/home/user/.cache/ksu50/config'\n",
+    "resolved_sha256": "bed77e10fb60361e3f3b5470ea91349ca905fbff9012cfcab509465cb4f2fde7",
+    "resolved_selection": [
+      "CONFIG_COMPAT=y",
+      "CONFIG_DEFAULT_TCP_CONG=\"bbr3\"",
+      "CONFIG_DEFAULT_NET_SCH=\"fq\"",
+      "CONFIG_KSU=y",
+      "CONFIG_KSU_TAMPER_SYSCALL_TABLE=y",
+      "# CONFIG_KSU_DISABLE_32BIT_HOOKS is not set",
+      "CONFIG_KSU_LSM_SECURITY_HOOKS=y",
+      "CONFIG_KSU_FEATURE_ADBROOT=y",
+      "# CONFIG_KSU_HOSTSREDIRECT is not set",
+      "CONFIG_KSU_ENABLE_FULL_UID_CHECKS=y",
+      "# CONFIG_KSU_THRONE_TRACKER_ALWAYS_THREADED is not set",
+      "# CONFIG_KSU_NOPRINTK is not set",
+      "# CONFIG_KSU_SHELL_HAS_SU_ALWAYS is not set",
+      "# CONFIG_KSU_DEBUG is not set",
+      "CONFIG_KSU_HEURISTIC_IN_TREE_BUILD=y",
+      "CONFIG_KSU_SUSFS=y",
+      "CONFIG_KSU_SUSFS_SUS_PATH=y",
+      "CONFIG_KSU_SUSFS_SUS_MOUNT=y",
+      "CONFIG_KSU_SUSFS_SUS_KSTAT=y",
+      "CONFIG_KSU_SUSFS_TRY_UMOUNT=y",
+      "CONFIG_KSU_SUSFS_SPOOF_UNAME=y",
+      "CONFIG_KSU_SUSFS_ENABLE_LOG=y",
+      "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y",
+      "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y",
+      "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y",
+      "CONFIG_KSU_SUSFS_SUS_MAP=y",
+      "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER=y",
+      "CONFIG_SECURITY_SELINUX=y"
+    ],
+    "only_source_profile_delta": "Remove obsolete CONFIG_KSU_FEATURE_SULOG=y; sulog is now unconditional upstream with runtime toggle initially off"
+  },
+  "adaptation_notes": [
+    "Preserve selected SUSFS original-native/compat-syscall exec-once and successful-root/domain-return FD install; new upstream front end retained only for other configurations",
+    "Unify ADB/preinit APIs and runtime-gated filename-only sulog in retained selected front end",
+    "Guard both procattr and xattr mutation stubs independently for native SUSFS filtering",
+    "Use native audit_context, __poll_t and strncpy_from_user_nofault instead of shadowing them",
+    "Preserve FinaSU pinned certificate/package/one-manager UID verification and SUSFS/NoMount authorization",
+    "Seven legacy test entrypoints validate this closed layer then replay on detached copies, not changed old receipts"
+  ],
+  "tests": {
+    "current": "PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals\nPASS: current selected KSU/SUSFS/NoMount/compat profile; no obsolete sulog selector\nPASS: current selected auth/exec/post-success-fd and SUSFS no-mutation handlers, 1024 host cases\nPASS: compiled current semantic mutant rejected: allowlist-bypass\nPASS: compiled current semantic mutant rejected: early-fd\nPASS: compiled current semantic mutant rejected: lost-session\nPASS: all8 native/compat exec wrappers, unified hook APIs and native helper bindings\nFinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)\nFinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)\nFinaSU extracted-source auth/UID/scanner/metadata: 945 checks PASS (Kprobes)\nFinaSU extracted-source auth/UID/scanner/metadata: 947 checks PASS (Manual)\nSUSFS reboot command authorization: 272 cases PASS\nKSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS\nReadlink truncation/count/fault/hash collision: 3010 cases PASS\nPagemap byte accounting/buffer bounds: 2404 cases PASS\nFlag negation and mount-ID ownership: PASS\nFinaSU deliberate regression caught: certificate bypass\nFinaSU deliberate regression caught: wrong package UID\nFinaSU deliberate regression caught: stop before verification\nFinaSU deliberate regression caught: unverified cache\nFinaSU deliberate regression caught: wrong 64-byte ABI\nFinaSU deliberate regression caught: ignored copy fault\nCURRENT PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases\nPASS: current helper semantic mutant rejected: fault-status\nPASS: current helper semantic mutant rejected: address-limit\nPASS: current helper semantic mutant rejected: fallback\nPASS: current helper semantic mutant rejected: zero-size\nPASS: current closed-layer tamper rejected: pin\nPASS: current closed-layer tamper rejected: version\nPASS: current closed-layer tamper rejected: exec-source\nPASS: current closed-layer tamper rejected: config\nPASS: current closed-layer tamper rejected: patch\nPASS: current closed-layer tamper rejected: receipt-reseal\nPASS: current closed-layer tamper rejected: unsafe-patch\nLIMITS: host models/config/replay only; no exact-AOSP ARM64 image/link, root/manager/device proof.\n",
+    "historical": "PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals\nPASS: current selected KSU/SUSFS/NoMount/compat profile; no obsolete sulog selector\nPASS: current selected auth/exec/post-success-fd and SUSFS no-mutation handlers, 1024 host cases\nPASS: compiled current semantic mutant rejected: allowlist-bypass\nPASS: compiled current semantic mutant rejected: early-fd\nPASS: compiled current semantic mutant rejected: lost-session\nPASS: all8 native/compat exec wrappers, unified hook APIs and native helper bindings\nFinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)\nFinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)\nFinaSU extracted-source auth/UID/scanner/metadata: 945 checks PASS (Kprobes)\nFinaSU extracted-source auth/UID/scanner/metadata: 947 checks PASS (Manual)\nSUSFS reboot command authorization: 272 cases PASS\nKSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS\nReadlink truncation/count/fault/hash collision: 3010 cases PASS\nPagemap byte accounting/buffer bounds: 2404 cases PASS\nFlag negation and mount-ID ownership: PASS\nFinaSU deliberate regression caught: certificate bypass\nFinaSU deliberate regression caught: wrong package UID\nFinaSU deliberate regression caught: stop before verification\nFinaSU deliberate regression caught: unverified cache\nFinaSU deliberate regression caught: wrong 64-byte ABI\nFinaSU deliberate regression caught: ignored copy fault\nCURRENT PASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases\nPASS: current helper semantic mutant rejected: fault-status\nPASS: current helper semantic mutant rejected: address-limit\nPASS: current helper semantic mutant rejected: fallback\nPASS: current helper semantic mutant rejected: zero-size\nPASS: current closed-layer tamper rejected: pin\nPASS: current closed-layer tamper rejected: version\nPASS: current closed-layer tamper rejected: exec-source\nPASS: current closed-layer tamper rejected: config\nPASS: current closed-layer tamper rejected: patch\nPASS: current closed-layer tamper rejected: receipt-reseal\nPASS: current closed-layer tamper rejected: unsafe-patch\nPASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals\nPASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies\nKernelSU: 104 vendored files/provenance, wiring and built-in configuration PASS\nFinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)\nFinaSU extracted-source auth/UID/scanner/metadata: 937 checks PASS (Manipulated)\nFinaSU extracted-source auth/UID/scanner/metadata: 945 checks PASS (Kprobes)\nFinaSU extracted-source auth/UID/scanner/metadata: 947 checks PASS (Manual)\nFinaSU: pinned six-source overlay, secure package binding and honest display ABI PASS\nFinaSU deliberate regression caught: certificate bypass\nFinaSU deliberate regression caught: wrong package UID\nFinaSU deliberate regression caught: stop before verification\nFinaSU deliberate regression caught: unverified cache\nFinaSU deliberate regression caught: wrong 64-byte ABI\nFinaSU deliberate regression caught: ignored copy fault\nPASS: pinned 16-file upstream delta + honest display update, exact inverse/forward replay and source hashes\nPASS: rejected FinaSU false-version\nPASS: rejected FinaSU resealed-body\nPASS:1154 extracted uaccess retry/address-limit/fault/strscpy/RO-slot fallback cases\nPASS: rejected fault-status\nPASS: rejected address-limit\nPASS: rejected fallback\nPASS: rejected zero-size\nLIMITS: host models only; not a pinned-Clang kernel build, real RO mappings, SMP, module loading or device boot proof.\nSUSFS pinned source/hooks and full configuration: PASS\nSUSFS reboot command authorization: 272 cases PASS\nKSU manager/allowlist/zygote/unmount safeguards: 1792 cases PASS\nReadlink truncation/count/fault/hash collision: 3010 cases PASS\nPagemap byte accounting/buffer bounds: 2404 cases PASS\nFlag negation and mount-ID ownership: PASS\nPASS: rejected full-profile priority filter disablement\nPASS: rejected header tamper\nPASS: rejected broken SUSFS preimage\nPASS: rejected broken pre-BPF chain\nPASS: rejected broadened overlay scope\nPASS: rejected patch tamper\nPASS: rejected unsafe patch path\nPASS: rejected missing overlay\nPASS: rejected missing BPF manifest\nPASS: rejected duplicate BPF record\nPASS: rejected changed BPF postimage\nPASS: rejected unrelated SUSFS hook tamper\nPASS: rejected FinaSU dispatch tamper\nPASS: rejected wrong reference revision\nPASS: rejected missing Phoenix overlay\nPASS: rejected Phoenix patch tamper\nPASS: rejected Phoenix preimage tamper\nPASS: rejected Phoenix scope broadening\nPASS: rejected unsafe Phoenix patch\nPASS: rejected missing KSU update\nPASS: rejected KSU patch tamper\nPASS: rejected KSU preimage tamper\nPASS: rejected KSU postimage tamper\nPASS: rejected KSU scope broadening\nPASS: rejected unsafe KSU patch\nPASS: rejected missing 2.4 successor\nPASS: rejected 2.4 patch tamper\nPASS: rejected 2.4 source tamper\nPASS: rejected 2.4 manifest reseal\nPASS: rejected 2.4 scope broadening\nPASS: rejected unsafe 2.4 patch\nPASS: reviewed overlay and all 30 provenance negative controls\nNoMount vendored-source, wiring and configuration checks: PASS\nLIMITS: host models/config/replay only; no exact-AOSP ARM64 image/link, root/manager/device proof.\n",
+    "nomount": "NoMount vendored-source, wiring and configuration checks: PASS\n",
+    "preservation_f2fs": "PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals\nPASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies\nPASS: actual F2FS sysfs helpers/dispatch/macros: widths, canaries, u64, special cases, locking and parser errors\nPASS: compiled semantic mutant rejected: four-byte-show\nPASS: compiled semantic mutant rejected: four-byte-store\nPASS: compiled semantic mutant rejected: truncate-u64\nPASS: compiled semantic mutant rejected: wrong-stat-size\nPASS: compiled semantic mutant rejected: wrong-RW-size\nPASS: all42 local RW/stat declarations use size metadata; special-case store and locking wrapper preserved\nPASS: additive source patch reverse/forward replay; artifact/config/filesystem-policy seals\n",
+    "preservation_bbr3": "PASS: KSU +50 exact pin,104 blobs/overrides, version32730, closed overlay/config/artifact seals\nPASS: +50 reverse/forward replay; historical tests below run on detached pre-update copies\nPASS: 20 BBRv3 source endpoints, reverse/forward replay; 3 historical BPF chains intact; protected BBR/BBRplus/TCP caps unchanged\nPASS: EDT overlay reverse/forward endpoints and immutable historical BBRv3/BPF chain\n"
+  },
+  "limits": [
+    "Host primitives and GCC UBSan are not target execution",
+    "No exact-AOSP-r614150 ARM64 compile/link, boot, real RO/SMP hooks, manager/ksud, native/32-bit su, ADB root or unmount smoke proof",
+    "No optional LKM/alternative hook builds, no runner regeneration",
+    "New upstream nested exec/compat argv conversion is not used by selected SUSFS syscall-table front end"
+  ]
+}

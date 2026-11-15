@@ -1,0 +1,171 @@
+Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/user/Kernel_electro/.cache/all-carry/clang/bin
+LLD 23.0.1 (/mnt/disks/build-disk/src/googleplex-android/llvm-r614150-release/out/llvm-project/llvm 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e) (compatible with GNU linkers)
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  GEN     ./Makefile
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+-- KDIR: 
+-- MDIR: /home/user/Kernel_electro/drivers/kernelsu
+-- KernelSU Manager package name: me.weishu.kernelsu
+-- KernelSU Manager signature size: 0x033b
+-- KernelSU Manager signature hash: c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6
+-- KernelSU/compat: iterate_dir found!
+-- KernelSU/compat: f_op->read_iter found!
+
+-- SUSFS_VERSION: v2.4.0
+  CC      mm/maccess.o
+  CC      net/core/bpf_sk_storage.o
+  CC      mm/slub.o
+  CC      net/xdp/xsk.o
+  CC      net/ipv4/tcp_ipv4.o
+  CC      net/ipv4/af_inet.o
+  CC      net/ipv6/af_inet6.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      kernel/bpf/core.o
+  CC      kernel/bpf/inode.o
+  CC      kernel/bpf/tnum.o
+  CC      kernel/bpf/bpf_iter.o
+  CC      kernel/bpf/map_iter.o
+  CC      kernel/bpf/task_iter.o
+  CC      kernel/bpf/prog_iter.o
+  CC      kernel/bpf/percpu_freelist.o
+  CC      kernel/bpf/bpf_lru_list.o
+  CC      kernel/bpf/lpm_trie.o
+  CC      kernel/bpf/map_in_map.o
+  CC      kernel/bpf/local_storage.o
+  CC      kernel/bpf/queue_stack_maps.o
+  CC      kernel/bpf/ringbuf.o
+  CC      kernel/bpf/bpf_local_storage.o
+  CC      kernel/bpf/bpf_task_storage.o
+  CC      kernel/bpf/disasm.o
+  CC      kernel/bpf/trampoline.o
+  CC      kernel/bpf/dispatcher.o
+  CC      kernel/bpf/devmap.o
+  CC      kernel/bpf/cpumap.o
+  CC      kernel/bpf/offload.o
+  CC      kernel/bpf/net_namespace.o
+  CC      kernel/bpf/stackmap.o
+  CC      kernel/bpf/cgroup.o
+  CC      kernel/bpf/reuseport_array.o
+  CC      kernel/bpf/bpf_struct_ops.o
+  AR      kernel/bpf/built-in.a
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+PASS: 74 ARM64 objects, pinned LLVM, miatoll BORE/MGLRU/BBR3/security profile plus selected kernel/bpf directory
+LIMITS: object compilation only; no full image/module link or device qualification
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CC      kernel/bounds.s
+  CHK     include/generated/bounds.h
+  UPD     include/generated/bounds.h
+  CC      arch/arm64/kernel/asm-offsets.s
+  CHK     include/generated/asm-offsets.h
+  UPD     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  VDSOA   arch/arm64/kernel/vdso/gettimeofday.o
+  LD      arch/arm64/kernel/vdso/vdso.so.dbg
+  VDSOSYM include/generated/vdso-offsets.h
+  CC      mm/memcontrol.o
+  CC      mm/memory.o
+  CC      mm/vmscan.o
+  CC      mm/swap.o
+  CC      mm/swap_state.o
+  CC      mm/workingset.o
+  CC      kernel/fork.o
+  CC      kernel/sched/core.o
+  CC      kernel/locking/lockdep.o
+  CC      kernel/sched/fair.o
+  CC      fs/f2fs/file.o
+  CC      kernel/trace/bpf_trace.o
+  CC      net/core/skmsg.o
+  CC      net/core/sock_map.o
+  CC      net/ipv4/tcp_bpf.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+PASS: MEMCG/LOCKDEP/F2FS-compression/BPF-events/stream-parser real-header profile
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/all-carry/target'
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CC      kernel/bounds.s
+  CHK     include/generated/bounds.h
+  UPD     include/generated/bounds.h
+  CC      arch/arm64/kernel/asm-offsets.s
+  CHK     include/generated/asm-offsets.h
+  UPD     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  VDSOA   arch/arm64/kernel/vdso/gettimeofday.o
+  LD      arch/arm64/kernel/vdso/vdso.so.dbg
+  VDSOSYM include/generated/vdso-offsets.h
+  CC      kernel/sched/core.o
+  CC      kernel/sched/fair.o
+  CC      kernel/fork.o
+  CC      mm/vmscan.o
+  CC      mm/swap.o
+  CC      mm/memory.o
+  CC      mm/swap_state.o
+  CC      mm/memcontrol.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/all-carry/target'
+PASS: BORE/MGLRU/DEBUG_FS off real-header profile

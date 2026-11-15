@@ -501,7 +501,7 @@ int hmm_vma_get_pfns(struct vm_area_struct *vma,
 		     hmm_pfn_t *pfns)
 {
 	struct hmm_vma_walk hmm_vma_walk;
-	struct mm_walk mm_walk;
+	struct mm_walk mm_walk = {};
 	struct hmm *hmm;
 
 	/* FIXME support hugetlb fs */
@@ -670,7 +670,7 @@ int hmm_vma_fault(struct vm_area_struct *vma,
 		  bool block)
 {
 	struct hmm_vma_walk hmm_vma_walk;
-	struct mm_walk mm_walk;
+	struct mm_walk mm_walk = {};
 	struct hmm *hmm;
 	int ret;
 
