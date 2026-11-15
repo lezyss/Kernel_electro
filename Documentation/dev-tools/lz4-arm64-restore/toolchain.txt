@@ -1,0 +1,5 @@
+Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/user/Kernel_electro/.cache/lz4-accel/clang/bin
+AOSP prebuilt commit: 3b86e40facfff1eab4065614255d573293c10373

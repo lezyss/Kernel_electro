@@ -1,0 +1,23 @@
+{
+  "clang_version": "Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /home/user/Kernel_electro/.cache/all-carry/clang/bin\n",
+  "core_binary_sha256": {
+    "clang-23": "5b5324a5b07a45752395b6d97d01771f3f97441924a5adea3eb7c514a119a995",
+    "lld": "94251249c08e56890653db7cdbbe15cbaa88dc388686a517f63fc13c3e8f36c4",
+    "llvm-ar": "5ea68c48705c3d0a10e103e8d58a35312dcd3e9e03838c85b0a82a942becd229",
+    "llvm-nm": "b60a918aaf60fba25e2819525451d93da2d381d28a30148d9364c8dd1d999ab0",
+    "llvm-objcopy": "716b7c46e16d51feebd01e3cadbb0af3a2779a3ca55144e9889bb5a29a855ca1",
+    "llvm-objdump": "c8e573a5b3e5be73277f608d596b9c40e6d79268d58aaa52eefc97e200a8befb",
+    "llvm-readobj": "110c8bfbec2c249831eb2c26ca4972ffaf361adc02151dc15a1f0aac9480f1b7"
+  },
+  "host_prerequisites": {
+    "bc": "7.0.3 (host only)",
+    "openssl": "generated 3.0.20 headers, system libcrypto.so.3 (host Kbuild only)"
+  },
+  "ld_version": "LLD 23.0.1 (/mnt/disks/build-disk/src/googleplex-android/llvm-r614150-release/out/llvm-project/llvm 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e) (compatible with GNU linkers)\n",
+  "limitations": [
+    "Toolchain/object identities do not establish complete image linkage or device compatibility."
+  ],
+  "pin": "3b86e40facfff1eab4065614255d573293c10373",
+  "source_git_blob_entries": "Recovered from exact pinned Git tree and verified before installation; see matching core binaries below.",
+  "target_and_kbuild_host_compilers": "pinned AOSP Clang; target assembler/linker/archive tools LLVM; GCC only in separate extracted host security models"
+}

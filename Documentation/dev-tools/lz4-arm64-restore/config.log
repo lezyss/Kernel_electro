@@ -1,0 +1,31 @@
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  HOSTCC  scripts/basic/fixdep
+  GEN     ./Makefile
+  HOSTCC  scripts/kconfig/conf.o
+  SHIPPED scripts/kconfig/zconf.tab.c
+  SHIPPED scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/basic/bin2c
+  GEN     ./Makefile
+  HOSTCC  scripts/kconfig/conf.o
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'

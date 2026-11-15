@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "review_items": [
+    36,
+    41
+  ],
+  "status": "applied locally; host extracted-source/provenance/regression validation PASS",
+  "source_repository": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250",
+  "commits": {
+    "36": "28bc6f028c8ee2d2d972ed2284d0cb5973cf3c2d",
+    "41": "b0229e526d8593782fa4806e28b16542b836bf61"
+  },
+  "changes": {
+    "36": "Corrected native integer-only delay in ipa3_disable_wdi_pipe producer path: minimum 10000 us preserved, maximum 12000 us; the other equal-bound sleep and all other IPA code unchanged.",
+    "41": "Exact donor two unlikely() annotations in cpufreq_stats_record_transition; no condition/statistics/locking changes."
+  },
+  "item_41_exact_donor_application_match": true,
+  "patch": "Documentation/dev-tools/azyr-sm6250-036-041.diff",
+  "patch_sha256": "b3d9a7576d1881f96347bc11d79dd4690660f6e8931bc8061ec25d92e5555356",
+  "preimage_sha256": {
+    "drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c": "64522cc619a8d6e7ffb869e1c01ebac0cbc8601c00ce6eea4c23d98e82685449",
+    "drivers/cpufreq/cpufreq_stats.c": "f0913516dd87deaeeaf4e0da1fad439f94a1a6f174cd137507f82a7c303e46ba"
+  },
+  "postimage_sha256": {
+    "drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c": "57da1c95b3d78c8bd4f02ab4012aa4fc1f0cc170874027e902987c54104d45f4",
+    "drivers/cpufreq/cpufreq_stats.c": "44a615d5d376c1e9d6c5387b85a0698623fefcd569adc7e769bc37ef5b1b3026"
+  },
+  "validation": {
+    "status": "PASS",
+    "runner": "tools/testing/selftests/cpufreq_ipa/test_tuning.py",
+    "command": "python3 tools/testing/selftests/cpufreq_ipa/test_tuning.py --self-test-negatives --general-regs-only",
+    "compiler": "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+    "flags": [
+      "-std=gnu89",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-Wno-unused-parameter",
+      "-fsanitize=undefined",
+      "-fno-sanitize-recover=all"
+    ],
+    "delay_fixture_extra_flags": [
+      "-mgeneral-regs-only"
+    ],
+    "delay_bounds_us": [
+      10000,
+      12000
+    ],
+    "cpufreq_transition_cases": 180,
+    "compiled_negative_controls": [
+      "changed-minimum",
+      "missing-slack",
+      "broken-stats-guard"
+    ],
+    "provenance": "Two-source inverse patch and hashes reproduce exact review-04 preimages. Structural checks restore every byte of each preimage by undoing only the delay declaration/call or two unlikely annotations. Item 41 separately confirmed against exact donor patch applied to a temporary preimage.",
+    "regressions": [
+      "memlat extracted-source/provenance tests and seven semantic negatives",
+      "SUSFS full-profile source/config/extracted-host tests and priority activation negative",
+      "all 30 SUSFS provenance negative controls",
+      "KernelSU provenance/extracted-helper and negative tests",
+      "NoMount source/config/extracted-host tests"
+    ],
+    "config": {
+      "defconfig": "vendor/xiaomi/miatoll_defconfig",
+      "method": "Kconfig parser only; HOSTCC=gcc CC=gcc ARCH=arm64 in external output directory",
+      "resolved_sha256": "5db6637f0914c83e5eeaf0af681180587c1653f5e5c989060d1c458ef67f1567",
+      "CONFIG_IPA3": "y",
+      "CONFIG_CPU_FREQ_STAT": "y"
+    },
+    "preservation": {
+      "other_review_04_source_hashes_unchanged": {
+        "drivers/cpuidle/lpm-levels.c": "db6266c205fe4d75b7ae5e574f177d18e66084de2fad1783a4945b807eb0c9b0",
+        "drivers/hid/hid-ids.h": "db7634766f1a1c15634aaef2f752025739ba358fb64d8fe41caf0f26e4d20274",
+        "drivers/tty/serial/msm_geni_serial.c": "1e00213d1e2c3df53247832efad10dcd49d3d5c5187efa27f5d8a3b91a997294",
+        "kernel/irq/irqdomain.c": "b2c7569df1dd558b44046adf439e5c8e61bc3e17d2751af865841cef20a4ba07",
+        "kernel/irq/manage.c": "c22328e6e7f73b446fc1d05ae645f8c5e5338c6d22c5d20d3550727715546f62",
+        "kernel/sched/cpufreq_schedutil.c": "e002ad06f26cc78b77507cadd18d2caeb64c60eac6b96654a2e24904cccaabf0",
+        "kernel/sched/fair.c": "6f3bc60fb8e478dd652336aa5e807cea3e006ead573caa6a9ba040c1f1487bf2",
+        "kernel/sched/features.h": "a3886da5e4089df2841585f32faafaa68d89f059e3d8e2b5761c48bccec123c6"
+      },
+      "earlier_memlat_postimages_unchanged": true,
+      "item_6_kconfig_postimage_unchanged": true,
+      "source_defconfig_unchanged": true
+    },
+    "runner_sha256": "501834d48923ea559a04bded73d1a41bd216ee3021780b5c2deb6a05453fefc6",
+    "limits": [
+      "No pinned-AOSP compiler/ARM64 object build or full image/modules link was performed for these changes.",
+      "Host mocks do not execute real waits, timer coalescing, cpufreq concurrency, IPA firmware, modem/WLAN or suspend/RX paths.",
+      "No device boot, stress test, performance or power benefit measured.",
+      "Allowing 2 ms additional timer slack can increase this path's shutdown latency; it does not change sleep state or guarantee a wakeup deadline under load."
+    ]
+  },
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "ci_dispatched": false
+  },
+  "next_review_item": 44
+}

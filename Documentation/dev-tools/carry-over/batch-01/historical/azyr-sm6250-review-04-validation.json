@@ -1,0 +1,233 @@
+{
+  "review_items": [
+    {
+      "review_item": 34,
+      "commit": "75008653a3442cfe311a67da1de6887b205c52bc",
+      "subject": "Fix Compile",
+      "files": [
+        "drivers/hid/hid-ids.h",
+        "kernel/sched/cpufreq_schedutil.c",
+        "kernel/sched/fair.c"
+      ],
+      "reviewed_file_patch_sha256": "1939e55a06016bcdd9ce625fe573f1525bbb471ad4c7a2360e5b9b04ed647375",
+      "exact_patch_check_pass": false,
+      "patch_check_diagnostic": "error: patch failed: kernel/sched/fair.c:158\nerror: kernel/sched/fair.c: patch does not apply"
+    },
+    {
+      "review_item": 35,
+      "commit": "969455f6c9ffed3b33a11d9e03d5e139493e95c5",
+      "subject": "cpufreq: Update frequency calculation",
+      "files": [
+        "kernel/sched/cpufreq_schedutil.c"
+      ],
+      "reviewed_file_patch_sha256": "3b6a6d857dbb9b76f041f6acfb72128f054d4184ba22b9cf09618195c6cfd896",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 36,
+      "commit": "28bc6f028c8ee2d2d972ed2284d0cb5973cf3c2d",
+      "subject": "msm: ipa_v3: Mitigate usleep_range calls",
+      "files": [
+        "drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c"
+      ],
+      "reviewed_file_patch_sha256": "10e3e879a2c7ea418012e2cb425de177e81436b63cfa94a5cfc8d9e958a93212",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 37,
+      "commit": "161e2cdf1941a5537c9423fb2083b95f71354172",
+      "subject": "cpuidle: lpm-levels: decrease reported deep idle latency",
+      "files": [
+        "drivers/cpuidle/lpm-levels.c"
+      ],
+      "reviewed_file_patch_sha256": "86113c3f378892fa96e9a237aae59956a7fea017f67523da88ee0f15cfc1531e",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 38,
+      "commit": "4b8def97dcd06bae696bc7079c9b7a217c6c8d8b",
+      "subject": "Revert \"genirq/irqdomain: Don't try to free an interrupt that has no mapping\"",
+      "files": [
+        "kernel/irq/irqdomain.c"
+      ],
+      "reviewed_file_patch_sha256": "e0b593e4035a24c4a1fe43bf23099c71f6786f273c77508f1aa5ea02e2036e57",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 39,
+      "commit": "f5628227d7ea4d495c3c6edcf65e8eca2d551302",
+      "subject": "genirq: Use interruptible wait",
+      "files": [
+        "kernel/irq/manage.c"
+      ],
+      "reviewed_file_patch_sha256": "85ac5db925cafa64149d5b22caf22062e6fe2755000e070f6e0b129285d466c6",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 40,
+      "commit": "ba48a7fa0e40f5d908b01182dec4939b96503983",
+      "subject": "msm_geni_serial: Reduce ISR wakelock timeout to 100ms",
+      "files": [
+        "drivers/tty/serial/msm_geni_serial.c"
+      ],
+      "reviewed_file_patch_sha256": "eb4beb389e9140518cb4c9a73da491c9eebc49df613378383d86b4ddea2a5b2a",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 41,
+      "commit": "b0229e526d8593782fa4806e28b16542b836bf61",
+      "subject": "cpufreq: stats: Mark few conditionals with unlikely()",
+      "files": [
+        "drivers/cpufreq/cpufreq_stats.c"
+      ],
+      "reviewed_file_patch_sha256": "1f6378d35000588c644d42a33150a1c1ed33aac0121ad6f10f3814ad2daf53bd",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 42,
+      "commit": "91e171dd601acabb5ee768dba85df3bdad2e3296",
+      "subject": "sched: Queue non-local tasks on a cache sharing CPU",
+      "files": [
+        "kernel/sched/features.h"
+      ],
+      "reviewed_file_patch_sha256": "2a1682610593078a14067315416663c59278fff9e69b12e5c59db80169b8be5f",
+      "exact_patch_check_pass": true,
+      "patch_check_diagnostic": ""
+    },
+    {
+      "review_item": 43,
+      "commit": "23405aa7c10147bd83ce6167f949b8331bfa48d0",
+      "subject": "sched/fair: Switch sched scaling to linear",
+      "files": [
+        "kernel/sched/fair.c"
+      ],
+      "reviewed_file_patch_sha256": "25fa5a45d60c0412c1f51c4c70399aa7e1c5567322482003ba62a3bbf80b9333",
+      "exact_patch_check_pass": false,
+      "patch_check_diagnostic": "error: patch failed: kernel/sched/fair.c:115\nerror: kernel/sched/fair.c: patch does not apply"
+    }
+  ],
+  "status": "review only; no patches applied to working sources; no commit/push/CI",
+  "source_sha256": {
+    "drivers/cpufreq/cpufreq_stats.c": "f0913516dd87deaeeaf4e0da1fad439f94a1a6f174cd137507f82a7c303e46ba",
+    "drivers/cpuidle/lpm-levels.c": "db6266c205fe4d75b7ae5e574f177d18e66084de2fad1783a4945b807eb0c9b0",
+    "drivers/hid/hid-ids.h": "db7634766f1a1c15634aaef2f752025739ba358fb64d8fe41caf0f26e4d20274",
+    "drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c": "64522cc619a8d6e7ffb869e1c01ebac0cbc8601c00ce6eea4c23d98e82685449",
+    "drivers/tty/serial/msm_geni_serial.c": "1e00213d1e2c3df53247832efad10dcd49d3d5c5187efa27f5d8a3b91a997294",
+    "kernel/irq/irqdomain.c": "b2c7569df1dd558b44046adf439e5c8e61bc3e17d2751af865841cef20a4ba07",
+    "kernel/irq/manage.c": "c22328e6e7f73b446fc1d05ae645f8c5e5338c6d22c5d20d3550727715546f62",
+    "kernel/sched/cpufreq_schedutil.c": "e002ad06f26cc78b77507cadd18d2caeb64c60eac6b96654a2e24904cccaabf0",
+    "kernel/sched/fair.c": "6f3bc60fb8e478dd652336aa5e807cea3e006ead573caa6a9ba040c1f1487bf2",
+    "kernel/sched/features.h": "a3886da5e4089df2841585f32faafaa68d89f059e3d8e2b5761c48bccec123c6"
+  },
+  "config": {
+    "defconfig": "vendor/xiaomi/miatoll_defconfig",
+    "method": "shipped Kconfig parser built/run with HOSTCC=gcc CC=gcc ARCH=arm64 in external output directory; configuration only, not target compilation",
+    "sha256": "5db6637f0914c83e5eeaf0af681180587c1653f5e5c989060d1c458ef67f1567",
+    "settings": {
+      "CONFIG_SCHED_BORE": "y",
+      "CONFIG_FAIR_GROUP_SCHED": "n",
+      "CONFIG_SCHED_WALT": "n",
+      "CONFIG_NR_CPUS": "8",
+      "CONFIG_HID_PLAYSTATION": "n",
+      "CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE": "y",
+      "CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL": "n",
+      "CONFIG_CPU_FREQ_GOV_SCHEDUTIL": "y",
+      "CONFIG_CPU_FREQ_STAT": "y",
+      "CONFIG_IPA3": "y",
+      "CONFIG_SERIAL_MSM_GENI": "y",
+      "CONFIG_MSM_PM": "y",
+      "CONFIG_PCI": "n",
+      "CONFIG_ARM_MEMLAT_MON": "y",
+      "CONFIG_QCOM_SCM": "y"
+    }
+  },
+  "host_compiler": "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "irq_synchronization_model": {
+    "method": "extract native and exact donor synchronize_irq() bodies; mock kernel wait macros with documented successful wait versus pending-signal -ERESTARTSYS behavior; active-thread flag remains set on interrupted wait; this is not real signal delivery or kernel concurrency",
+    "native": [
+      "signal=0 active_before=0 active_after=0 waits=0 hard_waits=1",
+      "signal=0 active_before=1 active_after=0 waits=1 hard_waits=1",
+      "signal=1 active_before=0 active_after=0 waits=0 hard_waits=1",
+      "signal=1 active_before=1 active_after=0 waits=1 hard_waits=1"
+    ],
+    "donor": [
+      "signal=0 active_before=0 active_after=0 waits=0 hard_waits=1",
+      "signal=0 active_before=1 active_after=0 waits=1 hard_waits=1",
+      "signal=1 active_before=0 active_after=0 waits=0 hard_waits=1",
+      "signal=1 active_before=1 active_after=1 waits=1 hard_waits=1"
+    ],
+    "fixture": "#include <stdio.h>\nstruct irq_desc {int wait_for_threads; int threads_active;};\nstatic struct irq_desc desc;\nstatic int signaled, waits, hard_waits;\nstatic struct irq_desc *irq_to_desc(unsigned irq) {return irq?&desc:0;}\nstatic int atomic_read(int *p) {return *p;}\nstatic void __synchronize_hardirq(struct irq_desc *p) {hard_waits++;}\nstatic int model_wait(int interruptible) {waits++; if(interruptible&&signaled) return -512; desc.threads_active=0; return 0;}\n#define wait_event(wq,cond) ((cond)?0:model_wait(0))\n#define wait_event_interruptible(wq,cond) ((cond)?0:model_wait(1))\n\n/* insert extracted synchronize_irq body */\n\nint main(void) {for(int sig=0;sig<2;sig++)for(int active=0;active<2;active++){desc.threads_active=active;signaled=sig;waits=hard_waits=0;synchronize_irq(1);printf(\"signal=%d active_before=%d active_after=%d waits=%d hard_waits=%d\\n\",sig,active,desc.threads_active,waits,hard_waits);}return 0;}\n",
+    "conclusion": "donor ignores interrupted wait result and can return before threaded handlers finish"
+  },
+  "irq_domain_callback_model": {
+    "method": "extract native and exact donor irq_domain_free_irqs_hierarchy(); record callback ranges with mock valid/missing mapping; NOT a reproduction of claimed MSM modem crash",
+    "native": [
+      "missing=0 100:1 101:1 102:1 103:1 ",
+      "missing=102 100:1 101:1 103:1"
+    ],
+    "donor": [
+      "missing=0 100:4 ",
+      "missing=102 100:4"
+    ],
+    "fixture": "#include <stdio.h>\nstruct irq_domain;\nstruct irq_domain_ops { void (*free)(struct irq_domain *, unsigned, unsigned);};\nstruct irq_domain {struct irq_domain_ops *ops;};\nstatic unsigned missing;\nstatic int irq_domain_get_irq_data(struct irq_domain *d,unsigned irq) {return irq!=missing;}\nstatic void callback(struct irq_domain *d,unsigned base,unsigned count) {printf(\"%u:%u \",base,count);}\n\n/* insert extracted hierarchy helper */\n\nint main(void){struct irq_domain_ops ops={callback};struct irq_domain d={&ops};for(int i=0;i<2;i++){missing=i?102:0;printf(\"missing=%u \",missing);irq_domain_free_irqs_hierarchy(&d,100,4);puts(\"\");}return 0;}\n",
+    "conclusion": "donor restores one range-sized free callback, but also removes per-IRQ mapping checks; actual platform correctness needs lifecycle validation"
+  },
+  "ipa_delay": {
+    "macro": 100,
+    "native_min_max_us": [
+      10000,
+      10000
+    ],
+    "donor_min_max_us": [
+      10000,
+      12000
+    ],
+    "host_constant_fold_check": "10000 12000",
+    "fixture": "#include <stdio.h>\n#define IPA_UC_POLL_SLEEP_USEC 100\nint main(void){unsigned long min=IPA_UC_POLL_SLEEP_USEC*IPA_UC_POLL_SLEEP_USEC;unsigned long max=IPA_UC_POLL_SLEEP_USEC*IPA_UC_POLL_SLEEP_USEC*1.2;printf(\"%lu %lu\\n\",min,max);return 0;}\n",
+    "method": "host GCC -O2 -mgeneral-regs-only constant-expression fixture; not production AOSP ARM64 compilation; do not claim double literal unconditionally causes runtime FP",
+    "integer_recommendation": "delay + delay / 5 for the maximum, preserving minimum"
+  },
+  "schedutil_raw_mapping": {
+    "native_multiplier": 1.25,
+    "donor_multiplier": 1.125,
+    "relative_raw_reduction_percent": 10,
+    "nominal_saturation_utilization_native": 0.8,
+    "nominal_saturation_utilization_donor": 0.8888888888888888,
+    "limits": "approximate ignoring integer rounding, frequency-table resolution, current custom 20-percent step chooser, boosts and policy limits; runtime governor must be schedutil"
+  },
+  "scaling_at_8_online_cpus": {
+    "current_bore_none_factor": 1,
+    "legacy_log_factor": 4,
+    "linear_factor": 8,
+    "current_bore_latency_min_wakeup_ms": [
+      24,
+      5,
+      4
+    ],
+    "if_forced_linear_bore_latency_min_wakeup_ms": [
+      192,
+      40,
+      32
+    ],
+    "limits": "exact donor context fails; changing only legacy else default would not affect BORE branch"
+  },
+  "limits": [
+    "No target compiler/build, device boot, modem/RX/suspend stress, performance or power measurements in this review.",
+    "Config enabled does not prove runtime use; default performance governor may be overridden by ROM policy.",
+    "Exact patch --check is context applicability only, not correctness or authorization."
+  ],
+  "next_review_item": 44,
+  "preservation_checks": {
+    "candidate_sources_unchanged": true,
+    "earlier_memlat_postimages_unchanged": true,
+    "item_6_kconfig_postimage_unchanged": true,
+    "miatoll_defconfig_sha256": "62a05a0271c59709b5475a09834def4c8a600ab1548cf496cdefb93da36cd0ee"
+  }
+}

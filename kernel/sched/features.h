@@ -82,6 +82,11 @@ SCHED_FEAT(RT_RUNTIME_SHARE, false)
 SCHED_FEAT(LB_MIN, false)
 SCHED_FEAT(ATTACH_AGE_LOAD, true)
 
+/* Batch rejected-task list updates; sampled once per detach_tasks() call. */
+SCHED_FEAT(LB_ROTATE_BLOCK, true)
+/* Fit the actual remaining load budget, with one bounded progress concession. */
+SCHED_FEAT(LB_STRICT_BUDGET, true)
+
 SCHED_FEAT(WA_IDLE, true)
 SCHED_FEAT(WA_WEIGHT, true)
 SCHED_FEAT(WA_BIAS, true)

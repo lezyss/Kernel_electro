@@ -1,0 +1,2 @@
+PASS: LZ4 1.11.1 ARM64 restoration replay, current sources/modes and evidence; 13 explicit historical preimages; 7 additions.
+PASS: four restoration negative controls (current source, preimage, patch, evidence) rejected

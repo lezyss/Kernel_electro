@@ -70,9 +70,12 @@ void tcp_mstamp_refresh(struct tcp_sock *tp)
 {
 	u64 val = tcp_clock_ns();
 
-	/* departure time for next data packet */
-	if (val > tp->tcp_wstamp_ns)
-		tp->tcp_wstamp_ns = val;
+	/* EDT and the fq watchdog must share CLOCK_MONOTONIC, not local_clock.
+	 * Keep legacy RTT/rate microsecond samples in their existing domain.
+	 */
+	tp->tcp_clock_cache = ktime_get_ns();
+	if (tp->tcp_clock_cache > tp->tcp_wstamp_ns)
+		tp->tcp_wstamp_ns = tp->tcp_clock_cache;
 
 	val = div_u64(val, NSEC_PER_USEC);
 	if (val > tp->tcp_mstamp)
@@ -1184,10 +1187,6 @@ enum hrtimer_restart tcp_pace_kick(struct hrtimer *timer)
  * but is not always installed/used.
  * Return true if TCP stack should pace packets itself.
  */
-static bool tcp_needs_internal_pacing(const struct sock *sk)
-{
-	return smp_load_acquire(&sk->sk_pacing_status) == SK_PACING_NEEDED;
-}
 
 static void tcp_internal_pacing(struct sock *sk, const struct sk_buff *skb)
 {
@@ -1208,6 +1207,47 @@ static void tcp_internal_pacing(struct sock *sk, const struct sk_buff *skb)
 	hrtimer_start(&tcp_sk(sk)->pacing_timer,
 		      ktime_add_ns(ktime_get(), len_ns),
 		      HRTIMER_MODE_ABS_PINNED);
+}
+
+/* Prepare one real departure deadline. Do not reuse skb->tstamp: 4.14
+ * aliases it with the microsecond retransmit/rate stamp. Pure ACK/SYN/RST
+ * control packets retain their native treatment; FIN follows queued data.
+ */
+static u64 tcp_edt_prepare(struct sock *sk, const struct sk_buff *skb,
+			   unsigned int payload_len)
+{
+	struct tcp_sock *tp = tcp_sk(sk);
+	u32 rate = READ_ONCE(sk->sk_pacing_rate);
+
+	if ((!payload_len && !(TCP_SKB_CB(skb)->tcp_flags & TCPHDR_FIN)) ||
+	    (TCP_SKB_CB(skb)->tcp_flags & (TCPHDR_SYN | TCPHDR_RST)))
+		return 0;
+	/* Also stamp the first packet before fq advertises SK_PACING_FQ.
+	 * On other qdiscs the native internal timer still gates each send;
+	 * BBR must not forecast from EDT until fq has advertised support.
+	 */
+	if (!(inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_EDT) ||
+	    !smp_load_acquire(&sk->sk_pacing_status) || !rate || rate == ~0U) {
+		tp->tcp_wstamp_ns = tp->tcp_clock_cache;
+		return 0;
+	}
+	return max(tp->tcp_wstamp_ns, tp->tcp_clock_cache);
+}
+
+/* Advance only after successful handoff. Failed sends must not reserve time.
+ * As in native fq, cap one packet's serialization delay at one second.
+ * This also keeps extremely low pacing rates from creating unbounded delays.
+ */
+static void tcp_edt_advance(struct sock *sk, u64 edt, unsigned int len, u32 rate)
+{
+	struct tcp_sock *tp = tcp_sk(sk);
+	u64 delay;
+
+	if (!edt || !rate || rate == ~0U)
+		return;
+	delay = div_u64((u64)len * NSEC_PER_SEC, rate);
+	delay = min_t(u64, delay, NSEC_PER_SEC);
+	tp->tcp_wstamp_ns = edt + delay;
 }
 
 /* This routine actually transmits TCP packets queued in by
@@ -1233,14 +1273,20 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	struct sk_buff *oskb = NULL;
 	struct tcp_md5sig_key *md5;
 	struct tcphdr *th;
+	u64 edt;
+	u32 edt_rate;
+	unsigned int edt_len;
 	int err;
 
 	BUG_ON(!skb || !tcp_skb_pcount(skb));
 	tp = tcp_sk(sk);
 
 	if (clone_it) {
-		TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq
-			- tp->snd_una;
+		if (!(icsk->icsk_ca_ops->flags & TCP_CONG_RATE_IN_FLIGHT)) {
+			TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq
+				- tp->snd_una;
+			TCP_SKB_CB(skb)->tx.in_flight_is_packets = 0;
+		}
 		oskb = skb;
 		if (unlikely(skb_cloned(skb)))
 			skb = pskb_copy(skb, gfp_mask);
@@ -1250,6 +1296,7 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 			return -ENOBUFS;
 	}
 	skb->skb_mstamp = tp->tcp_mstamp;
+	skb->tcp_edt_ns = 0;
 
 	inet = inet_sk(sk);
 	tcb = TCP_SKB_CB(skb);
@@ -1355,6 +1402,11 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	skb_shinfo(skb)->gso_segs = tcp_skb_pcount(skb);
 	skb_shinfo(skb)->gso_size = tcp_skb_mss(skb);
 
+	/* Keep actual send/RTT samples separate from the fq deadline. */
+	edt = tcp_edt_prepare(sk, skb, skb->len - tcp_header_size);
+	edt_rate = READ_ONCE(sk->sk_pacing_rate);
+	edt_len = skb->len;
+	skb->tcp_edt_ns = edt;
 	/* Our usage of tstamp should remain private */
 	skb->tstamp = 0;
 
@@ -1368,6 +1420,8 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 		tcp_enter_cwr(sk);
 		err = net_xmit_eval(err);
 	}
+	if (!err)
+		tcp_edt_advance(sk, edt, edt_len, edt_rate);
 	if (!err && oskb) {
 		oskb->skb_mstamp = tp->tcp_mstamp;
 		tcp_rate_skb_sent(sk, oskb);
@@ -1498,7 +1552,7 @@ int tcp_fragment(struct sock *sk, struct sk_buff *skb, u32 len,
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *buff;
-	int nsize, old_factor;
+	int nsize, old_factor, inflight_prev;
 	long limit;
 	int nlen;
 	u8 flags;
@@ -1586,6 +1640,19 @@ int tcp_fragment(struct sock *sk, struct sk_buff *skb, u32 len,
 
 		if (diff)
 			tcp_adjust_pcount(sk, skb, diff);
+		if (TCP_SKB_CB(skb)->tx.in_flight_is_packets) {
+			inflight_prev = TCP_SKB_CB(skb)->tx.in_flight - old_factor;
+			if (inflight_prev < 0) {
+				WARN_ON_ONCE(tcp_skb_tx_in_flight_is_suspicious(
+					old_factor, TCP_SKB_CB(skb)->sacked,
+					TCP_SKB_CB(skb)->tx.in_flight));
+				inflight_prev = 0;
+			}
+			TCP_SKB_CB(skb)->tx.in_flight = inflight_prev +
+				tcp_skb_pcount(skb);
+			TCP_SKB_CB(buff)->tx.in_flight = inflight_prev +
+				tcp_skb_pcount(skb) + tcp_skb_pcount(buff);
+		}
 	}
 
 	/* Link BUFF into the send queue. */
@@ -1958,6 +2025,10 @@ static u32 tcp_tso_segs(struct sock *sk, unsigned int mss_now)
 {
 	const struct tcp_congestion_ops *ca_ops = inet_csk(sk)->icsk_ca_ops;
 	u32 min_tso, tso_segs;
+
+	if (ca_ops->tso_segs)
+		return min_t(u32, ca_ops->tso_segs(sk, mss_now),
+			     sk->sk_gso_max_segs);
 
 	min_tso = ca_ops->min_tso_segs ?
 			ca_ops->min_tso_segs(sk) :
@@ -2576,6 +2647,8 @@ static bool tcp_write_xmit(struct sock *sk, unsigned int mss_now, int nonagle,
 		if (unlikely(tp->repair) && tp->repair_queue == TCP_SEND_QUEUE) {
 			/* "skb_mstamp" is used as a start point for the retransmit timer */
 			skb->skb_mstamp = tp->tcp_mstamp;
+			/* Restored bytes have no meaningful delivery-time sample. */
+			memset(&TCP_SKB_CB(skb)->tx, 0, sizeof(TCP_SKB_CB(skb)->tx));
 			goto repair; /* Skip network transmission */
 		}
 
@@ -2789,6 +2862,7 @@ void tcp_send_loss_probe(struct sock *sk)
 	if (WARN_ON(!skb || !tcp_skb_pcount(skb)))
 		goto rearm_timer;
 
+	tp->tlp_orig_data_app_limited = TCP_SKB_CB(skb)->tx.is_app_limited;
 	if (__tcp_retransmit_skb(sk, skb, 1))
 		goto rearm_timer;
 

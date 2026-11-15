@@ -71,7 +71,8 @@ struct fq_flow {
 	struct fq_flow *next;		/* next pointer in RR lists, or &detached */
 
 	struct rb_node  rate_node;	/* anchor in q->delayed tree */
-	u64		time_next_packet;
+	u64		time_next_packet; /* fq maxrate / legacy socket rate */
+	u64		time_next_delayed; /* effective head EDT/rate wakeup */
 };
 
 struct fq_flow_head {
@@ -159,7 +160,7 @@ static void fq_flow_set_throttled(struct fq_sched_data *q, struct fq_flow *f)
 
 		parent = *p;
 		aux = rb_entry(parent, struct fq_flow, rate_node);
-		if (f->time_next_packet >= aux->time_next_packet)
+		if (f->time_next_delayed >= aux->time_next_delayed)
 			p = &parent->rb_right;
 		else
 			p = &parent->rb_left;
@@ -170,8 +171,8 @@ static void fq_flow_set_throttled(struct fq_sched_data *q, struct fq_flow *f)
 	q->stat_throttled++;
 
 	f->next = &throttled;
-	if (q->time_next_delayed_flow > f->time_next_packet)
-		q->time_next_delayed_flow = f->time_next_packet;
+	if (q->time_next_delayed_flow > f->time_next_delayed)
+		q->time_next_delayed_flow = f->time_next_delayed;
 }
 
 
@@ -236,7 +237,8 @@ static struct fq_flow *fq_classify(struct sk_buff *skb, struct fq_sched_data *q)
 	struct fq_flow *f;
 
 	/* warning: no starvation prevention... */
-	if (unlikely((skb->priority & TC_PRIO_MAX) == TC_PRIO_CONTROL))
+	if (unlikely((skb->priority & TC_PRIO_MAX) == TC_PRIO_CONTROL) &&
+	    !skb->tcp_edt_ns)
 		return &q->internal;
 
 	/* SYNACK messages are attached to a TCP_NEW_SYN_RECV request socket
@@ -334,62 +336,39 @@ static struct sk_buff *fq_dequeue_head(struct Qdisc *sch, struct fq_flow *flow)
 	return skb;
 }
 
-/* We might add in the future detection of retransmits
- * For the time being, just return false
- */
-static bool skb_is_retransmit(struct sk_buff *skb)
-{
-	return false;
-}
-
-/* add skb to flow queue
- * flow queue is a linked list, kind of FIFO, except for TCP retransmits
- * We special case tcp retransmits to be transmitted before other packets.
- * We rely on fact that TCP retransmits are unlikely, so we do not waste
- * a separate queue or a pointer.
- * head->  [retrans pkt 1]
- *         [retrans pkt 2]
- *         [ normal pkt 1]
- *         [ normal pkt 2]
- *         [ normal pkt 3]
- * tail->  [ normal pkt 4]
+/* Native TCP EDT is separate from receive/software timestamps. Immediate
+ * pure ACKs must not sit behind future data. Normal monotonic
+ * TCP deadlines append in O(1); exceptional earlier arrivals insert stably.
  */
 static void flow_queue_add(struct fq_flow *flow, struct sk_buff *skb)
 {
-	struct sk_buff *prev, *head = flow->head;
+	struct sk_buff *prev, *next;
 
 	skb->next = NULL;
-	if (!head) {
-		flow->head = skb;
-		flow->tail = skb;
+	if (!flow->head) {
+		flow->head = flow->tail = skb;
 		return;
 	}
-	if (likely(!skb_is_retransmit(skb))) {
+	/* Untagged data retains FIFO order, including live CC switches.
+	 * Only immediate pure ACKs may pass data waiting for a deadline.
+	 */
+	if ((!skb->tcp_edt_ns && !skb_is_tcp_pure_ack(skb)) ||
+	    skb->tcp_edt_ns >= flow->tail->tcp_edt_ns) {
 		flow->tail->next = skb;
 		flow->tail = skb;
 		return;
 	}
-
-	/* This skb is a tcp retransmit,
-	 * find the last retrans packet in the queue
-	 */
 	prev = NULL;
-	while (skb_is_retransmit(head)) {
-		prev = head;
-		head = head->next;
-		if (!head)
-			break;
+	next = flow->head;
+	while (next && next->tcp_edt_ns <= skb->tcp_edt_ns) {
+		prev = next;
+		next = next->next;
 	}
-	if (!prev) { /* no rtx packet in queue, become the new head */
-		skb->next = flow->head;
-		flow->head = skb;
-	} else {
-		if (prev == flow->tail)
-			flow->tail = skb;
-		else
-			skb->next = prev->next;
+	skb->next = next;
+	if (prev)
 		prev->next = skb;
-	}
+	else
+		flow->head = skb;
 }
 
 static int fq_enqueue(struct sk_buff *skb, struct Qdisc *sch,
@@ -408,8 +387,6 @@ static int fq_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 	}
 
 	f->qlen++;
-	if (skb_is_retransmit(skb))
-		q->stat_tcp_retrans++;
 	qdisc_qstats_backlog_inc(sch, skb);
 	if (fq_flow_is_detached(f)) {
 		fq_flow_add_tail(&q->new_flows, f);
@@ -420,6 +397,10 @@ static int fq_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 
 	/* Note: this overwrites f->age */
 	flow_queue_add(f, skb);
+	if (fq_flow_is_throttled(f) &&
+	    (!f->head->tcp_edt_ns ||
+	     f->head->tcp_edt_ns < f->time_next_delayed))
+		fq_flow_unset_throttled(q, f);
 
 	if (unlikely(f == &q->internal)) {
 		q->stat_internal_packets++;
@@ -448,8 +429,8 @@ static void fq_check_throttled(struct fq_sched_data *q, u64 now)
 	while ((p = rb_first(&q->delayed)) != NULL) {
 		struct fq_flow *f = rb_entry(p, struct fq_flow, rate_node);
 
-		if (f->time_next_packet > now) {
-			q->time_next_delayed_flow = f->time_next_packet;
+		if (f->time_next_delayed > now) {
+			q->time_next_delayed_flow = f->time_next_delayed;
 			break;
 		}
 		fq_flow_unset_throttled(q, f);
@@ -465,18 +446,25 @@ static struct sk_buff *fq_dequeue(struct Qdisc *sch)
 	struct fq_flow *f;
 	u32 rate, plen;
 
-	skb = fq_dequeue_head(sch, &q->internal);
-	if (skb)
+	skb = q->internal.head;
+	if (skb && (!q->rate_enable || !skb->tcp_edt_ns ||
+		    skb->tcp_edt_ns <= now)) {
+		skb = fq_dequeue_head(sch, &q->internal);
 		goto out;
+	}
 	fq_check_throttled(q, now);
 begin:
 	head = &q->new_flows;
 	if (!head->first) {
 		head = &q->old_flows;
 		if (!head->first) {
-			if (q->time_next_delayed_flow != ~0ULL)
-				qdisc_watchdog_schedule_ns(&q->watchdog,
-							   q->time_next_delayed_flow);
+			u64 deadline = q->time_next_delayed_flow;
+
+			if (q->internal.head && q->rate_enable)
+				deadline = min(deadline,
+					       q->internal.head->tcp_edt_ns);
+			if (deadline != ~0ULL)
+				qdisc_watchdog_schedule_ns(&q->watchdog, deadline);
 			return NULL;
 		}
 	}
@@ -490,11 +478,17 @@ begin:
 	}
 
 	skb = f->head;
-	if (unlikely(skb && now < f->time_next_packet &&
-		     !skb_is_tcp_pure_ack(skb))) {
-		head->first = f->next;
-		fq_flow_set_throttled(q, f);
-		goto begin;
+	if (skb) {
+		u64 deadline = f->time_next_packet;
+
+		if (q->rate_enable)
+			deadline = max(deadline, skb->tcp_edt_ns);
+		if (unlikely(now < deadline && !skb_is_tcp_pure_ack(skb))) {
+			head->first = f->next;
+			f->time_next_delayed = deadline;
+			fq_flow_set_throttled(q, f);
+			goto begin;
+		}
 	}
 
 	skb = fq_dequeue_head(sch, f);
@@ -520,7 +514,11 @@ begin:
 		goto out;
 
 	rate = q->flow_max_rate;
-	if (skb->sk)
+	/* TCP already serialized EDT packets at the socket pacing rate.
+	 * Still enforce an explicitly configured fq maxrate (upstream fix
+	 * 08e14fe429a0); never double-charge the socket's rate.
+	 */
+	if (!skb->tcp_edt_ns && skb->sk)
 		rate = min(skb->sk->sk_pacing_rate, rate);
 
 	if (rate <= q->low_rate_threshold) {
@@ -548,7 +546,7 @@ begin:
 		 * f->time_next_packet was set when prior packet was sent,
 		 * and current time (@now) can be too late by tens of us.
 		 */
-		if (f->time_next_packet)
+		if (f->time_next_packet && now > f->time_next_packet)
 			len -= min(len/2, now - f->time_next_packet);
 		f->time_next_packet = now + len;
 	}

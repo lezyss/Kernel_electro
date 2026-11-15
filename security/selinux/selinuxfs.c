@@ -619,7 +619,12 @@ static ssize_t sel_write_context(struct file *file, char *buf, size_t size)
 	if (length)
 		goto out;
 
-	length = security_context_to_sid(state, buf, size, &sid, GFP_KERNEL);
+#ifdef CONFIG_KSU_SUSFS
+	if (current_uid().val >= 10000 && susfs_ksu_selinux_hide_active())
+		length = susfs_security_context_to_sid(state, buf, size, &sid, GFP_KERNEL);
+	else
+#endif
+		length = security_context_to_sid(state, buf, size, &sid, GFP_KERNEL);
 	if (length)
 		goto out;
 
@@ -855,15 +860,30 @@ static ssize_t sel_write_access(struct file *file, char *buf, size_t size)
 	if (sscanf(buf, "%s %s %hu", scon, tcon, &tclass) != 3)
 		goto out;
 
-	length = security_context_str_to_sid(state, scon, &ssid, GFP_KERNEL);
+#ifdef CONFIG_KSU_SUSFS
+	if (current_uid().val >= 10000 && susfs_ksu_selinux_hide_active())
+		length = susfs_security_context_str_to_sid(state, scon, &ssid, GFP_KERNEL);
+	else
+#endif
+		length = security_context_str_to_sid(state, scon, &ssid, GFP_KERNEL);
 	if (length)
 		goto out;
 
-	length = security_context_str_to_sid(state, tcon, &tsid, GFP_KERNEL);
+#ifdef CONFIG_KSU_SUSFS
+	if (current_uid().val >= 10000 && susfs_ksu_selinux_hide_active())
+		length = susfs_security_context_str_to_sid(state, tcon, &tsid, GFP_KERNEL);
+	else
+#endif
+		length = security_context_str_to_sid(state, tcon, &tsid, GFP_KERNEL);
 	if (length)
 		goto out;
 
-	security_compute_av_user(state, ssid, tsid, tclass, &avd);
+#ifdef CONFIG_KSU_SUSFS
+	if (current_uid().val >= 10000 && susfs_ksu_selinux_hide_active())
+		susfs_security_compute_av_user(state, ssid, tsid, tclass, &avd);
+	else
+#endif
+		security_compute_av_user(state, ssid, tsid, tclass, &avd);
 
 	length = scnprintf(buf, SIMPLE_TRANSACTION_LIMIT,
 			  "%x %x %x %x %u %x",

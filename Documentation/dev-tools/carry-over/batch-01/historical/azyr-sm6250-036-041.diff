@@ -1,0 +1,42 @@
+--- a/drivers/cpufreq/cpufreq_stats.c
++++ b/drivers/cpufreq/cpufreq_stats.c
+@@ -223,7 +223,7 @@
+ 	struct cpufreq_stats *stats = policy->stats;
+ 	int old_index, new_index;
+ 
+-	if (!stats) {
++	if (unlikely(!stats)) {
+ 		pr_debug("%s: No stats found\n", __func__);
+ 		return;
+ 	}
+@@ -232,7 +232,7 @@
+ 	new_index = freq_table_get_index(stats, new_freq);
+ 
+ 	/* We can't do stats->time_in_state[-1]= .. */
+-	if (old_index == -1 || new_index == -1 || old_index == new_index)
++	if (unlikely(old_index == -1 || new_index == -1 || old_index == new_index))
+ 		return;
+ 
+ 	cpufreq_stats_update(stats);
+--- a/drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c
++++ b/drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c
+@@ -2593,6 +2593,9 @@
+ 	 * remove delay and enable holb on IPA Producer pipe
+ 	 */
+ 	if (IPA_CLIENT_IS_PROD(ep->client)) {
++		const unsigned long delay_us = IPA_UC_POLL_SLEEP_USEC *
++					       IPA_UC_POLL_SLEEP_USEC;
++
+ 		IPADBG("Stopping PROD channel - hdl=%d clnt=%d\n",
+ 			clnt_hdl, ep->client);
+ 		/* remove delay on wlan-prod pipe*/
+@@ -2616,8 +2619,7 @@
+ 				goto uc_timeout;
+ 			}
+ 		}
+-		usleep_range(IPA_UC_POLL_SLEEP_USEC * IPA_UC_POLL_SLEEP_USEC,
+-			IPA_UC_POLL_SLEEP_USEC * IPA_UC_POLL_SLEEP_USEC);
++		usleep_range(delay_us, delay_us + delay_us / 5);
+ 
+ 	}
+ 

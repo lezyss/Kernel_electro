@@ -577,6 +577,10 @@ struct netdev_queue {
 	 * (/sys/class/net/DEV/Q/trans_timeout)
 	 */
 	unsigned long		trans_timeout;
+
+#ifdef CONFIG_XDP_SOCKETS
+	struct xdp_umem         *umem;
+#endif
 /*
  * write-mostly part
  */
@@ -700,6 +704,9 @@ struct netdev_rx_queue {
 	struct kobject			kobj;
 	struct net_device		*dev;
 	struct xdp_rxq_info		xdp_rxq;
+#ifdef CONFIG_XDP_SOCKETS
+	struct xdp_umem                 *umem;
+#endif
 } ____cacheline_aligned_in_smp;
 
 /*
@@ -2273,7 +2280,8 @@ struct napi_gro_cb {
 	/* Number of gro_receive callbacks this packet already went through */
 	u8 recursion_counter:4;
 
-	/* 2 bit hole */
+	/* GRO is done by frag_list pointer chaining. */
+	u8 is_flist:1;
 
 	/* used to support CHECKSUM_COMPLETE for tunneling protocols */
 	__wsum	csum;
@@ -2593,8 +2601,21 @@ void dev_close(struct net_device *dev);
 void dev_close_many(struct list_head *head, bool unlink);
 void dev_disable_lro(struct net_device *dev);
 int dev_loopback_xmit(struct net *net, struct sock *sk, struct sk_buff *newskb);
+
 int dev_queue_xmit(struct sk_buff *skb);
 int dev_queue_xmit_accel(struct sk_buff *skb, void *accel_priv);
+int __dev_direct_xmit(struct sk_buff *skb, u16 queue_id);
+
+static inline int dev_direct_xmit(struct sk_buff *skb, u16 queue_id)
+{
+	int ret;
+
+	ret = __dev_direct_xmit(skb, queue_id);
+	if (!dev_xmit_complete(ret))
+		kfree_skb(skb);
+	return ret;
+}
+
 int register_netdevice(struct net_device *dev);
 void unregister_netdevice_queue(struct net_device *dev, struct list_head *head);
 void unregister_netdevice_many(struct list_head *head);
@@ -2616,6 +2637,7 @@ struct net_device *dev_get_by_napi_id(unsigned int napi_id);
 int netdev_get_name(struct net *net, char *name, int ifindex);
 int dev_restart(struct net_device *dev);
 int skb_gro_receive(struct sk_buff **head, struct sk_buff *skb);
+int skb_gro_receive_list(struct sk_buff *p, struct sk_buff *skb);
 
 static inline unsigned int skb_gro_offset(const struct sk_buff *skb)
 {
@@ -2956,6 +2978,9 @@ struct softnet_data {
 	struct Qdisc		*output_queue;
 	struct Qdisc		**output_queue_tailp;
 	struct sk_buff		*completion_queue;
+#ifdef CONFIG_XFRM_OFFLOAD
+	struct sk_buff_head	xfrm_backlog;
+#endif
 	/* written and read only by owning cpu: */
 	struct {
 		u16 recursion;
@@ -3522,7 +3547,7 @@ int dev_get_phys_port_name(struct net_device *dev,
 			   char *name, size_t len);
 int dev_change_proto_down(struct net_device *dev, bool proto_down);
 int dev_change_proto_down_generic(struct net_device *dev, bool proto_down);
-struct sk_buff *validate_xmit_skb_list(struct sk_buff *skb, struct net_device *dev);
+struct sk_buff *validate_xmit_skb_list(struct sk_buff *skb, struct net_device *dev, bool *again);
 struct sk_buff *dev_hard_start_xmit(struct sk_buff *skb, struct net_device *dev,
 				    struct netdev_queue *txq, int *ret);
 
@@ -3536,14 +3561,42 @@ int xdp_umem_query(struct net_device *dev, u16 queue_id);
 
 int __dev_forward_skb(struct net_device *dev, struct sk_buff *skb);
 int dev_forward_skb(struct net_device *dev, struct sk_buff *skb);
+int dev_forward_skb_nomtu(struct net_device *dev, struct sk_buff *skb);
 bool is_skb_forwardable(const struct net_device *dev,
 			const struct sk_buff *skb);
 
+static __always_inline bool __is_skb_forwardable(const struct net_device *dev,
+						 const struct sk_buff *skb,
+						 const bool check_mtu)
+{
+	const u32 vlan_hdr_len = 4; /* VLAN_HLEN */
+	unsigned int len;
+
+	if (!(dev->flags & IFF_UP))
+		return false;
+
+	if (!check_mtu)
+		return true;
+
+	len = dev->mtu + dev->hard_header_len + vlan_hdr_len;
+	if (skb->len <= len)
+		return true;
+
+	/* if TSO is enabled, we don't care about the length as the packet
+	 * could be forwarded without being segmented before
+	 */
+	if (skb_is_gso(skb))
+		return true;
+
+	return false;
+}
+
 static __always_inline int ____dev_forward_skb(struct net_device *dev,
-					       struct sk_buff *skb)
+					       struct sk_buff *skb,
+					       const bool check_mtu)
 {
 	if (skb_orphan_frags(skb, GFP_ATOMIC) ||
-	    unlikely(!is_skb_forwardable(dev, skb))) {
+	    unlikely(!__is_skb_forwardable(dev, skb, check_mtu))) {
 		atomic_long_inc(&dev->rx_dropped);
 		kfree_skb(skb);
 		return NET_RX_DROP;

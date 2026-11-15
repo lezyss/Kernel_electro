@@ -390,10 +390,10 @@ ssize_t tcp_splice_read(struct socket *sk, loff_t *ppos,
 
 /* sysctl master controller */
 extern int tcp_use_userconfig_sysctl_handler(struct ctl_table *table,
-				int write, void __user *buffer, size_t *length,
+				int write, void *buffer, size_t *length,
 				loff_t *ppos);
 extern int tcp_proc_delayed_ack_control(struct ctl_table *table, int write,
-				void __user *buffer, size_t *length,
+				void *buffer, size_t *length,
 				loff_t *ppos);
 
 void tcp_enter_quickack_mode(struct sock *sk, unsigned int max_quickacks);
@@ -457,6 +457,7 @@ void tcp_set_keepalive(struct sock *sk, int val);
 void tcp_syn_ack_timeout(const struct request_sock *req);
 int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 		int flags, int *addr_len);
+int tcp_set_window_clamp(struct sock *sk, int val);
 void tcp_parse_options(const struct net *net, const struct sk_buff *skb,
 		       struct tcp_options_received *opt_rx,
 		       int estab, struct tcp_fastopen_cookie *foc);
@@ -791,6 +792,12 @@ static inline u32 tcp_stamp_us_delta(u64 t1, u64 t0)
 	return max_t(s64, t1 - t0, 0);
 }
 
+/* Modular microsecond snapshots are valid for intervals below 2^31 us. */
+static inline u32 tcp_stamp32_us_delta(u32 t1, u32 t0)
+{
+	return max_t(s32, t1 - t0, 0);
+}
+
 static inline u32 tcp_skb_timestamp(const struct sk_buff *skb)
 {
 	return div_u64(skb->skb_mstamp, USEC_PER_SEC / TCP_TS_HZ);
@@ -859,15 +866,22 @@ struct tcp_skb_cb {
 	union {
 		struct {
 			/* There is space for up to 24 bytes */
-			__u32 in_flight:30,/* Bytes in flight at transmit */
-			      is_app_limited:1, /* cwnd not fully used? */
-			      unused:1;
+#define TCPCB_IN_FLIGHT_MAX ((1U << 30) - 1)
+			/* Legacy bytes, or packets when in_flight_is_packets is set.
+			 * Never reinterpret a queued sample after a CC switch.
+			 */
+			__u32 in_flight:30,
+			      is_app_limited:1,
+			      in_flight_is_packets:1;
 			/* pkts S/ACKed so far upon tx of skb, incl retrans: */
 			__u32 delivered;
 			/* start of send pipeline phase */
-			u64 first_tx_mstamp;
+			u32 first_tx_mstamp;
 			/* when we reached the "delivered" count */
-			u64 delivered_mstamp;
+			u32 delivered_mstamp;
+			/* Cumulative, full-width counters at transmit time. */
+			u32 delivered_ce;
+			u32 lost;
 		} tx;   /* only used for outgoing skbs */
 		union {
 			struct inet_skb_parm	h4;
@@ -878,17 +892,11 @@ struct tcp_skb_cb {
 		struct {
 			__u32 flags;
 			struct sock *sk_redir;
-			void *data_end;
 		} bpf;
 	};
 };
 
 #define TCP_SKB_CB(__skb)	((struct tcp_skb_cb *)&((__skb)->cb[0]))
-
-static inline void bpf_compute_data_end_sk_skb(struct sk_buff *skb)
-{
-	TCP_SKB_CB(skb)->bpf.data_end = skb->data + skb_headlen(skb);
-}
 
 static inline bool tcp_skb_bpf_ingress(const struct sk_buff *skb)
 {
@@ -991,6 +999,7 @@ enum tcp_ca_event {
 	CA_EVENT_LOSS,		/* loss timeout */
 	CA_EVENT_ECN_NO_CE,	/* ECT set, but not CE marked */
 	CA_EVENT_ECN_IS_CE,	/* received CE marked IP packet */
+	CA_EVENT_TLP_RECOVERY,	/* loss repaired by a TLP retransmit */
 };
 
 /* Information about inbound ACK, passed to cong_ops->in_ack_event() */
@@ -1013,7 +1022,12 @@ enum tcp_ca_ack_event_flags {
 #define TCP_CONG_NON_RESTRICTED 0x1
 /* Requires ECN/ECT set on all packets */
 #define TCP_CONG_NEEDS_ECN	0x2
-#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN)
+/* Requests packet-valued transmit snapshots instead of legacy bytes. */
+#define TCP_CONG_RATE_IN_FLIGHT 0x4
+/* Native-only opt-in. Not in TCP_CONG_MASK: the old BPF ABI cannot request it. */
+#define TCP_CONG_EDT		0x8
+#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN | \
+			 TCP_CONG_RATE_IN_FLIGHT)
 
 union tcp_cc_info;
 
@@ -1032,8 +1046,13 @@ struct ack_sample {
  * A sample is invalid if "delivered" or "interval_us" is negative.
  */
 struct rate_sample {
-	u64  prior_mstamp; /* starting timestamp for interval */
+	u64  prior_mstamp; /* low 32 bits of starting microsecond timestamp */
 	u32  prior_delivered;	/* tp->delivered at "prior_mstamp" */
+	u32  prior_delivered_ce;
+	u32  prior_lost;
+	u32  tx_in_flight;	/* packets, valid only with the flag below */
+	s32  delivered_ce;	/* CE deliveries over the sampling interval */
+	s32  lost;		/* losses over the sampling interval */
 	s32  delivered;		/* number of packets delivered over interval */
 	long interval_us;	/* time for tp->delivered to incr "delivered" */
 	long rtt_us;		/* RTT of last (S)ACKed packet (or -1) */
@@ -1042,6 +1061,10 @@ struct rate_sample {
 	u32  prior_in_flight;	/* in flight before this ACK */
 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
 	bool is_retrans;	/* is sample from retransmission? */
+	bool is_tx_in_flight_valid; /* not a legacy byte-valued snapshot */
+	bool is_ack_delayed;
+	bool is_acking_tlp_retrans_seq;
+	bool is_ece;
 };
 
 struct tcp_congestion_ops {
@@ -1072,6 +1095,10 @@ struct tcp_congestion_ops {
 	u32 (*min_tso_segs)(struct sock *sk);
 	/* returns the multiplier used in tcp_sndbuf_expand (optional) */
 	u32 (*sndbuf_expand)(struct sock *sk);
+	/* MSS-aware sizing; takes precedence over tso_segs_goal (optional). */
+	u32 (*tso_segs)(struct sock *sk, unsigned int mss_now);
+	/* Notification after cumulative loss accounting (optional). */
+	void (*skb_marked_lost)(struct sock *sk, const struct sk_buff *skb);
 	/* call when packets are delivered to update cwnd and pacing rate,
 	 * after all the ca_state processing. (optional)
 	 */
@@ -1103,6 +1130,15 @@ void tcp_cong_avoid_ai(struct tcp_sock *tp, u32 w, u32 acked);
 u32 tcp_reno_ssthresh(struct sock *sk);
 u32 tcp_reno_undo_cwnd(struct sock *sk);
 void tcp_reno_cong_avoid(struct sock *sk, u32 ack, u32 acked);
+/* Only sch_fq advertises consumption of native TCP departure deadlines.
+ * Other qdiscs retain the existing internal hrtimer pacing path.
+ */
+static inline bool tcp_edt_enabled(const struct sock *sk)
+{
+	return (inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_EDT) &&
+	       smp_load_acquire(&sk->sk_pacing_status) == SK_PACING_FQ;
+}
+
 extern struct tcp_congestion_ops tcp_reno;
 
 struct tcp_congestion_ops *tcp_ca_find(const char *name);
@@ -1139,6 +1175,13 @@ static inline void tcp_ca_event(struct sock *sk, const enum tcp_ca_event event)
 
 	if (icsk->icsk_ca_ops->cwnd_event)
 		icsk->icsk_ca_ops->cwnd_event(sk, event);
+}
+
+/* A failed local retransmit can leave pcount larger than its snapshot. */
+static inline bool tcp_skb_tx_in_flight_is_suspicious(u32 pcount,
+						  u32 sacked, u32 in_flight)
+{
+	return pcount > in_flight && !(sacked & TCPCB_LOST);
 }
 
 /* From tcp_rate.c */
@@ -1280,6 +1323,17 @@ static inline bool tcp_is_cwnd_limited(const struct sock *sk)
 		return tp->snd_cwnd < 2 * tp->max_packets_out;
 
 	return false;
+}
+
+/* BBR congestion control needs pacing.
+ * Same remark for SO_MAX_PACING_RATE.
+ * sch_fq packet scheduler is efficiently handling pacing,
+ * but is not always installed/used.
+ * Return true if TCP stack should pace packets itself.
+ */
+static inline bool tcp_needs_internal_pacing(const struct sock *sk)
+{
+	return smp_load_acquire(&sk->sk_pacing_status) == SK_PACING_NEEDED;
 }
 
 /* Something is really bad, we could not queue an additional packet,

@@ -24,6 +24,8 @@
 #include <linux/quotaops.h>
 #include <crypto/hash.h>
 #include <linux/overflow.h>
+#include <linux/completion.h>
+#include <linux/llist.h>
 
 #include <linux/fscrypt.h>
 #include <linux/fsverity.h>
@@ -98,6 +100,8 @@ extern const char *f2fs_fault_name[FAULT_MAX];
 #define F2FS_MOUNT_RESERVE_ROOT		0x01000000
 #define F2FS_MOUNT_DISABLE_CHECKPOINT	0x02000000
 #define F2FS_MOUNT_NORECOVERY		0x04000000
+#define F2FS_MOUNT_GC_MERGE		0x08000000
+#define F2FS_MOUNT_MERGE_CHECKPOINT	0x10000000
 
 #define F2FS_OPTION(sbi)	((sbi)->mount_opt)
 #define clear_opt(sbi, option)	(F2FS_OPTION(sbi).opt &= ~F2FS_MOUNT_##option)
@@ -1397,6 +1401,29 @@ struct decompress_io_ctx {
 #define MAX_COMPRESS_LOG_SIZE		8
 #define MAX_COMPRESS_WINDOW_SIZE	((PAGE_SIZE) << MAX_COMPRESS_LOG_SIZE)
 
+/* Embedded lifetime: foreground waiters must never retain a freed gc_thread. */
+struct f2fs_gc_merge {
+	spinlock_t lock; /* admission, generation and worker pointer */
+	wait_queue_head_t wait;
+	struct task_struct *task;
+	unsigned long seq;
+	bool online;
+	bool pending;
+	bool paused;
+};
+
+struct ckpt_req_control {
+	/* Worker lifetime/admission, read-held until each request completes. */
+	struct rw_semaphore gate;
+	struct task_struct *task;
+	wait_queue_head_t wait;
+	struct llist_head issue_list;
+	atomic_t queued_ckpt;
+	atomic_t issued_ckpt;
+	atomic_t total_ckpt;
+	atomic_t fallback_ckpt;
+};
+
 struct f2fs_sb_info {
 	struct super_block *sb;			/* pointer to VFS super block */
 	struct proc_dir_entry *s_proc;		/* proc entry */
@@ -1430,6 +1457,7 @@ struct f2fs_sb_info {
 	spinlock_t cp_lock;			/* for flag in ckpt */
 	struct inode *meta_inode;		/* cache meta blocks */
 	struct mutex cp_mutex;			/* checkpoint procedure lock */
+	struct ckpt_req_control cprc_info;
 	struct rw_semaphore cp_rwsem;		/* blocking FS operations */
 	struct rw_semaphore node_write;		/* locking node writes */
 	struct rw_semaphore node_change;	/* locking node change */
@@ -1512,6 +1540,7 @@ struct f2fs_sb_info {
 						 * race between GC and GC or CP
 						 */
 	struct f2fs_gc_kthread	*gc_thread;	/* GC thread */
+	struct f2fs_gc_merge gc_merge;
 	unsigned int cur_victim_sec;		/* current victim section num */
 	unsigned int gc_mode;			/* current GC state */
 	unsigned int next_victim_seg[2];	/* next segment in victim section */
@@ -3380,6 +3409,10 @@ enum rw_hint f2fs_io_type_to_rw_hint(struct f2fs_sb_info *sbi,
  * checkpoint.c
  */
 void f2fs_stop_checkpoint(struct f2fs_sb_info *sbi, bool end_io);
+int f2fs_issue_checkpoint(struct f2fs_sb_info *sbi, int reason);
+int f2fs_start_ckpt_thread(struct f2fs_sb_info *sbi);
+void f2fs_stop_ckpt_thread(struct f2fs_sb_info *sbi);
+void f2fs_init_ckpt_req_control(struct f2fs_sb_info *sbi);
 struct page *f2fs_grab_meta_page(struct f2fs_sb_info *sbi, pgoff_t index);
 struct page *f2fs_get_meta_page(struct f2fs_sb_info *sbi, pgoff_t index);
 struct page *f2fs_get_meta_page_nofail(struct f2fs_sb_info *sbi, pgoff_t index);
@@ -3429,6 +3462,7 @@ void f2fs_submit_merged_write(struct f2fs_sb_info *sbi, enum page_type type);
 void f2fs_submit_merged_write_cond(struct f2fs_sb_info *sbi,
 				struct inode *inode, struct page *page,
 				nid_t ino, enum page_type type);
+void f2fs_submit_merged_ipu_write_all(struct f2fs_sb_info *sbi);
 void f2fs_submit_merged_ipu_write(struct f2fs_sb_info *sbi,
 					struct bio **bio, struct page *page);
 void f2fs_flush_merged_writes(struct f2fs_sb_info *sbi);
@@ -3487,6 +3521,8 @@ void f2fs_destroy_post_read_wq(struct f2fs_sb_info *sbi);
  * gc.c
  */
 int f2fs_start_gc_thread(struct f2fs_sb_info *sbi);
+bool f2fs_gc_merge_request(struct f2fs_sb_info *sbi);
+bool f2fs_is_gc_thread(struct f2fs_sb_info *sbi);
 void f2fs_stop_gc_thread(struct f2fs_sb_info *sbi);
 block_t f2fs_start_bidx_of_node(unsigned int node_ofs, struct inode *inode);
 int f2fs_gc(struct f2fs_sb_info *sbi, bool sync, bool background,

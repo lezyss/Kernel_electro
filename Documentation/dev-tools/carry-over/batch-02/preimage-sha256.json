@@ -1,0 +1,10 @@
+{
+  "drivers/gpu/msm/kgsl_sync.c": "0a20eeddcceea19d476f43dc6ad58bcf3e5abce280a015d5792019ad9005ab24",
+  "include/linux/sched.h": "03d4020f7917c585b0582d2afe8ec1b62a06810938ae3126c4764349e194dd88",
+  "kernel/cgroup/cpuset.c": "17f2fd00082cb17495e645b6141432668f766d0fb4cc4fac6c96a17547bdb486",
+  "kernel/sched/core.c": "005773fb6b53618d4d1b4abb0425c1388107122a306157f92f324cf9a5ded78d",
+  "kernel/sched/deadline.c": "003226fa539e678ec62d1cdaac77229f763d1d2adffe3ab3779909cd5218d6f4",
+  "kernel/sched/fair.c": "1eff5e363e355fbd91075d2a68b2fe69195558becc452c02e87e234592c53930",
+  "kernel/sched/idle.c": "d1b0e3894adac19b6b4bccfa4664fafbba077f2d14d408a232e80c298dab230d",
+  "kernel/sched/sched.h": "7ce5748827b5c1eead3e159b9df9379a9c11c61a7208f64b19004234f46a149f"
+}

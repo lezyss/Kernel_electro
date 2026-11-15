@@ -1,0 +1,160 @@
+{
+  "added_source": {
+    "lib/lz4/lz4_compress.c": {
+      "mode": "100644",
+      "sha256": "e5789d3ad7af62c24e1e82482ddd7dddd48c7eb212260f2ad0f8bc9b2d542f60"
+    },
+    "lib/lz4/lz4_decompress.c": {
+      "mode": "100644",
+      "sha256": "5f56ef65a268c86797321ce8db60507142c06d2f605c82a2aa8779eebda2b91f"
+    },
+    "lib/lz4/lz4hc_compress.c": {
+      "mode": "100644",
+      "sha256": "831e11043900cfe7aa5b9fc96fd18abe580880e31d59596b7e0bd159c36a31c0"
+    },
+    "scripts/ci/anykernel.sh": {
+      "mode": "100755",
+      "sha256": "5c824cca582cc383fa26047cb6867b3f1d96b08f00ebbce3b6c1a2ca179efc04"
+    },
+    "scripts/ci/build-kernel.sh": {
+      "mode": "100755",
+      "sha256": "ed53e3e5b5347d8c4a4e0d0aed27d3cf80f677e8fb959105bd570377c7eaff47"
+    },
+    "scripts/ci/package-anykernel.sh": {
+      "mode": "100755",
+      "sha256": "632b2a9d2a221442ff71ca00326b0646ababacce7f749815b22aa2c09f958ae7"
+    },
+    "scripts/ci/test-lz4.sh": {
+      "mode": "100755",
+      "sha256": "a69194890f45375ba48d709c9224256becb23f1b068e2d99a23cb50e4dcbd61d"
+    },
+    "tools/testing/selftests/base_sync/verify_repaired_foundation.py": {
+      "mode": "100755",
+      "sha256": "ca63d60e0a3d60b5b9772e0c3f95b822b72d429abc11a65ac8cbd6417969ae2c"
+    },
+    "tools/testing/selftests/lz4/README": {
+      "mode": "100644",
+      "sha256": "87324062b9bb5070741a112c4ad9996089383efe4f55ab463164e1b39b81f820"
+    },
+    "tools/testing/selftests/lz4/requirements.txt": {
+      "mode": "100644",
+      "sha256": "de6d6fe84e1a0897cebba70972c1aa1f2f997887a20562083098957472912368"
+    },
+    "tools/testing/selftests/lz4/shims.py": {
+      "mode": "100644",
+      "sha256": "6d8e32bd264dc72feec6a3c20dd90b39c928bcc8680e10cab83b5d498db3bef8"
+    },
+    "tools/testing/selftests/lz4/test_build.py": {
+      "mode": "100755",
+      "sha256": "6a3dce559c9ce3cff784a5d151fd951b14645ac7df6623078e737176912fa9a2"
+    },
+    "tools/testing/selftests/lz4/test_ci.py": {
+      "mode": "100755",
+      "sha256": "4df4c9539f4ad02334a99ceb248f4b70ca7275773cb078f4d305c0ea68721e6a"
+    },
+    "tools/testing/selftests/lz4/test_codec.py": {
+      "mode": "100755",
+      "sha256": "7f34b5921bf43ea91ad42ff69bd8b408722b6c2584418375cc9e296d99361abc"
+    }
+  },
+  "anykernel_commit": "020dfeccf9d7e962a48400fc94d3e451df92eead",
+  "aosp_clang_commit": "3b86e40facfff1eab4065614255d573293c10373",
+  "evidence_sha256": {
+    "Documentation/dev-tools/foundation-repair/README.md": "2451e42997dc492efb64b3cd0cf97982e3078a72ea1cd1cd66e0dd79a3a0d09c",
+    "Documentation/dev-tools/foundation-repair/codec-tests.log": "41476f3d4105a1296aec251ccc0ae8e77751109ce8bb82ce253758f45ab508a4",
+    "Documentation/dev-tools/foundation-repair/full-build-interrupted.log": "b1708f5f17dd72ba951cf8fb0141cdb48a0d4abf5e714be445ad46f4b9da068f",
+    "Documentation/dev-tools/foundation-repair/kbuild-lz4.log": "c6ef37a7dbefb8c4e3cec8cbe782f4023cc34dea5dfa6c9cb4e4694249d3edf8",
+    "Documentation/dev-tools/foundation-repair/lto-link-undefined.log": "22bf919ee75c085efa48e335a1f3155783fd88f2d80c2495e0e350b0d453f146",
+    "Documentation/dev-tools/foundation-repair/lz4-adaptation.diff": "e90656ab189997ce5ec6b41d43803709c5bad4d0410295dc2fd22e056e5e754b",
+    "Documentation/dev-tools/foundation-repair/packaging-fixtures.log": "5b2742042e473b57521fb1ae653c71d7b3decc5d78e5094033031d416957c306"
+  },
+  "foundation": "766a32ab1c8b889ac049ccd367e82786e5953bc0",
+  "historical_checkpoint_sha256": "e86e23bc4a5f2fbac1a31158311b18be25358cba872717cb85e7d8cea5cce8ff",
+  "lz4_upstream_commit": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+  "lz4_upstream_sha256": {
+    "lib/lz4.c": "2e58f124f1032f15aecc99772b7de624c4289245729fa5403506f00b06a54937",
+    "lib/lz4.h": "c204caad0638a12c9ce80831094ec8fffb34aa57e74307067b08fc9452fc2611",
+    "lib/lz4hc.c": "44344dc172a6b8f6e4b915d0e792f32911b966d1df1d39731674327ffaec40f3",
+    "lib/lz4hc.h": "8b55bd835048b399ab451dad77d40227fcbcce5d2db7b622a79d92f36dc563e1",
+    "lib/xxhash.c": "9c5498e00479217d7573b2474397a4248127f013f24d9ef98de0281d2dd30d89",
+    "lib/xxhash.h": "aefdd236f35130495c18764cabed3f7b216906855fc5e6a9025cd2040bc84444",
+    "programs/platform.h": "0a32f1a66f3d4966c75b3dd36c1b8a54186c25a3b7f5bd67a3594c318c8004d7",
+    "programs/util.h": "e6720248093a05c5a76b07209d818d1719e091e97b92ddd6078549dcb79bcf15",
+    "tests/tools/datagen.c": "5101ccc0f6cdc28c790c462a69aea846b5d4c067c9733ac61bd4a2bf7e6f2e8a",
+    "tests/tools/datagen.h": "49ff2d1b70db6329f3b5d28d2befa11060a42fddbdad84b9388c40521ea6e71f",
+    "tests/unit/unittest.c": "037bdd0115275a6ff7dc18fd9ab86ab22a20386728af4bfe9b965021f6fd74be",
+    "tests/unit/unittest.h": "79c133cbbf4eedb7197a5b0c14a16856dc9c28b9a98c046ba428419e5d60841a",
+    "tests/unit/unittest_lz4.c": "121922b4aaf870f69a43eea2321121e930025bfae1b850af5f4c02086225cf3e",
+    "tests/unit/unittest_lz4hc.c": "41f06896f2c1cc7a70a96aa66ce9049e823f45fc28540c515126f83acd6ffd56"
+  },
+  "modified_base": {
+    ".github/workflows/build-kernel.yml": {
+      "base_blob": "6b40e010faaaee346b8c356cb4d13d0b0f5c6144",
+      "mode": "100644",
+      "sha256": "95e39f6bf1446ceb76237b9a6ff245a5ddbdd0dadb72684a5cf836c1af60708f"
+    },
+    ".gitignore": {
+      "base_blob": "5b44254427be15508ba3cb6cc52ef5d15d114f00",
+      "mode": "100644",
+      "sha256": "419be3b0057f511a619d7b714ce2ba5d98f0b1d958c0798f004b8c360faf60a5"
+    },
+    "Makefile": {
+      "base_blob": "ed2b36ac014c99eedf5d45d5a9e84c0f8cf31c10",
+      "mode": "100644",
+      "sha256": "7cedc2e61fc5a515ca005dcecaf6c4a791ee0ac2c2c5c751324f2f9ad725c11c"
+    },
+    "include/linux/lz4.h": {
+      "base_blob": "025b2a0cc125e4cdfdd0a4215c04c1e1e581a87e",
+      "mode": "100644",
+      "sha256": "7bee4391b2c41e68d4f20fb84690abf58a3bbc0513e1c5827d7a8544c6a06f43"
+    },
+    "lib/lz4/Makefile": {
+      "base_blob": "5fc55f5d76a41d6f9ddc1209e25d28bcd82337b7",
+      "mode": "100644",
+      "sha256": "b557cb8ed5e8bff283d7f349bf762892e7e6147318f1f4dc795556ab71e14ad7"
+    },
+    "lib/lz4/lz4.c": {
+      "base_blob": "e61f6e806e0860872821d7e905c93c868ae6050e",
+      "mode": "100644",
+      "sha256": "1667095ff50c4c487e9c64c4e2b5c110b7f28046f229d464e145ac2431b09a2a"
+    },
+    "lib/lz4/lz4.h": {
+      "base_blob": "d9042ff5824442e4870ac59eaac5dd7d7314fee8",
+      "mode": "100644",
+      "sha256": "afa519c747e51cded176043396121b59dd93857814f15c944aea0247ed479247"
+    },
+    "lib/lz4/lz4hc.c": {
+      "base_blob": "b5719bf008bf569334289e447bfdd17d8d95d6fd",
+      "mode": "100644",
+      "sha256": "ab1bc49603f0d1512950be15618e4ebaf0b3a42ee6876d1709b71b2d08415ce3"
+    },
+    "lib/lz4/lz4hc.h": {
+      "base_blob": "973134052322cdbaf77767f4c1ce8da55f9f34ce",
+      "mode": "100644",
+      "sha256": "94c2d095d20da9b9398c5173ab31c7e111222354eb6f28f6536b7d33853b056d"
+    }
+  },
+  "scope": "Build/packaging and official LZ4 v1.11.1 kernel-block repair only; no other integration replay",
+  "validation_scope": {
+    "ci_dispatched": false,
+    "device_test": false,
+    "dtbs": true,
+    "fixture_architectures": [
+      "x86_64",
+      "i386",
+      "aarch64"
+    ],
+    "full_image_build_completed": false,
+    "full_image_build_outcome": "stopped deliberately after DTBs during general kernel compilation",
+    "kbuild_selections": 27,
+    "native_codec_tests": 74,
+    "packaging_tests": "synthetic non-bootable payloads only",
+    "push": false,
+    "real_header_arm64_codec_objects": true,
+    "real_relocatable_lto_link": true,
+    "sanitizers": [
+      "ASan",
+      "UBSan with trap negative control"
+    ]
+  }
+}

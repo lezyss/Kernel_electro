@@ -1,0 +1,80 @@
+{
+  "scope": "Reviewed items #2, #3, #6 exact; #4 corrected; #1/#5/#7/#8/#9 not separately applied",
+  "repository": "AzyrRuthless/kernel_xiaomi_sm6250",
+  "branch": "arena/e63a046d-kernel-electro",
+  "baseline_head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183",
+  "baseline": "Dirty pre-application tree; production patch is incremental, not HEAD-relative",
+  "donors": [
+    {
+      "sha": "298f4559960e4e14c6ff43638a1da981cf95dee8",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/298f4559960e4e14c6ff43638a1da981cf95dee8",
+      "application": "exact"
+    },
+    {
+      "sha": "56c8b07bc33bb8bf83d42834be446e831f47b29b",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/56c8b07bc33bb8bf83d42834be446e831f47b29b",
+      "application": "exact"
+    },
+    {
+      "sha": "75c9d3457a8aedfe68ef0163b9b8d10c51248ed8",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/75c9d3457a8aedfe68ef0163b9b8d10c51248ed8",
+      "application": "exact"
+    },
+    {
+      "sha": "e250ed8c4d54aa77f461347574cf2994f3bab0c0",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/e250ed8c4d54aa77f461347574cf2994f3bab0c0",
+      "application": "corrected: early IRQ disable, direct stop-tick, remove later duplicate disable"
+    }
+  ],
+  "production_files": [
+    {
+      "path": "include/linux/sched.h",
+      "before_sha256": "30e46d472cc25497e266df4937a2af59c1ee0aa945b7cffeaefd2946bec0724f",
+      "after_sha256": "338831b16d4578208753fe7902d1d3d06ef024dc63e6b6de49ba5a8dc3a68e3a"
+    },
+    {
+      "path": "kernel/sched/core.c",
+      "before_sha256": "332912ff935c4f03efc281ff7e54866bb65503a78110bfa699a23bdd4b7d6260",
+      "after_sha256": "651f00f3740aa39e6e95d6938128d00989ec2e8d01e2e64cde0ac81f7c4ae6bd"
+    },
+    {
+      "path": "kernel/sched/sched.h",
+      "before_sha256": "5d0bfeee44d30acf5e0e159f645892c23a5d86c12e019b7129076c09af6ca962",
+      "after_sha256": "b3b5ae768ecf5b7292af965ed14c7f7932775943b18a278233a679681122666d"
+    },
+    {
+      "path": "kernel/sched/fair.c",
+      "before_sha256": "435398a050d08f2c9e4536507f8392666eb91c26d5928a3fcaea6f59bce64472",
+      "after_sha256": "6f3bc60fb8e478dd652336aa5e807cea3e006ead573caa6a9ba040c1f1487bf2"
+    },
+    {
+      "path": "kernel/sched/idle.c",
+      "before_sha256": "d1b0e3894adac19b6b4bccfa4664fafbba077f2d14d408a232e80c298dab230d",
+      "after_sha256": "6b2424cdad79608f50432a07de06d1bfc2b26ac6ec1a2057f5b37f2e562b65f2"
+    }
+  ],
+  "validation": {
+    "host_compiler": "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+    "modes": [
+      "ASan+UBSan",
+      "UBSan-only"
+    ],
+    "configurations_per_mode": 6,
+    "capacity_pairs_per_configuration": 4198401,
+    "capacity_edges_per_configuration": 100,
+    "random_queue_cases_per_configuration": 50000,
+    "idle_entries_per_configuration": 200,
+    "negative_controls_per_mode": 10,
+    "regressions": [
+      "BORE both modes",
+      "Cambyses four PREEMPT/WALT variants and 12 negative controls (GCC trap-flag adapter)",
+      "GPU/DEADLINE and 7 negative controls"
+    ],
+    "limitations": [
+      "Mocked extracted-source host tests",
+      "No full kernel/ARM64 build",
+      "No device/concurrency/performance validation",
+      "No push or CI"
+    ]
+  }
+}

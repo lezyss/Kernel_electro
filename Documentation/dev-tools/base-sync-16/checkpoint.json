@@ -1,0 +1,25 @@
+{
+  "artifacts_sha256": {
+    "Documentation/dev-tools/base-sync-16/README.md": "258a0794e2bb8025e8766f3e219342984272d63875b8a60a6e162dfbe4238593",
+    "Documentation/dev-tools/base-sync-16/audit.json": "d2638f01e3a24c53471aa5893c733450a7ac4a43051ff6355f53389fc17a3bdb",
+    "Documentation/dev-tools/base-sync-16/features.json": "9427274e1d52af12af4a0ed2f3ef85e0708ad597198d89cd44700c654159014f",
+    "Documentation/dev-tools/base-sync-16/items.md": "a8c5d735270ff0f758853172fc6ad6d987279cf0c0dbfaaa624480580563061c",
+    "Documentation/dev-tools/base-sync-16/lz4-base-sha256.json": "304361734f5181563b2afa4b01e491d7a3ffc4a51493558720e1b85e22c9d2ce",
+    "Documentation/dev-tools/base-sync-16/results.log": "b9122e7c1fa2102bed11a121b0351de8378083cd04bf6f4b010c45501a2a7a93",
+    "Documentation/dev-tools/electro-change-inventory-no-sm8150-phoenix.md": "d2aa5257d997d328df5994718001d195235f4eec49ff5305e8f85bf632b872cd",
+    "tools/testing/selftests/base_sync/audit_inventory.py": "8492942bafea626b8eb11b99d582baa8b091b8910539a758d8be14c8b6ddc7cc",
+    "tools/testing/selftests/base_sync/check_lz4_foundation.py": "544da8166d64b58e9f369500fd53db181b42383bf7802ac181c133ae024e5729",
+    "tools/testing/selftests/base_sync/verify_foundation.py": "3f29e9deb515465580dc04bcce86c02aa75fc3956f607a298a4b28b9946a42b8"
+  },
+  "bbrplus": "excluded; source/config absent",
+  "branch": "arena/e63a046d-kernel-electro",
+  "ci_dispatched": false,
+  "foundation": "766a32ab1c8b889ac049ccd367e82786e5953bc0",
+  "not_ready_to_flash": true,
+  "operation": "Exact source foundation replacement plus audit only, not automatic reapplication of old Electro integrations",
+  "previous_published_tip": "402566a8597ae7f0ecf3f87054b77aa7c18acdf0",
+  "production_build": false,
+  "push_performed": false,
+  "restored_missing_integrations": [],
+  "source_files_verified": 73279
+}

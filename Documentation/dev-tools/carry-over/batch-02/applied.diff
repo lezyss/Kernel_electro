@@ -1,0 +1,290 @@
+--- a/drivers/gpu/msm/kgsl_sync.c
++++ b/drivers/gpu/msm/kgsl_sync.c
+@@ -612,9 +612,10 @@
+ 				struct kgsl_syncsource *syncsource)
+ {
+ 	struct kgsl_syncsource_fence *sfence, *next;
++	unsigned long flags;
+ 
+ 	/* Signal all fences to release any callbacks */
+-	spin_lock(&syncsource->lock);
++	spin_lock_irqsave(&syncsource->lock, flags);
+ 
+ 	list_for_each_entry_safe(sfence, next, &syncsource->child_list_head,
+ 				child_list) {
+@@ -622,7 +623,7 @@
+ 		list_del_init(&sfence->child_list);
+ 	}
+ 
+-	spin_unlock(&syncsource->lock);
++	spin_unlock_irqrestore(&syncsource->lock, flags);
+ 
+ 	/* put reference from syncsource creation */
+ 	kgsl_syncsource_put(syncsource);
+@@ -662,6 +663,7 @@
+ 	struct kgsl_syncsource_fence *sfence = NULL;
+ 	struct sync_file *sync_file = NULL;
+ 	int fd = -1;
++	unsigned long flags;
+ 
+ 	/*
+ 	 * Take a refcount that is released when the fence is released
+@@ -702,9 +704,9 @@
+ 
+ 	param->fence_fd = fd;
+ 
+-	spin_lock(&syncsource->lock);
++	spin_lock_irqsave(&syncsource->lock, flags);
+ 	list_add_tail(&sfence->child_list, &syncsource->child_list_head);
+-	spin_unlock(&syncsource->lock);
++	spin_unlock_irqrestore(&syncsource->lock, flags);
+ out:
+ 	/*
+ 	 * We're transferring ownership of the fence to the sync file.
+@@ -731,8 +733,9 @@
+ {
+ 	struct kgsl_syncsource_fence *sfence, *next;
+ 	int ret = -EINVAL;
+-
+-	spin_lock(&syncsource->lock);
++	unsigned long flags;
++
++	spin_lock_irqsave(&syncsource->lock, flags);
+ 
+ 	list_for_each_entry_safe(sfence, next, &syncsource->child_list_head,
+ 				child_list) {
+@@ -745,7 +748,7 @@
+ 		}
+ 	}
+ 
+-	spin_unlock(&syncsource->lock);
++	spin_unlock_irqrestore(&syncsource->lock, flags);
+ 
+ 	return ret;
+ }
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1691,7 +1691,7 @@
+ }
+ 
+ extern int cpuset_cpumask_can_shrink(const struct cpumask *cur, const struct cpumask *trial);
+-extern int task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_allowed);
++extern int task_can_attach(struct task_struct *p, const struct cpumask *cs_effective_cpus);
+ #ifdef CONFIG_SMP
+ extern void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask);
+ extern int set_cpus_allowed_ptr(struct task_struct *p, const struct cpumask *new_mask);
+@@ -1955,9 +1955,9 @@
+ static inline unsigned int task_cpu(const struct task_struct *p)
+ {
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+-	return p->cpu;
++	return READ_ONCE(p->cpu);
+ #else
+-	return task_thread_info(p)->cpu;
++	return READ_ONCE(task_thread_info(p)->cpu);
+ #endif
+ }
+ 
+--- a/kernel/cgroup/cpuset.c
++++ b/kernel/cgroup/cpuset.c
+@@ -1504,7 +1504,7 @@
+ 		goto out_unlock;
+ 
+ 	cgroup_taskset_for_each(task, css, tset) {
+-		ret = task_can_attach(task, cs->cpus_allowed);
++		ret = task_can_attach(task, cs->effective_cpus);
+ 		if (ret)
+ 			goto out_unlock;
+ 		ret = security_task_setscheduler(task);
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -145,11 +145,12 @@
+ 		 *					[L] ->on_rq
+ 		 *	RELEASE (rq->lock)
+ 		 *
+-		 * If we observe the old cpu in task_rq_lock, the acquire of
++		 * If we observe the old CPU in task_rq_lock(), the acquire of
+ 		 * the old rq->lock will fully serialize against the stores.
+ 		 *
+-		 * If we observe the new CPU in task_rq_lock, the acquire will
+-		 * pair with the WMB to ensure we must then also see migrating.
++		 * If we observe the new CPU in task_rq_lock(), the address
++		 * dependency headed by '[L] rq = task_rq()' and the acquire
++		 * will pair with the WMB to ensure we then also see migrating.
+ 		 */
+ 		if (likely(rq == task_rq(p) && !task_on_rq_migrating(p))) {
+ 			rq_pin_lock(rq, rf);
+@@ -973,7 +974,7 @@
+ {
+ 	lockdep_assert_held(&rq->lock);
+ 
+-	p->on_rq = TASK_ON_RQ_MIGRATING;
++	WRITE_ONCE(p->on_rq, TASK_ON_RQ_MIGRATING);
+ 	dequeue_task(rq, p, DEQUEUE_NOCLOCK);
+ #ifdef CONFIG_SCHED_WALT
+ 	double_lock_balance(rq, cpu_rq(new_cpu));
+@@ -6023,7 +6024,7 @@
+ }
+ 
+ int task_can_attach(struct task_struct *p,
+-		    const struct cpumask *cs_cpus_allowed)
++		    const struct cpumask *cs_effective_cpus)
+ {
+ 	int ret = 0;
+ 
+@@ -6042,8 +6043,8 @@
+ 	}
+ 
+ 	if (dl_task(p) && !cpumask_intersects(task_rq(p)->rd->span,
+-					      cs_cpus_allowed))
+-		ret = dl_task_can_attach(p, cs_cpus_allowed);
++					      cs_effective_cpus))
++		ret = dl_task_can_attach(p, cs_effective_cpus);
+ 
+ out:
+ 	return ret;
+--- a/kernel/sched/deadline.c
++++ b/kernel/sched/deadline.c
+@@ -59,10 +59,16 @@
+ static inline int dl_bw_cpus(int i)
+ {
+ 	struct root_domain *rd = cpu_rq(i)->rd;
+-	int cpus = 0;
++	int cpus;
+ 
+ 	RCU_LOCKDEP_WARN(!rcu_read_lock_sched_held(),
+ 			 "sched RCU must be held");
++
++	if (cpumask_subset(rd->span, cpu_active_mask))
++		return cpumask_weight(rd->span);
++
++	cpus = 0;
++
+ 	for_each_cpu_and(i, rd->span, cpu_active_mask)
+ 		cpus++;
+ 
+@@ -2595,19 +2601,29 @@
+ }
+ 
+ #ifdef CONFIG_SMP
+-int dl_task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_allowed)
++int dl_task_can_attach(struct task_struct *p,
++		       const struct cpumask *cs_effective_cpus)
+ {
+ 	unsigned int dest_cpu = cpumask_any_and(cpu_active_mask,
+-							cs_cpus_allowed);
++					     cs_effective_cpus);
+ 	struct dl_bw *dl_b;
+ 	bool overflow;
+ 	int cpus, ret;
+ 	unsigned long flags;
+ 
++	/* An inherited cpuset can have no active destination after hotplug. */
++	if (unlikely(dest_cpu >= nr_cpu_ids))
++		return -EINVAL;
++
+ 	rcu_read_lock_sched();
+ 	dl_b = dl_bw_of(dest_cpu);
+ 	raw_spin_lock_irqsave(&dl_b->lock, flags);
+ 	cpus = dl_bw_cpus(dest_cpu);
++	/* Do not divide by zero if the destination domain lost its last CPU. */
++	if (unlikely(!cpus)) {
++		ret = -EINVAL;
++		goto unlock;
++	}
+ 	overflow = __dl_overflow(dl_b, cpus, 0, p->dl.dl_bw);
+ 	if (overflow)
+ 		ret = -EBUSY;
+@@ -2621,6 +2637,7 @@
+ 		__dl_add(dl_b, p->dl.dl_bw, cpus);
+ 		ret = 0;
+ 	}
++unlock:
+ 	raw_spin_unlock_irqrestore(&dl_b->lock, flags);
+ 	rcu_read_unlock_sched();
+ 	return ret;
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -10057,9 +10057,7 @@
+ static inline bool
+ group_smaller_min_cpu_capacity(struct sched_group *sg, struct sched_group *ref)
+ {
+-	return sg->sgc->min_capacity *
+-				sched_capacity_margin_up[group_first_cpu(sg)] <
+-						ref->sgc->min_capacity * 1024;
++	return sg->sgc->min_capacity < ref->sgc->min_capacity;
+ }
+ 
+ /*
+@@ -10069,9 +10067,7 @@
+ static inline bool
+ group_smaller_max_cpu_capacity(struct sched_group *sg, struct sched_group *ref)
+ {
+-	return sg->sgc->max_capacity *
+-				sched_capacity_margin_up[group_first_cpu(sg)] <
+-						ref->sgc->max_capacity * 1024;
++	return sg->sgc->max_capacity < ref->sgc->max_capacity;
+ }
+ 
+ /*
+@@ -10917,6 +10913,9 @@
+ 		 * Both cases only affect the total convergence complexity.
+ 		 */
+ 		if (rt > env->fbq_type)
++			continue;
++
++		if (!rq->cfs.h_nr_running)
+ 			continue;
+ 
+ 		/*
+--- a/kernel/sched/idle.c
++++ b/kernel/sched/idle.c
+@@ -247,13 +247,14 @@
+ 	while (!need_resched()) {
+ 		check_pgt_cache();
+ 
++		local_irq_disable();
++
+ 		if (cpu_is_offline(cpu)) {
+-			tick_nohz_idle_stop_tick_protected();
++			tick_nohz_idle_stop_tick();
+ 			cpuhp_report_idle_dead();
+ 			arch_cpu_idle_dead();
+ 		}
+ 
+-		local_irq_disable();
+ 		arch_cpu_idle_enter();
+ 
+ 		/*
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -331,7 +331,7 @@
+ extern void __dl_clear_params(struct task_struct *p);
+ extern bool dl_param_changed(struct task_struct *p, const struct sched_attr *attr);
+ extern int dl_task_can_attach(struct task_struct *p,
+-			      const struct cpumask *cs_cpus_allowed);
++			      const struct cpumask *cs_effective_cpus);
+ extern int dl_cpuset_cpumask_can_shrink(const struct cpumask *cur,
+ 					const struct cpumask *trial);
+ extern bool dl_cpu_busy(unsigned int cpu);
+@@ -1455,9 +1455,9 @@
+ 	 */
+ 	smp_wmb();
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+-	p->cpu = cpu;
++	WRITE_ONCE(p->cpu, cpu);
+ #else
+-	task_thread_info(p)->cpu = cpu;
++	WRITE_ONCE(task_thread_info(p)->cpu, cpu);
+ #endif
+ 	p->wake_cpu = cpu;
+ #endif
+@@ -1550,7 +1550,7 @@
+ 
+ static inline int task_on_rq_migrating(struct task_struct *p)
+ {
+-	return p->on_rq == TASK_ON_RQ_MIGRATING;
++	return READ_ONCE(p->on_rq) == TASK_ON_RQ_MIGRATING;
+ }
+ 
+ #ifndef prepare_arch_switch

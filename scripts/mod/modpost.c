@@ -801,12 +801,15 @@ static int match(const char *sym, const char * const pat[])
 {
 	const char *p;
 	while (*pat) {
+		const char *endp;
+
 		p = *pat++;
-		const char *endp = p + strlen(p) - 1;
+		endp = p + strlen(p) - 1;
 
 		/* "*foo*" */
 		if (*p == '*' && *endp == '*') {
-			char *here, *bare = strndup(p + 1, strlen(p) - 2);
+			const char *here;
+			char *bare = strndup(p + 1, strlen(p) - 2);
 
 			here = strstr(sym, bare);
 			free(bare);
@@ -1705,7 +1708,7 @@ static void extable_mismatch_handler(const char* modname, struct elf_info *elf,
 static void check_section_mismatch(const char *modname, struct elf_info *elf,
 				   Elf_Rela *r, Elf_Sym *sym, const char *fromsec)
 {
-	const char *tosec = sec_name(elf, get_secindex(elf, sym));;
+	const char *tosec = sec_name(elf, get_secindex(elf, sym));
 	const struct sectioncheck *mismatch = section_mismatch(fromsec, tosec);
 
 	if (mismatch) {

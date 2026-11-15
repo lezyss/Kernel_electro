@@ -13,6 +13,8 @@
 #include <linux/f2fs_fs.h>
 #include <linux/pagevec.h>
 #include <linux/swap.h>
+#include <linux/kthread.h>
+#include <linux/ioprio.h>
 
 #include "f2fs.h"
 #include "node.h"
@@ -1680,4 +1682,177 @@ void f2fs_destroy_checkpoint_caches(void)
 {
 	kmem_cache_destroy(ino_entry_slab);
 	kmem_cache_destroy(f2fs_inode_entry_slab);
+}
+
+/*
+ * Only plain CP_SYNC requests are merged. The gate pins the worker from
+ * publication through completion, so stop cannot race a stack request.
+ */
+struct ckpt_req {
+	struct llist_node node;
+	struct completion done;
+	int ret;
+	bool retry_sync;
+};
+
+static int write_checkpoint_sync(struct f2fs_sb_info *sbi, int reason)
+{
+	struct cp_control cpc = { .reason = reason };
+	int ret;
+
+	down_write(&sbi->gc_lock);
+	ret = f2fs_write_checkpoint(sbi, &cpc);
+	up_write(&sbi->gc_lock);
+	return ret;
+}
+
+static void checkpoint_and_complete_reqs(struct f2fs_sb_info *sbi)
+{
+	struct ckpt_req_control *cprc = &sbi->cprc_info;
+	struct llist_node *list = llist_del_all(&cprc->issue_list);
+	struct ckpt_req *req, *next;
+	bool retry_sync = true;
+	int ret = 0;
+
+	if (!list)
+		return;
+
+	/*
+	 * Never wait for freeze or s_umount here: the caller can be the freezer
+	 * or remounter holding s_umount for write. Journalled quota also needs
+	 * the checkpoint task itself to hold s_umount. Failed trylocks send the
+	 * batch back to its original callers, rather than borrowing their locks.
+	 * Internal-write protection precedes s_umount, matching VFS ordering.
+	 */
+	if (__sb_start_write(sbi->sb, SB_FREEZE_FS, false)) {
+		if (down_read_trylock(&sbi->sb->s_umount)) {
+			if (sbi->sb->s_writers.frozen == SB_UNFROZEN) {
+				retry_sync = false;
+				ret = write_checkpoint_sync(sbi, CP_SYNC);
+				atomic_inc(&cprc->issued_ckpt);
+			}
+			up_read(&sbi->sb->s_umount);
+		}
+		sb_end_intwrite(sbi->sb);
+	}
+
+	list = llist_reverse_order(list);
+	llist_for_each_entry_safe(req, next, list, node) {
+		req->ret = ret;
+		req->retry_sync = retry_sync;
+		atomic_dec(&cprc->queued_ckpt);
+		atomic_inc(&cprc->total_ckpt);
+		if (retry_sync)
+			atomic_inc(&cprc->fallback_ckpt);
+		/* No access to req after this: its caller may immediately return. */
+		complete(&req->done);
+	}
+}
+
+static int issue_checkpoint_thread(void *data)
+{
+	struct f2fs_sb_info *sbi = data;
+	struct ckpt_req_control *cprc = &sbi->cprc_info;
+
+	for (;;) {
+		wait_event_interruptible(cprc->wait,
+					 kthread_should_stop() || !llist_empty(&cprc->issue_list));
+		if (kthread_should_stop())
+			break;
+		checkpoint_and_complete_reqs(sbi);
+	}
+	/* stop owns gate for write: no producer or stack request can remain. */
+	f2fs_bug_on(sbi, !llist_empty(&cprc->issue_list));
+	return 0;
+}
+
+int f2fs_issue_checkpoint(struct f2fs_sb_info *sbi, int reason)
+{
+	struct ckpt_req_control *cprc = &sbi->cprc_info;
+	struct ckpt_req req;
+	int ret;
+
+	/* Avoid self-waits and GC -> CP -> GC worker dependency cycles. */
+	if (reason != CP_SYNC || current == READ_ONCE(cprc->task) ||
+	    f2fs_is_gc_thread(sbi))
+		return write_checkpoint_sync(sbi, reason);
+
+	down_read(&cprc->gate);
+	if (!test_opt(sbi, MERGE_CHECKPOINT) || !cprc->task) {
+		up_read(&cprc->gate);
+		return write_checkpoint_sync(sbi, reason);
+	}
+
+	/* A blocked producer must not retain cached IO needed by checkpoint. */
+	f2fs_submit_merged_write(sbi, DATA);
+	f2fs_submit_merged_ipu_write_all(sbi);
+
+	init_completion(&req.done);
+	req.ret = 0;
+	req.retry_sync = false;
+	/* Account before publication: the worker may complete immediately. */
+	atomic_inc(&cprc->queued_ckpt);
+	llist_add(&req.node, &cprc->issue_list);
+	wake_up(&cprc->wait);
+	wait_for_completion(&req.done);
+	ret = req.ret;
+	up_read(&cprc->gate);
+
+	if (req.retry_sync)
+		return write_checkpoint_sync(sbi, reason);
+	return ret;
+}
+
+int f2fs_start_ckpt_thread(struct f2fs_sb_info *sbi)
+{
+	struct ckpt_req_control *cprc = &sbi->cprc_info;
+	dev_t dev = sbi->sb->s_bdev->bd_dev;
+	struct task_struct *task;
+	int ret = 0;
+
+	down_write(&cprc->gate);
+	if (cprc->task)
+		goto out;
+	task = kthread_run(issue_checkpoint_thread, sbi,
+			   "f2fs_ckpt-%u:%u", MAJOR(dev), MINOR(dev));
+	if (IS_ERR(task)) {
+		ret = PTR_ERR(task);
+		goto out;
+	}
+	ret = set_task_ioprio(task, IOPRIO_PRIO_VALUE(IOPRIO_CLASS_BE, 3));
+	if (ret) {
+		kthread_stop(task);
+		goto out;
+	}
+	WRITE_ONCE(cprc->task, task);
+out:
+	up_write(&cprc->gate);
+	return ret;
+}
+
+void f2fs_stop_ckpt_thread(struct f2fs_sb_info *sbi)
+{
+	struct ckpt_req_control *cprc = &sbi->cprc_info;
+	struct task_struct *task;
+
+	/* Wait for accepted requests to finish, then exclude new producers. */
+	down_write(&cprc->gate);
+	task = cprc->task;
+	WRITE_ONCE(cprc->task, NULL);
+	if (task)
+		kthread_stop(task);
+	up_write(&cprc->gate);
+}
+
+void f2fs_init_ckpt_req_control(struct f2fs_sb_info *sbi)
+{
+	struct ckpt_req_control *cprc = &sbi->cprc_info;
+
+	init_rwsem(&cprc->gate);
+	init_waitqueue_head(&cprc->wait);
+	init_llist_head(&cprc->issue_list);
+	atomic_set(&cprc->queued_ckpt, 0);
+	atomic_set(&cprc->issued_ckpt, 0);
+	atomic_set(&cprc->total_ckpt, 0);
+	atomic_set(&cprc->fallback_ckpt, 0);
 }
