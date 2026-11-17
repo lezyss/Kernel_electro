@@ -76,12 +76,28 @@ jobs:
       - name: Test LZ4 v1.11.1 block codec and kernel adaptation
         env:
           TOOLCHAIN_DIR: ${{ github.workspace }}/.toolchains/neutron-06092026
-        run: bash scripts/ci/test-lz4.sh
+        run: |
+          mkdir -p out
+          set +e
+          bash scripts/ci/test-lz4.sh 2>&1 | tee out/lz4-driver.log
+          status=${PIPESTATUS[0]}
+          if (( status != 0 )); then
+            python3 -c 'from pathlib import Path; text="\n".join(Path("out/lz4-driver.log").read_text(errors="replace").splitlines()[-45:]); print("::error::" + text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))'
+          fi
+          exit "$status"
 
       - name: Build with Clang and LLVM tools
         env:
           TOOLCHAIN_DIR: ${{ github.workspace }}/.toolchains/neutron-06092026
-        run: bash scripts/ci/build-kernel.sh
+        run: |
+          mkdir -p out
+          set +e
+          bash scripts/ci/build-kernel.sh 2>&1 | tee out/kernel-driver.log
+          status=${PIPESTATUS[0]}
+          if (( status != 0 )); then
+            python3 -c 'from pathlib import Path; text="\n".join(Path("out/kernel-driver.log").read_text(errors="replace").splitlines()[-45:]); print("::error::" + text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))'
+          fi
+          exit "$status"
 
       - name: Check out pinned AnyKernel3 installer
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
