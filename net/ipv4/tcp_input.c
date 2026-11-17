@@ -115,6 +115,7 @@ int sysctl_tcp_invalid_ratelimit __read_mostly = HZ/2;
 #define FLAG_SACK_RENEGING	0x2000 /* snd_una advanced to a sacked seq */
 #define FLAG_UPDATE_TS_RECENT	0x4000 /* tcp_replace_ts_recent() */
 #define FLAG_NO_CHALLENGE_ACK	0x8000 /* do not call tcp_send_challenge_ack()	*/
+#define FLAG_ACK_MAYBE_DELAYED	0x10000 /* Likely a delayed ACK */
 
 #define FLAG_ACKED		(FLAG_DATA_ACKED|FLAG_SYN_ACKED)
 #define FLAG_NOT_DUP		(FLAG_DATA|FLAG_WIN_UPDATE|FLAG_ACKED)
@@ -1061,8 +1062,14 @@ static void tcp_sum_lost(struct tcp_sock *tp, struct sk_buff *skb)
 	__u8 sacked = TCP_SKB_CB(skb)->sacked;
 
 	if (!(sacked & TCPCB_LOST) ||
-	    ((sacked & TCPCB_LOST) && (sacked & TCPCB_SACKED_RETRANS)))
+	    ((sacked & TCPCB_LOST) && (sacked & TCPCB_SACKED_RETRANS))) {
+		struct sock *sk = (struct sock *)tp;
+		const struct tcp_congestion_ops *ca = inet_csk(sk)->icsk_ca_ops;
+
 		tp->lost += tcp_skb_pcount(skb);
+		if (ca->skb_marked_lost)
+			ca->skb_marked_lost(sk, skb);
+	}
 }
 
 static void tcp_skb_mark_lost(struct tcp_sock *tp, struct sk_buff *skb)
@@ -1442,6 +1449,14 @@ static bool tcp_shifted_skb(struct sock *sk, struct sk_buff *skb,
 	tcp_skb_pcount_add(prev, pcount);
 	WARN_ON_ONCE(tcp_skb_pcount(skb) < pcount);
 	tcp_skb_pcount_add(skb, -pcount);
+
+	if (TCP_SKB_CB(skb)->tx.in_flight_is_packets)
+		TCP_SKB_CB(skb)->tx.in_flight -=
+			min_t(u32, TCP_SKB_CB(skb)->tx.in_flight, pcount);
+	if (TCP_SKB_CB(prev)->tx.in_flight_is_packets)
+		TCP_SKB_CB(prev)->tx.in_flight =
+			min_t(u32, TCP_SKB_CB(prev)->tx.in_flight + pcount,
+			      TCPCB_IN_FLIGHT_MAX);
 
 	/* When we're adding to gso_segs == 1, gso_size will be zero,
 	 * in theory this shouldn't be necessary but as long as DSACK
@@ -3295,7 +3310,12 @@ static int tcp_clean_rtx_queue(struct sock *sk, int prior_fackets,
 			if (!first_ackt)
 				first_ackt = last_ackt;
 
-			last_in_flight = TCP_SKB_CB(skb)->tx.in_flight;
+			/* TCP-NV's pkts_acked API consumes bytes, not packets.
+			 * Skip old BBRv3 samples after a switch until byte-valued
+			 * transmissions arrive (NV already skips a zero sample).
+			 */
+			last_in_flight = scb->tx.in_flight_is_packets ? 0 :
+					 scb->tx.in_flight;
 			reord = min(pkts_acked, reord);
 			if (!after(scb->end_seq, tp->high_seq))
 				flag |= FLAG_ORIG_SACK_ACKED;
@@ -3353,6 +3373,14 @@ static int tcp_clean_rtx_queue(struct sock *sk, int prior_fackets,
 	if (likely(first_ackt) && !(flag & FLAG_RETRANS_DATA_ACKED)) {
 		seq_rtt_us = tcp_stamp_us_delta(tp->tcp_mstamp, first_ackt);
 		ca_rtt_us = tcp_stamp_us_delta(tp->tcp_mstamp, last_ackt);
+		/* Google's conservative delayed-ACK heuristic: a lone runt,
+		 * no prior SACKs, no CE/reordering or SYN event.
+		 */
+		if (pkts_acked == 1 && fully_acked && !prior_sacked &&
+		    (tp->snd_una - prior_snd_una) < tp->mss_cache &&
+		    sack->rate->prior_delivered + 1 == tp->delivered &&
+		    !(flag & (FLAG_CA_ALERT | FLAG_SYN_ACKED)))
+			flag |= FLAG_ACK_MAYBE_DELAYED;
 	}
 	if (sack->first_sackt) {
 		sack_rtt_us = tcp_stamp_us_delta(tp->tcp_mstamp, sack->first_sackt);
@@ -3676,7 +3704,8 @@ static void tcp_replace_ts_recent(struct tcp_sock *tp, u32 seq)
 /* This routine deals with acks during a TLP episode and ends an episode by
  * resetting tlp_high_seq. Ref: TLP algorithm in draft-ietf-tcpm-rack
  */
-static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag)
+static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag,
+				struct rate_sample *rs)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 
@@ -3693,6 +3722,7 @@ static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag)
 		/* ACK advances: there was a loss, so reduce cwnd. Reset
 		 * tlp_high_seq in tcp_init_cwnd_reduction()
 		 */
+		tcp_ca_event(sk, CA_EVENT_TLP_RECOVERY);
 		tcp_init_cwnd_reduction(sk);
 		tcp_set_ca_state(sk, TCP_CA_CWR);
 		tcp_end_cwnd_reduction(sk);
@@ -3703,6 +3733,9 @@ static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag)
 			     FLAG_NOT_DUP | FLAG_DATA_SACKED))) {
 		/* Pure dupack: original and TLP probe arrived; no loss */
 		tp->tlp_high_seq = 0;
+	} else {
+		/* Exact TLP retransmit sequence: original vs probe ambiguous. */
+		rs->is_acking_tlp_retrans_seq = true;
 	}
 }
 
@@ -3812,6 +3845,8 @@ static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag)
 
 	prior_fackets = tp->fackets_out;
 	rs.prior_in_flight = tcp_packets_in_flight(tp);
+	if (icsk->icsk_ca_ops->flags & TCP_CONG_RATE_IN_FLIGHT)
+		tcp_rate_check_app_limited(sk);
 
 	/* ts_recent update must be made after we are sure that the packet
 	 * is in window.
@@ -3872,7 +3907,7 @@ static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag)
 	tcp_rack_update_reo_wnd(sk, &rs);
 
 	if (tp->tlp_high_seq)
-		tcp_process_tlp_ack(sk, ack, flag);
+		tcp_process_tlp_ack(sk, ack, flag, &rs);
 
 	if (tcp_ack_is_dubious(sk, flag)) {
 		is_dupack = !(flag & (FLAG_SND_UNA_ADVANCED | FLAG_NOT_DUP));
@@ -3888,6 +3923,8 @@ static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag)
 
 	delivered = tcp_newly_delivered(sk, delivered, flag);
 	lost = tp->lost - lost;			/* freshly marked lost */
+	rs.is_ece = !!(flag & FLAG_ECE);
+	rs.is_ack_delayed = !!(flag & FLAG_ACK_MAYBE_DELAYED);
 	tcp_rate_gen(sk, delivered, lost, is_sack_reneg, sack_state.rate);
 	tcp_cong_control(sk, ack, delivered, flag, sack_state.rate);
 	tcp_xmit_recovery(sk, rexmit);
@@ -3907,7 +3944,7 @@ no_queue:
 		tcp_ack_probe(sk);
 
 	if (tp->tlp_high_seq)
-		tcp_process_tlp_ack(sk, ack, flag);
+		tcp_process_tlp_ack(sk, ack, flag, &rs);
 	return 1;
 
 invalid_ack:

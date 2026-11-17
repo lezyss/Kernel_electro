@@ -284,6 +284,7 @@
 #include <net/busy_poll.h>
 
 int sysctl_tcp_min_tso_segs __read_mostly = 2;
+EXPORT_SYMBOL_GPL(sysctl_tcp_min_tso_segs);
 
 int sysctl_tcp_autocorking __read_mostly = 1;
 
@@ -2195,8 +2196,8 @@ bool tcp_check_oom(struct sock *sk, int shift)
 
 void tcp_close(struct sock *sk, long timeout)
 {
+	bool data_was_unread = false;
 	struct sk_buff *skb;
-	int data_was_unread = 0;
 	int state;
 
 	lock_sock(sk);
@@ -2216,11 +2217,12 @@ void tcp_close(struct sock *sk, long timeout)
 	 *  reader process may not have drained the data yet!
 	 */
 	while ((skb = __skb_dequeue(&sk->sk_receive_queue)) != NULL) {
-		u32 len = TCP_SKB_CB(skb)->end_seq - TCP_SKB_CB(skb)->seq;
+		u32 end_seq = TCP_SKB_CB(skb)->end_seq;
 
 		if (TCP_SKB_CB(skb)->tcp_flags & TCPHDR_FIN)
-			len--;
-		data_was_unread += len;
+			end_seq--;
+		if (after(end_seq, tcp_sk(sk)->copied_seq))
+			data_was_unread = true;
 		__kfree_skb(skb);
 	}
 
@@ -2611,6 +2613,21 @@ int tcp_sock_set_keepidle(struct sock *sk, int val)
 }
 EXPORT_SYMBOL(tcp_sock_set_keepidle);
 
+int tcp_set_window_clamp(struct sock *sk, int val)
+{
+	struct tcp_sock *tp = tcp_sk(sk);
+
+	if (!val) {
+		if (sk->sk_state != TCP_CLOSE)
+			return -EINVAL;
+		tp->window_clamp = 0;
+	} else {
+		tp->window_clamp = val < SOCK_MIN_RCVBUF / 2 ?
+			SOCK_MIN_RCVBUF / 2 : val;
+	}
+	return 0;
+}
+
 /*
  *	Socket option code for TCP.
  */
@@ -2833,15 +2850,7 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 		break;
 
 	case TCP_WINDOW_CLAMP:
-		if (!val) {
-			if (sk->sk_state != TCP_CLOSE) {
-				err = -EINVAL;
-				break;
-			}
-			tp->window_clamp = 0;
-		} else
-			tp->window_clamp = val < SOCK_MIN_RCVBUF / 2 ?
-						SOCK_MIN_RCVBUF / 2 : val;
+		err = tcp_set_window_clamp(sk, val);
 		break;
 
 	case TCP_QUICKACK:

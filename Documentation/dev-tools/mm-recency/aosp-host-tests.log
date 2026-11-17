@@ -1,0 +1,28 @@
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 0 0 0
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 0 0 1
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 0 1 0
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 0 1 1
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 1 0 0
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 1 0 1
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 1 1 0
+PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards
+PASS: extracted production functions; MGLRU/MEMCG/THP = 1 1 1
+PASS: negative control rejected: set hint
+PASS: negative control rejected: reset hint
+PASS: negative control rejected: set locking
+PASS: negative control rejected: file predicate
+PASS: negative control rejected: random predicate
+PASS: negative control rejected: memcg isolation
+PASS: negative control rejected: global callback
+PASS: negative control rejected: fault policy
+PASS: negative control rejected: unmap policy
+PASS: negative control rejected: aging policy
+PASS: negative control rejected: look-around policy
+LIMITS: host stubs and source wiring guards; not kernel reclaim/concurrency or performance proof.

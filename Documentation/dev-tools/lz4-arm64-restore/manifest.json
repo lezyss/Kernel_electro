@@ -1,0 +1,151 @@
+{
+  "donor": "1a206aea00ea8e1788f12639251304de28083659",
+  "evidence_sha256": {
+    "Documentation/dev-tools/lz4-arm64-restore/README.md": "f27e3fbbc48b4a8df059f4cc7137066d7a59461c18d245dc91362fb737d3df8f",
+    "Documentation/dev-tools/lz4-arm64-restore/arm64.log": "1ed902a5a9ee2722e0af135a43ab1eca38f7e09c5a0fbdb27d0b69443c8b949a",
+    "Documentation/dev-tools/lz4-arm64-restore/build.log": "6085ab2c4bb70245877a8f3279aa576566e6aaad0a23b5feee876530b481cd45",
+    "Documentation/dev-tools/lz4-arm64-restore/ci-fixtures.log": "2b9b4c36e1bed2fcf7236fa54e77ab434d945c82b055857171af7e87d75ce376",
+    "Documentation/dev-tools/lz4-arm64-restore/codec.log": "f71ceb397e48df1827dbb952ef45bc82bbd6d28e2c00057e48c98b75a2ba4ea9",
+    "Documentation/dev-tools/lz4-arm64-restore/config.log": "583c2dce5b8c71eec1684f904df287d811c7a8f82e247383b1e84d7cbc7ddd86",
+    "Documentation/dev-tools/lz4-arm64-restore/diff-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Documentation/dev-tools/lz4-arm64-restore/kbuild-off.log": "2abe1ecdd19869f8658abc4fd575e58e544bbd2984c72c7f918df64bb68b0aa7",
+    "Documentation/dev-tools/lz4-arm64-restore/kbuild.log": "2a04c3adae86d1def27c938d0283ad499681d357d07ad4de3caf571faccea843",
+    "Documentation/dev-tools/lz4-arm64-restore/kernel-off-members.txt": "afaec2ed3c4fc4dce57d2bd7f39f8ff7e6643a0e2cc5719d2d38639ab2c50b0d",
+    "Documentation/dev-tools/lz4-arm64-restore/kernel-symbols.txt": "c366ff166391ff632dbdd377ef6c357afebd56b79b867b18210c104b04f9ddbb",
+    "Documentation/dev-tools/lz4-arm64-restore/miatoll.config": "8c3610e84e8f5f874af50d4558f79c5923edcd52005b2d1e4b696ddff49253b3",
+    "Documentation/dev-tools/lz4-arm64-restore/overlay-controls.log": "41de70f3d2dc168f571e0dd5f985c9a5c9982a67caf46919b11ec797627bd87c",
+    "Documentation/dev-tools/lz4-arm64-restore/provenance.log": "846cef2fdd2dd93f8c7ed7021863cff73f829bbc1dd21b3a2b8358577f572250",
+    "Documentation/dev-tools/lz4-arm64-restore/recovery.log": "71e09f274321e025034ac20a983f5bc7a4d571429d3fe0bfd96755fba9954691",
+    "Documentation/dev-tools/lz4-arm64-restore/runtimes.log": "af3e9445c7059ce17abef469d48cb015824b8c0def98e6d2ce6fbf2605b343bd",
+    "Documentation/dev-tools/lz4-arm64-restore/toolchain.txt": "ce99385289705ec40355face37b04f66da2d8308bb7dfbf46f9b33233220b650"
+  },
+  "lz4_upstream": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+  "patch_sha256": "b6cf5736c541083c4759517102b4f10e1303ed376003b6e468fa6430d83d34e3",
+  "paths": {
+    "arch/arm64/configs/vendor/xiaomi/miatoll_defconfig": {
+      "mode": "100644",
+      "postimage": "6a6c946b28a3cc186b33857d400c7735d91bd3e4aa61a1e7d38fe3fef741da56",
+      "preimage": "5d06397d4ea6a8e2ae0ccd12b867927de3df9a3be16312ba6ab933a491e45836",
+      "preimage_mode": "100644"
+    },
+    "include/linux/lz4.h": {
+      "mode": "100644",
+      "postimage": "ba5c39cfcff6f1b822c979b4e432da26a63c6a8be7284329660362f5fec6751e",
+      "preimage": "7bee4391b2c41e68d4f20fb84690abf58a3bbc0513e1c5827d7a8544c6a06f43",
+      "preimage_mode": "100644"
+    },
+    "lib/Kconfig": {
+      "mode": "100644",
+      "postimage": "cb427ddf9fddef124d7af659cd05bb52270420479e7198866e7b1c4f7fe1b806",
+      "preimage": "b5f008c371f0a8a54e2b050534eb8475aa42cd02718ebe91a74b0be31d56a48a",
+      "preimage_mode": "100644"
+    },
+    "lib/lz4/Makefile": {
+      "mode": "100644",
+      "postimage": "8154345c42a3f8acedc168b6e642a13c51922b35ef2fd9f1a5c5a53283706c00",
+      "preimage": "b557cb8ed5e8bff283d7f349bf762892e7e6147318f1f4dc795556ab71e14ad7",
+      "preimage_mode": "100644"
+    },
+    "lib/lz4/lz4.c": {
+      "mode": "100644",
+      "postimage": "5209ff7bb9b348d2762179c55fa58460e0019a199df4df863d43009631e97ec2",
+      "preimage": "1667095ff50c4c487e9c64c4e2b5c110b7f28046f229d464e145ac2431b09a2a",
+      "preimage_mode": "100644"
+    },
+    "lib/lz4/lz4_decompress.c": {
+      "mode": "100644",
+      "postimage": "ab2fb9dfa77de6156f07e0937f09bf06d1c290506546a370228b5126039fa937",
+      "preimage": "5f56ef65a268c86797321ce8db60507142c06d2f605c82a2aa8779eebda2b91f",
+      "preimage_mode": "100644"
+    },
+    "lib/lz4/lz4_decompress_main.c": {
+      "mode": "100644",
+      "postimage": "1f46bce8419f1123d5f968b10de1aa44e757a9a5c1e9c411aaf9fb1e002e976d",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "lib/lz4/lz4armv8/lz4accel.c": {
+      "mode": "100644",
+      "postimage": "0caa7a0c736b6a43ecc3368a46db7972db3db9dec22220861597ad600db195ab",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "lib/lz4/lz4armv8/lz4accel.h": {
+      "mode": "100644",
+      "postimage": "6d6c39b21f6eb2124c4b2cebc74570c8849174ac7f2d5965e70b563a27d9e1f9",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "lib/lz4/lz4armv8/lz4armv8.S": {
+      "mode": "100644",
+      "postimage": "2379206256ecce54100aa8e0357e58727fc71f947cff1309a1aeb7cfeedd60ee",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "scripts/ci/build-kernel.sh": {
+      "mode": "100755",
+      "postimage": "018229e8aa1d02b9fecb0c83d87657f76a2dd16847f0883ea9f71982ef84e409",
+      "preimage": "ed53e3e5b5347d8c4a4e0d0aed27d3cf80f677e8fb959105bd570377c7eaff47",
+      "preimage_mode": "100755"
+    },
+    "scripts/ci/test-lz4.sh": {
+      "mode": "100755",
+      "postimage": "5e0ea0249ac066d501702ed1ce6c169b34ad3603a595f1f406c55b4cef7d3ea4",
+      "preimage": "a69194890f45375ba48d709c9224256becb23f1b068e2d99a23cb50e4dcbd61d",
+      "preimage_mode": "100755"
+    },
+    "tools/testing/selftests/carry_over/lz4_overlay.py": {
+      "mode": "100644",
+      "postimage": "3d7aecc3afb01c1abea101218a9902e51f64ad5411b2d8877a0f7af8d35d027b",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "tools/testing/selftests/carry_over/test_lz4_overlay.py": {
+      "mode": "100644",
+      "postimage": "d5a1ed086b44a2d653498109886d96bb55a853a4b72718024a9dddc46a287933",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "tools/testing/selftests/carry_over/verify.py": {
+      "mode": "100644",
+      "postimage": "937dd99915dcb6c041b7261d5ba3f7689ee7bd329a98c5d08cb4078ddbf07ca3",
+      "preimage": "ed2507296cb7ffeff290c68201e36de4e6567a17ae48f538a234b790e18defa5",
+      "preimage_mode": "100644"
+    },
+    "tools/testing/selftests/lz4/README": {
+      "mode": "100644",
+      "postimage": "354189a56ed7fdfe8318263ed4eb16e06c152fb5131e137064102bec35d97af1",
+      "preimage": "87324062b9bb5070741a112c4ad9996089383efe4f55ab463164e1b39b81f820",
+      "preimage_mode": "100644"
+    },
+    "tools/testing/selftests/lz4/requirements.txt": {
+      "mode": "100644",
+      "postimage": "d5de7a49e2eb75578f3c19dff0a59de82e556a8a11417b7d662179af9ba0a3d8",
+      "preimage": "de6d6fe84e1a0897cebba70972c1aa1f2f997887a20562083098957472912368",
+      "preimage_mode": "100644"
+    },
+    "tools/testing/selftests/lz4/test_arm64.py": {
+      "mode": "100644",
+      "postimage": "ab928227f9ecefc9d10209c9818ee2dba90e1bd04b7d792e997d74ba9adc9a1f",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "tools/testing/selftests/lz4/test_build.py": {
+      "mode": "100755",
+      "postimage": "ae0bbdd882422ba2e30e8faaa26410b28d17f1fd3b842a96ec315efb581a5be2",
+      "preimage": "6a3dce559c9ce3cff784a5d151fd951b14645ac7df6623078e737176912fa9a2",
+      "preimage_mode": "100755"
+    },
+    "tools/testing/selftests/lz4/test_ci.py": {
+      "mode": "100755",
+      "postimage": "54eddedacd08d7f278003945628686b0dd8b29abbdaf2956fcfc32ab97fcecc5",
+      "preimage": "4df4c9539f4ad02334a99ceb248f4b70ca7275773cb078f4d305c0ea68721e6a",
+      "preimage_mode": "100755"
+    }
+  },
+  "stage": "explicit post-foundation/post-carry-over restoration; not a historical receipt rewrite",
+  "unchanged_donor_sources": {
+    "lib/lz4/lz4armv8/lz4accel.c": "lib/lz4/lz4armv8/lz4accel.c",
+    "lib/lz4/lz4armv8/lz4accel.h": "lib/lz4/lz4armv8/lz4accel.h"
+  }
+}

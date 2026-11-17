@@ -1,0 +1,435 @@
+{
+  "accounting": {
+    "already_native_reference_unresolved": 1,
+    "applied_corrected_native": 140,
+    "excluded_bbrplus": 1,
+    "pending_integration": 0,
+    "superseded_lz4": 1,
+    "total": 143
+  },
+  "added_source": {
+    "tools/testing/selftests/azyr_selected/test_rwlocks.py": {
+      "mode": "100644",
+      "sha256": "592e6d77b12b93e1d1b3970b3d84c70aa719fd2065a1b3283b3572c4a8682430"
+    },
+    "tools/testing/selftests/azyr_selected/test_selected.py": {
+      "mode": "100644",
+      "sha256": "d8692918f1f44dc4aa1d2a5b00c6632cb665e07d059d8b3cacfc2e28cfa7024a"
+    },
+    "tools/testing/selftests/bbr3/README": {
+      "mode": "100644",
+      "sha256": "f138d5ed9be3572a8b9ace3b5c6306ecab88af0639e1d16e09d2f0862b423a2e"
+    },
+    "tools/testing/selftests/bbr3/edt_model.c": {
+      "mode": "100644",
+      "sha256": "53fdc083a1834680ce8b924bea7380d8340862d96a90e07fcc0c7f43e0825d8e"
+    },
+    "tools/testing/selftests/bbr3/model.c": {
+      "mode": "100644",
+      "sha256": "9b3992025ca82c107c703930d7604bfca4ad7793e13497b82b40b9b4de01630d"
+    },
+    "tools/testing/selftests/bbr3/test_backport.py": {
+      "mode": "100644",
+      "sha256": "26364f4e70aa869562d406709df880cf83c1ea0686b4af863af43160620a54ff"
+    },
+    "tools/testing/selftests/bbr3/test_edt.py": {
+      "mode": "100644",
+      "sha256": "1268c81e0024bddb0aa1dc8f515f1cc2ca96060efe370002b42072af7b7950c8"
+    },
+    "tools/testing/selftests/bbr3/test_provenance.py": {
+      "mode": "100644",
+      "sha256": "cd48bd6812bd2be96ba6aa7dfa84980512c11ddb140ab9997bbe545a2cf79c4b"
+    },
+    "tools/testing/selftests/bore/README": {
+      "mode": "100644",
+      "sha256": "825e49c77519e19d217e7cf67562837c684bba4002c564b687e8f69ea2552193"
+    },
+    "tools/testing/selftests/bore/model.c": {
+      "mode": "100644",
+      "sha256": "19ca83cfa8a13c5df66b391b2254b2dde6f9b85c6884868a102f1623c6842783"
+    },
+    "tools/testing/selftests/bore/test_backport.py": {
+      "mode": "100755",
+      "sha256": "9110cc5310c27f5d986b8bb2261c4a18f7e426099b841523e32c60f48ddc02c0"
+    },
+    "tools/testing/selftests/bpf_upgrade/README.md": {
+      "mode": "100644",
+      "sha256": "255039fe04f6b212e67284a0034b97e6467af40dcdb28322cf608270274cc66d"
+    },
+    "tools/testing/selftests/bpf_upgrade/atomic_model.c": {
+      "mode": "100644",
+      "sha256": "02506026576ca79884739b25cc625f8f519a43d8bc0ce7d348d9c660b2ee9b96"
+    },
+    "tools/testing/selftests/bpf_upgrade/core_model.c": {
+      "mode": "100644",
+      "sha256": "9d41c6a5ef7d7115efca691367a8c24f14124e23618a8d599488df5812d4f4d3"
+    },
+    "tools/testing/selftests/bpf_upgrade/jmp32_model.c": {
+      "mode": "100644",
+      "sha256": "2f6b205ef23138e759ea4b146c45a7ce07840a0412459b3f0e3a29a7092f021e"
+    },
+    "tools/testing/selftests/bpf_upgrade/lockdep_model.c": {
+      "mode": "100644",
+      "sha256": "41589dac4254fb15bb5a00a0e4b025da1f428d6e86075879592b1af0574bbb41"
+    },
+    "tools/testing/selftests/bpf_upgrade/softirq_model.c": {
+      "mode": "100644",
+      "sha256": "4f1e91b5450d2d02260c2f9e14fa3d74c08ce819a0f4d1574060ae820d9ced0f"
+    },
+    "tools/testing/selftests/bpf_upgrade/test_atomics.py": {
+      "mode": "100644",
+      "sha256": "d1a33a36741c03d4ce2e79a6c6e96b6e16b4e01cdf391795299f4a39b90237d0"
+    },
+    "tools/testing/selftests/bpf_upgrade/test_core.py": {
+      "mode": "100644",
+      "sha256": "43936fef244a54f0ecd75e4c13a055728ed5651e95d4bf66160ed913346cf33f"
+    },
+    "tools/testing/selftests/bpf_upgrade/test_jmp32.py": {
+      "mode": "100644",
+      "sha256": "fb1b8a9d4b1ec5e85d6fd8c1cbeb532134db4a509d627f85383a973eb97e794f"
+    },
+    "tools/testing/selftests/bpf_upgrade/test_lockdep.py": {
+      "mode": "100644",
+      "sha256": "12bc8ab3226089772666fa2deb0ef24720f34b3a4dbfbf3c2bc6867f3a4e47be"
+    },
+    "tools/testing/selftests/bpf_upgrade/test_runtime.c": {
+      "mode": "100644",
+      "sha256": "0510a142af10e45fbf416c0d0abe6c3c2038602b43aad75105eade3b3d6ce93c"
+    },
+    "tools/testing/selftests/bpf_upgrade/test_softirq.py": {
+      "mode": "100644",
+      "sha256": "665890f283711f3821ec0f9edba35545f98744bbf1252924cc75c5e6da4387cb"
+    },
+    "tools/testing/selftests/bpf_upgrade/test_timer_lifetime.py": {
+      "mode": "100644",
+      "sha256": "8adc5ec9c5bfa61999440cbe99e57195dd7c47e6ee5aba3db4adddd3fec282fc"
+    },
+    "tools/testing/selftests/bpf_upgrade/timer_lifetime_model.c": {
+      "mode": "100644",
+      "sha256": "407c01a9dafabef67515cfbec6a6943006cd47f31ae8afa05547d8e44819a22c"
+    },
+    "tools/testing/selftests/cambyses/README.md": {
+      "mode": "100644",
+      "sha256": "9333965b3521e07f9f0a425db75bf621143042dfa49b3aff49c8a34f925adc1f"
+    },
+    "tools/testing/selftests/cambyses/legacy_detach.c": {
+      "mode": "100644",
+      "sha256": "f17f70cf15c430f7fc8ced07c261a9c6d72bf839d5868035e051b6d1eb5102d8"
+    },
+    "tools/testing/selftests/cambyses/model.c": {
+      "mode": "100644",
+      "sha256": "8f2d7f31aa3a4a119dd2ad84deb8c405f824acf1023cd126ec26512de9cbde93"
+    },
+    "tools/testing/selftests/cambyses/test_backport.py": {
+      "mode": "100644",
+      "sha256": "b44a43101c677b4ed697c1a6d24c9bd0ea25760aaa9cc049b88df1b2185ebd44"
+    },
+    "tools/testing/selftests/carry_over/README.md": {
+      "mode": "100644",
+      "sha256": "85ddb0cc56f30d57c8c4a26e963681201aa469443fb19a4adf5d6094454099df"
+    },
+    "tools/testing/selftests/carry_over/build_batches_01_02.sh": {
+      "mode": "100644",
+      "sha256": "aee94516fbb328a8034b22c2e146f1728be4096fa591ec7f2887f28ebdfe6ff1"
+    },
+    "tools/testing/selftests/carry_over/build_remaining.sh": {
+      "mode": "100644",
+      "sha256": "96659b88cf8731eebe681be959df7ce64ebdbfe13ab5b790a8ad75fe61ce6dfa"
+    },
+    "tools/testing/selftests/carry_over/run_extended.py": {
+      "mode": "100644",
+      "sha256": "0ac99a0661d85c761fa6bf509d258d12dec2db2e74b15eb39ad0e6197f55f48c"
+    },
+    "tools/testing/selftests/carry_over/run_host.py": {
+      "mode": "100644",
+      "sha256": "e1965fa680c1fa43627ff00f3129f9bb5daafa3ae5e06a92cbe729f203bca42e"
+    },
+    "tools/testing/selftests/carry_over/test_security.py": {
+      "mode": "100644",
+      "sha256": "d3b3e29ec31d14a2918fc93be87373f4f9fccc5e70ecd7d3ce5d42b92bc7da61"
+    },
+    "tools/testing/selftests/carry_over/verify.py": {
+      "mode": "100644",
+      "sha256": "ed2507296cb7ffeff290c68201e36de4e6567a17ae48f538a234b790e18defa5"
+    },
+    "tools/testing/selftests/cpufreq_ipa/test_tuning.py": {
+      "mode": "100644",
+      "sha256": "62659ebccf88d013464b63584dfbc8bc30cfec06b7f74fbdcaae3c8f9c63510a"
+    },
+    "tools/testing/selftests/fs_backport/README": {
+      "mode": "100644",
+      "sha256": "e0fd7038d920ede8462c5a868b135c3f1b8e952928ade3d82e50a7b76d3e623f"
+    },
+    "tools/testing/selftests/fs_backport/model.c": {
+      "mode": "100644",
+      "sha256": "14a66d02f4de21990858f68f89fd3de828cb807bdd27ec1fa715e47d7efc49f7"
+    },
+    "tools/testing/selftests/fs_backport/sysfs_model.c": {
+      "mode": "100644",
+      "sha256": "fee566881ce6ee24701351b7c2f8d740666a54716f3131e8032d96088b073748"
+    },
+    "tools/testing/selftests/fs_backport/test_backport.py": {
+      "mode": "100644",
+      "sha256": "25bb1f9753396b2252b924be80408b10da7782ec123ac8164df0c8819a4c685b"
+    },
+    "tools/testing/selftests/fs_backport/test_f2fs_merge.py": {
+      "mode": "100644",
+      "sha256": "80057448c7fe7e7c82b081d7e32b79c4a2907ac9da6dff53154e330645246163"
+    },
+    "tools/testing/selftests/fs_backport/test_f2fs_sysfs.py": {
+      "mode": "100644",
+      "sha256": "3bc3a9850358ffbe97e6e3b804391009698456249592e2fc9f25711227dbf85c"
+    },
+    "tools/testing/selftests/gpu_dl_backport/deadline_model.c": {
+      "mode": "100644",
+      "sha256": "bf8a235589629fb00d04633b79188d14c41216cdacab8829c2ac2e2bfb6493e9"
+    },
+    "tools/testing/selftests/gpu_dl_backport/gpu_model.c": {
+      "mode": "100644",
+      "sha256": "3cb6e7effcf7c50a5f0fcbad4d4947045f3ef7fdbd8698257720c25fd316dc99"
+    },
+    "tools/testing/selftests/gpu_dl_backport/test_backport.py": {
+      "mode": "100644",
+      "sha256": "2647ac8c38344346af53a341003fd3bb1a079c975d31ec2a1db412cfba054c2f"
+    },
+    "tools/testing/selftests/kernelsu/README": {
+      "mode": "100644",
+      "sha256": "a8e5f9cd859504b133d256585de40f09edbb1f7a4e5456d0b8ef8824b9824030"
+    },
+    "tools/testing/selftests/kernelsu/finasu_model.c": {
+      "mode": "100644",
+      "sha256": "a30cafa830daaac772e7d4db5cfc788396b9c5a7bc334a7eca2ffeffd85e3d40"
+    },
+    "tools/testing/selftests/kernelsu/test_finasu.py": {
+      "mode": "100644",
+      "sha256": "d601d08507d2e7cdd49406ecaf2f09f0c2aed7b4d27e328947fa8f2cc1ee1c05"
+    },
+    "tools/testing/selftests/kernelsu/test_integration.py": {
+      "mode": "100644",
+      "sha256": "161c5a6e51db96017e604db6c7c77b6af4fffb98fa07eb226ded73276ca3ee91"
+    },
+    "tools/testing/selftests/kernelsu/test_update.py": {
+      "mode": "100644",
+      "sha256": "275c3c36af213db839357deccdb1d095f47cabc32362f5aa9350722e21ea657f"
+    },
+    "tools/testing/selftests/kernelsu/test_update50.py": {
+      "mode": "100644",
+      "sha256": "6e53dfd698a5a747ca1b18211e53316b0420549b6495d8e927d5f50a5504de6f"
+    },
+    "tools/testing/selftests/kernelsu/update50.py": {
+      "mode": "100644",
+      "sha256": "6c8382c1ce7a95eab823fc1466252885d6b76df110e3156b4190c44fb250c3ff"
+    },
+    "tools/testing/selftests/kernelsu/update50_model.c": {
+      "mode": "100644",
+      "sha256": "a6365cd18c571cea4ea2a621e427ecae1d0daa81748061a9743c7c28573fdd7e"
+    },
+    "tools/testing/selftests/memlat/model.c": {
+      "mode": "100644",
+      "sha256": "e46e53b0969679b3553fdbe899f990cd8df61bbd80df4b5a4b910f8623a70297"
+    },
+    "tools/testing/selftests/memlat/test_memlat.py": {
+      "mode": "100644",
+      "sha256": "1c7a913fa317ccf6cad47179ab041c6b46c017b805ba6a08ce7a761e68531a3e"
+    },
+    "tools/testing/selftests/mglru/README": {
+      "mode": "100644",
+      "sha256": "a8cd8c98358ba01131120b491671158341c5934160938f2719976ad69a9ff04c"
+    },
+    "tools/testing/selftests/mglru/shadow_model.c": {
+      "mode": "100644",
+      "sha256": "2658d45ea0ca221ea98681a6d6b5774dfbe8ef164ab5749d75b6ccd04e35fe10"
+    },
+    "tools/testing/selftests/mglru/test_backport.py": {
+      "mode": "100755",
+      "sha256": "ac93bbb88c226c98d1e9ef8fce3ba2d90ab7252599fd7fa0be29108d652b1a1d"
+    },
+    "tools/testing/selftests/mm_backport/README": {
+      "mode": "100644",
+      "sha256": "66f535995ee3f7abb168151055627be195805174695eee742280231c73bcdd64"
+    },
+    "tools/testing/selftests/mm_backport/model.c": {
+      "mode": "100644",
+      "sha256": "6c55122f9b2841e0f26243804887c20d880f87f0bf04516720550c711b6acedb"
+    },
+    "tools/testing/selftests/mm_backport/test_backport.py": {
+      "mode": "100644",
+      "sha256": "e79c7c587dd21eb85d988bd1a55212a6640753debdb620a053b1a17ee57d0173"
+    },
+    "tools/testing/selftests/nomount/README": {
+      "mode": "100644",
+      "sha256": "bcc07a7f7de8eddb157dad4681abec162f3e3edde9ca6c5061c0e884b17ff0f8"
+    },
+    "tools/testing/selftests/nomount/io_model23.c": {
+      "mode": "100644",
+      "sha256": "6244d12040735d7e0a4c44c3766a178bcce702b2935c7dbf309cabc6faf876f6"
+    },
+    "tools/testing/selftests/nomount/model.c": {
+      "mode": "100644",
+      "sha256": "26dbebb543c998418690191b4d929dc4e901934bdc552ca382e911b3519b57fc"
+    },
+    "tools/testing/selftests/nomount/model23.c": {
+      "mode": "100644",
+      "sha256": "7f983794aa0c3af8a518b5e4c0a7af5c4444f2548fdb0ddee9a710b03b0a5819"
+    },
+    "tools/testing/selftests/nomount/test_integration.py": {
+      "mode": "100644",
+      "sha256": "02aad2a35cb9acaf7f8274a855c9a286d1ef87b2f02c385a847a082ad9ca678c"
+    },
+    "tools/testing/selftests/nomount/test_update23.py": {
+      "mode": "100644",
+      "sha256": "cc589f2038d53c0c7a8986cea258844df7c9e9d442d215ffe958aad72b564add"
+    },
+    "tools/testing/selftests/nomount/update23.py": {
+      "mode": "100644",
+      "sha256": "7f009ba8272556ddf3ec1bbc3eae393c2e6da81e8c70773ecbac436760a24f7e"
+    },
+    "tools/testing/selftests/procfs_backport/README": {
+      "mode": "100644",
+      "sha256": "9a8e01528a728a924aa6224240499485dd39b7df20c99ff929d1a2bedc0e0dab"
+    },
+    "tools/testing/selftests/procfs_backport/model.c": {
+      "mode": "100644",
+      "sha256": "88233915b801e494f808dbd515e4b459b643547679548ab3cb11041bcaf7938f"
+    },
+    "tools/testing/selftests/procfs_backport/test_backport.py": {
+      "mode": "100755",
+      "sha256": "24405b42c4234d05ab0525b1e27cef599ad8ddf9ef98ff84f98dc064ccafa176"
+    },
+    "tools/testing/selftests/sched_correctness/model.c": {
+      "mode": "100644",
+      "sha256": "bd8a0b50bd3d5330c12ce5033a4e40c050062551262e6c87d3b5243e844e9698"
+    },
+    "tools/testing/selftests/sched_correctness/test_backport.py": {
+      "mode": "100644",
+      "sha256": "4f380d91c21cc000727e9ceda92ba8a17cc606a5d89fd369132c75913748cf9d"
+    },
+    "tools/testing/selftests/susfs/README": {
+      "mode": "100644",
+      "sha256": "093bdb01337c7a16a2ab695797482836d9e66c67b96c65e69e8f7f4e4373d594"
+    },
+    "tools/testing/selftests/susfs/model.c": {
+      "mode": "100644",
+      "sha256": "474446fdfb0d2f40dc5c0004880e1778a03b16ace1c77bf2850b2bbf15cfbeed"
+    },
+    "tools/testing/selftests/susfs/provenance_240.py": {
+      "mode": "100644",
+      "sha256": "891d9295cd752624bd6caca4ed1d8951d030209096a483a431d39ba51c44928f"
+    },
+    "tools/testing/selftests/susfs/test_backport_240.py": {
+      "mode": "100644",
+      "sha256": "ba7912b47276a8ac7b5f9bb9b14eb3174cfca034202e7c590649a0a4f621ebcc"
+    },
+    "tools/testing/selftests/susfs/test_integration.py": {
+      "mode": "100644",
+      "sha256": "f56c203532d4f93e290f97590831b7db6ddba96eed445856496f958fb269c95e"
+    },
+    "tools/testing/selftests/susfs/test_provenance_overlays.py": {
+      "mode": "100644",
+      "sha256": "c26f379c693c8b4ea95ca5da2e3ef14ac1ea73caed98f9f2cf776a3537aeb762"
+    },
+    "tools/testing/selftests/vmalloc_backport/README": {
+      "mode": "100644",
+      "sha256": "c63bb9971c68c73d0e5f35654b325170165ce4c4e3a4fbeae77ed26f395adeac"
+    },
+    "tools/testing/selftests/vmalloc_backport/model.c": {
+      "mode": "100644",
+      "sha256": "4c37dc87e2724bbbd5bbcbdc9c3070df10de349a3d7d47feb3778aa1de5acf8b"
+    },
+    "tools/testing/selftests/vmalloc_backport/test_backport.py": {
+      "mode": "100644",
+      "sha256": "f9e2a0dc302eec5770b971a8c8cec0712e7ddee9f5ff1c5fd039ee7496465edb"
+    }
+  },
+  "artifacts_sha256": {
+    "Documentation/dev-tools/carry-over/README.md": "1ff83fde15984f588c0f7488c2ccb2ff4b0957c96c2a0c70fbdcf8bc20a46a20",
+    "Documentation/dev-tools/carry-over/arm64-objects.log": "18de749dd982cedaf605d2895917daca4cf75151b95fd20e2c640cd274450381",
+    "Documentation/dev-tools/carry-over/batch-01/applied.diff": "586f2bdcca38a6631766017343238ea06ebb457dfd84b226215d121008a3ecbe",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-006-validation.json": "4f2f04b4da7eb04982284dba6a97e6b4ae1b2ef9a6d4e766ea6f61a35e8a91ba",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-036-041-validation.json": "efbeaa924f5b476ebcb0930004bb5142f86cbd3e3fabcc2c621cdf0c905a3f0d",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-036-041.diff": "b3d9a7576d1881f96347bc11d79dd4690660f6e8931bc8061ec25d92e5555356",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-memlat-native-validation.json": "8dc182af76e2163e15ac9485587477cac913038f4b86417f39fce3d26112b0ea",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-memlat-native.diff": "67b8b0f113c3a7d0b5fe47172f938825d019812773148b672883bb5e3b6f9658",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-review-04-validation.json": "afff5602c08ef8ee213b0c7d34937077dedf74eb0ec0064530872eaf4a172e5f",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-selected-validation.json": "1988064848611360cbcee1e23e1ce226392fa0e83a1d8c39904e0ffe066d1583",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-selected.diff": "96222665e0e06c54417b311bba804304017050167858107a214b408d23f74bde",
+    "Documentation/dev-tools/carry-over/batch-01/preimage-sha256.json": "dcf20d700551c147034eca69e1dc5dea812143b421c5ae920bd22121d9bf42fc",
+    "Documentation/dev-tools/carry-over/batch-01/source.json": "a8045098dc3cba5e22e98585011d5166f44db8581160e852ab1be68a91b7d950",
+    "Documentation/dev-tools/carry-over/batch-02/applied.diff": "9cd06c6bfbe32fef38657a9f18d014bc7bf0123c86e5684ee3fddc0c5d317dcb",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-adaptation.diff": "5458092bb1884463aa48a847065b66df4171e10334c3883a890e7e9ed9101f5c",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-backports.json": "8c17c16fcd6e6b71c8dc0f50e1697e586fa213dd6691d3429119679cd8a9a682",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-backports.rst": "53fc0bdd1cc39c26ba7bc0fdb4c6d3e59643433209bf62043ff20c766c4998f8",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.diff": "d6fdf632e0a88056885f5236a4d1be20d2792561adc0ddbd918fc2206b77b23a",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.json": "345cc07338c8c15403b6c9242cc8203f9d03ab2358017a63e5e241e0f258fc4f",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.rst": "07c6973871674b3b37f6e10ee5a8a8fa55f7cb00f7454b52121558168ace1aea",
+    "Documentation/dev-tools/carry-over/batch-02/preimage-sha256.json": "c410a241ac253db9d8c02411797b8405162392f43dfe3e3d9d5489684c1fe851",
+    "Documentation/dev-tools/carry-over/batch-02/source.json": "3a10f81ef03ec3624ab3bad7fdf8c90f39e92109e701197094322735962197d9",
+    "Documentation/dev-tools/carry-over/batch-03/applied.diff": "0e20849be26f74785b053127b3171fed098ad93eee8b9865d6e06125c62585ed",
+    "Documentation/dev-tools/carry-over/batch-03/historical/cambyses-adaptation.diff": "55ef1defe6d46803ea83a7caa8ee433a7e301035bcdd4e711b0a4cdb342d7da5",
+    "Documentation/dev-tools/carry-over/batch-03/historical/f2fs-sysfs-width.diff": "5b0c81ffd256393ecabda3c1ad80f5046659b13ddca16f678687d5567252f30e",
+    "Documentation/dev-tools/carry-over/batch-03/historical/stage-a.diff": "22e0e02145098d1cbb2c01996fba4845a427d74f10358845b8bdd572223125b8",
+    "Documentation/dev-tools/carry-over/batch-03/historical/stage-b1.diff": "61a2e1201739dfc7607a41da7fe89f11cb47c4a08da7cd70e1373c9172ae2df1",
+    "Documentation/dev-tools/carry-over/batch-03/historical/stage-b2.diff": "9af276fe91690f23b168b1bfa623a4b39120390aad5a509ed94ed0fac4cd1d50",
+    "Documentation/dev-tools/carry-over/batch-03/source.json": "1e1ab0d812a6acea20f9fa470dd9a184d2fb9b839ca1cdaae2e198ccbf360656",
+    "Documentation/dev-tools/carry-over/batch-04/applied.diff": "664c2fdbc08786094a8d1082fcbd5cb57a88b56736c20ced6c9dfe8a114cfd1a",
+    "Documentation/dev-tools/carry-over/batch-04/checkpoint-01-02-validation.json": "73d394f7cd3ebfef2b16d6723936384fcf814e05cab21938ba66a5885b582c5e",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/bpf/bpf-5.15-upgrade.diff": "c115ac46d6c75f94978e3245debf5033602c6e6ba13d1816b9d64ba18f0c96ea",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/bpf/bpf-5.15-upgrade.json": "d194c40c9e99ccaa1e8b844d0da9f9cd45a00c83f9563fef70ea885715e33b62",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/dev-tools/finasu-manager.json": "9969b5a111624d3b72b1123171c27bc3dad2e71d6ea91097e4aaa4dbd6ba79d8",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/dev-tools/kernelsu-updates/v3.3.1+50.json": "f6d5887c6352e7f5e538cdfa0bac0f6dc130da182abb6ed60e36d09a2060c940",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/filesystems/nomount-update-23.json": "7d123b899e054d178b9dde4f09dc9e3e285eb284297b88f7d0224ac74c6be189",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/filesystems/susfs/backport-2.4.0.diff": "48130365518c732d6d09619963bb265628fd0e3b4844bdbcc5424004cd75f2eb",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/filesystems/susfs/backport-2.4.0.json": "56cb00f9efa712bbbea16ca68aa633f19264630ebe4dac4e0dce80db7432e10d",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/filesystems/susfs/integration.diff": "623c9498f67059e0aa8ba8cceebc8724e26efb87c845e4d98441e4c972757046",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/networking/bbr3-backport.diff": "cbcc6012916390137bf0117a79cea80581fb1d78845051f0aafe2f3aa53388f2",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/networking/bbr3-edt-validation.json": "25c2b63ee3072955bfc4fa814154252544ba363d1b2e661e4ceaa453b89afc40",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/networking/bbr3-edt.diff": "64558eeccab2b1823cc6517544ad65a2592e3a51824de1d8b29ab252232c2dc3",
+    "Documentation/dev-tools/carry-over/batch-04/historical/Documentation/networking/bbr3-validation.json": "97983d0661fe02559962324e6d546f06386ac0e2382dcc6e3b9e45a4927d809d",
+    "Documentation/dev-tools/carry-over/batch-04/historical/susfs-2.3-header.h": "11453da718f4171aa583b9ecd504705b5034b63c8af64e346ab3b7d0a67aa7bf",
+    "Documentation/dev-tools/carry-over/batch-04/source.json": "97cd59a4ad07905b7696ffd3d57df16410f4065e6aa08841e452945cc92d307e",
+    "Documentation/dev-tools/carry-over/host-regressions.log": "e2a0938ebafccb516784f3b3de2268c70d5bae0cd4c9c9076645865af771b566",
+    "Documentation/dev-tools/carry-over/progress.json": "9997f1945449da8fff40067908e11d28b8da38a059435deeb9f69a1b3fc2b319",
+    "Documentation/dev-tools/carry-over/remaining/arm64-objects.log": "ed7f784ea14b14f42c7a166e1b098fac5ab2a1e52a9588dd95f7dd07ba68abef",
+    "Documentation/dev-tools/carry-over/remaining/bore-mglru-debugfs-off.config": "bcf647b3949f880e306ea00caab11e36eec2e7f27c38c9642f78739a28ec2245",
+    "Documentation/dev-tools/carry-over/remaining/earlier-host-regressions.log": "e2a0938ebafccb516784f3b3de2268c70d5bae0cd4c9c9076645865af771b566",
+    "Documentation/dev-tools/carry-over/remaining/host-regressions.log": "861d7e1ae734b0122ad12b2262e13cc3fade59b94c578dd0ebb57758f3fc8919",
+    "Documentation/dev-tools/carry-over/remaining/lz4-regressions.log": "5cf6bde709c7a6142cca5fe20de4cfb715802390ed9eda83b63b058aa41cd498",
+    "Documentation/dev-tools/carry-over/remaining/miatoll-default.config": "8cfa7bc5a15c8aaa7f9fbd0ac58f0a46413ee59e82d0d45f7eaccde2b382698d",
+    "Documentation/dev-tools/carry-over/remaining/optional-enabled.config": "db214f16a580fa283d02b632becf041443d72077cf0775d3cd47d1d097c15112",
+    "Documentation/dev-tools/carry-over/remaining/separate-negatives.log": "5c618c5ed51b3e50e17e521d167a40b191dfeefc931b74e6b80ff27366237d73",
+    "Documentation/dev-tools/carry-over/remaining/toolchain.json": "120d47275a80bcf5caf109b3d7f58f8f21b2c2f2ab3704927414ca671e5cec71",
+    "Documentation/dev-tools/carry-over/toolchain.json": "e7b9db28a41ab298cb432937a7a3135f4fcb8b16608d3a0d40bf5a71890ff77c",
+    "Documentation/dev-tools/foundation-repair/manifest.json": "20f25185ae785ff4feb4b66889b049e60cae1fb5b3abd564c0b124951db6d9be"
+  },
+  "ci_dispatch": false,
+  "complete_image_link": false,
+  "device_test": false,
+  "earlier_checkpoint": "batch-04/checkpoint-01-02-validation.json",
+  "earlier_checkpoint_extra_profiles": [
+    "CFQ/BFQ debug and group accounting",
+    "SCM with ARM64 LSE atomics"
+  ],
+  "fresh_lz4": {
+    "cases": 74,
+    "failures": 0,
+    "kbuild_selections": 27,
+    "object_architectures": 3,
+    "packaging_fixture": "SKIP: no clean pinned AnyKernel fixture supplied",
+    "sanitizers": [
+      "ASan",
+      "UBSan"
+    ]
+  },
+  "host_suites": 25,
+  "push": false,
+  "semantic_negative_controls": 167,
+  "source_replay_paths": 412,
+  "status": "PASS bounded validation: 140 applied/corrected-native references; E143 native with unresolved supplied reference; LZ4 1.11.1 supersedes E115; BBRplus excluded",
+  "target_default_objects": 74,
+  "target_extra_profiles": [
+    "MEMCG/LOCKDEP/F2FS compression/BPF events/stream parser (output-only)",
+    "BORE/MGLRU/DEBUG_FS disabled (output-only)"
+  ],
+  "target_selected_bpf_directory_objects": 33,
+  "target_toolchain_commit": "3b86e40facfff1eab4065614255d573293c10373"
+}

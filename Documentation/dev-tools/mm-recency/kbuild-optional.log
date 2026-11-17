@@ -1,0 +1,25 @@
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/recency/kbuild'
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CC      kernel/bounds.s
+  CHK     include/generated/bounds.h
+  UPD     include/generated/bounds.h
+  CC      arch/arm64/kernel/asm-offsets.s
+  CHK     include/generated/asm-offsets.h
+  UPD     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  VDSOA   arch/arm64/kernel/vdso/gettimeofday.o
+  LD      arch/arm64/kernel/vdso/vdso.so.dbg
+  VDSOSYM include/generated/vdso-offsets.h
+  CC      mm/fadvise.o
+  CC      mm/memory.o
+  CC      mm/vmscan.o
+  CC      mm/rmap.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/recency/kbuild'

@@ -1,0 +1,83 @@
+Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/user/Kernel_electro/.cache/carry-over/clang/bin
+LLD 23.0.1 (/mnt/disks/build-disk/src/googleplex-android/llvm-r614150-release/out/llvm-project/llvm 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e) (compatible with GNU linkers)
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+  GEN     ./Makefile
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      block/cfq-iosched.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+PASS: 20 ARM64 objects with pinned LLVM, real headers, default miatoll config (output Polly disabled)
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      block/cfq-iosched.o
+  CC      block/bfq-cgroup.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+PASS: real-header CFQ/BFQ debug/group-accounting object builds (test config only)
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CC      arch/arm64/kernel/asm-offsets.s
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      drivers/soc/qcom/scm.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/carry-over/target-build'
+PASS: real-header SCM ARM64 object with LSE atomics (test config only)
+LIMITS: object compilation only; no full image link, vendor-module ABI, real PMU/SMC/IRQ/hotplug/device validation

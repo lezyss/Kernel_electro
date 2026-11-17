@@ -1499,10 +1499,10 @@ static int writeback_single_inode(struct inode *inode,
 	wb = inode_to_wb_and_lock_list(inode);
 	spin_lock(&inode->i_lock);
 	/*
-	 * If inode is clean, remove it from writeback lists. Otherwise don't
-	 * touch it. See comment above for explanation.
+	 * Leave freeing inodes' lists untouched: eviction has already detached
+	 * them. Otherwise remove only clean inodes, as explained above.
 	 */
-	if (!(inode->i_state & I_DIRTY_ALL))
+	if (!(inode->i_state & (I_FREEING | I_DIRTY_ALL)))
 		inode_io_list_del_locked(inode, wb);
 	spin_unlock(&wb->list_lock);
 	inode_sync_complete(inode);
@@ -2071,12 +2071,14 @@ static void wakeup_dirtytime_writeback(struct work_struct *w)
 				wb_wakeup(wb);
 	}
 	rcu_read_unlock();
-	schedule_delayed_work(&dirtytime_work, dirtytime_expire_interval * HZ);
+	if (dirtytime_expire_interval)
+		schedule_delayed_work(&dirtytime_work, dirtytime_expire_interval * HZ);
 }
 
 static int __init start_dirtytime_writeback(void)
 {
-	schedule_delayed_work(&dirtytime_work, dirtytime_expire_interval * HZ);
+	if (dirtytime_expire_interval)
+		schedule_delayed_work(&dirtytime_work, dirtytime_expire_interval * HZ);
 	return 0;
 }
 __initcall(start_dirtytime_writeback);
@@ -2087,8 +2089,12 @@ int dirtytime_interval_handler(struct ctl_table *table, int write,
 	int ret;
 
 	ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
-	if (ret == 0 && write)
-		mod_delayed_work(system_wq, &dirtytime_work, 0);
+	if (ret == 0 && write) {
+		if (dirtytime_expire_interval)
+			mod_delayed_work(system_wq, &dirtytime_work, 0);
+		else
+			cancel_delayed_work_sync(&dirtytime_work);
+	}
 	return ret;
 }
 
@@ -2207,17 +2213,13 @@ void __mark_inode_dirty(struct inode *inode, int flags)
 			else
 				dirty_list = &wb->b_dirty_time;
 
-			wakeup_bdi = inode_io_list_move_locked(inode, wb,
-							       dirty_list);
-
 			if (inode->i_state & (I_WILL_FREE | I_FREEING)) {
-				inode_io_list_del_locked(inode, wb);
 				spin_unlock(&wb->list_lock);
 				return;
 			}
 
-			spin_unlock(&wb->list_lock);
-			trace_writeback_dirty_inode_enqueue(inode);
+			wakeup_bdi = inode_io_list_move_locked(inode, wb,
+							       dirty_list);
 
 			/*
 			 * If this is the first dirty inode for this bdi,
@@ -2227,6 +2229,10 @@ void __mark_inode_dirty(struct inode *inode, int flags)
 			 */
 			if (bdi_cap_writeback_dirty(wb->bdi) && wakeup_bdi)
 				wb_wakeup_delayed(wb);
+
+			spin_unlock(&wb->list_lock);
+			trace_writeback_dirty_inode_enqueue(inode);
+
 			return;
 		}
 	}

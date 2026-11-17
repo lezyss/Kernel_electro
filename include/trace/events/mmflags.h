@@ -193,11 +193,14 @@ IF_HAVE_VM_SOFTDIRTY(VM_SOFTDIRTY,	"softdirty"	)		\
 #define COMPACTION_WITHDRAWN	2
 #define COMPACTION_PROGRESS	3
 
+/* Reclaim-needed compaction was skipped, not progress. */
 #define compact_result_to_feedback(result)	\
 ({						\
 	enum compact_result __result = result;	\
 	(compaction_failed(__result)) ? COMPACTION_FAILED : \
-		(compaction_withdrawn(__result)) ? COMPACTION_WITHDRAWN : COMPACTION_PROGRESS; \
+		(compaction_needs_reclaim(__result) || \
+		 compaction_withdrawn(__result)) ? \
+			COMPACTION_WITHDRAWN : COMPACTION_PROGRESS; \
 })
 
 #define COMPACTION_FEEDBACK		\

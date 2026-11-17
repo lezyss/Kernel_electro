@@ -10,6 +10,10 @@
 # Normal rules (sorted alphabetically)
 #
 .*
+# Keep the manual build workflow visible when installing a new source base.
+!.github/
+!.github/workflows/
+!.github/workflows/build-kernel.yml
 *.a
 *.bin
 *.bz2
@@ -118,6 +122,10 @@ x509.genkey
 
 # Kconfig presets
 all.config
+
+# Local outputs and the pinned CI toolchain are not source deliverables.
+/out/
+/.toolchains/
 
 # Kdevelop4
 *.kdev4

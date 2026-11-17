@@ -59,10 +59,16 @@ static inline struct dl_bw *dl_bw_of(int i)
 static inline int dl_bw_cpus(int i)
 {
 	struct root_domain *rd = cpu_rq(i)->rd;
-	int cpus = 0;
+	int cpus;
 
 	RCU_LOCKDEP_WARN(!rcu_read_lock_sched_held(),
 			 "sched RCU must be held");
+
+	if (cpumask_subset(rd->span, cpu_active_mask))
+		return cpumask_weight(rd->span);
+
+	cpus = 0;
+
 	for_each_cpu_and(i, rd->span, cpu_active_mask)
 		cpus++;
 
@@ -2595,19 +2601,29 @@ bool dl_param_changed(struct task_struct *p, const struct sched_attr *attr)
 }
 
 #ifdef CONFIG_SMP
-int dl_task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_allowed)
+int dl_task_can_attach(struct task_struct *p,
+		       const struct cpumask *cs_effective_cpus)
 {
 	unsigned int dest_cpu = cpumask_any_and(cpu_active_mask,
-							cs_cpus_allowed);
+					     cs_effective_cpus);
 	struct dl_bw *dl_b;
 	bool overflow;
 	int cpus, ret;
 	unsigned long flags;
 
+	/* An inherited cpuset can have no active destination after hotplug. */
+	if (unlikely(dest_cpu >= nr_cpu_ids))
+		return -EINVAL;
+
 	rcu_read_lock_sched();
 	dl_b = dl_bw_of(dest_cpu);
 	raw_spin_lock_irqsave(&dl_b->lock, flags);
 	cpus = dl_bw_cpus(dest_cpu);
+	/* Do not divide by zero if the destination domain lost its last CPU. */
+	if (unlikely(!cpus)) {
+		ret = -EINVAL;
+		goto unlock;
+	}
 	overflow = __dl_overflow(dl_b, cpus, 0, p->dl.dl_bw);
 	if (overflow)
 		ret = -EBUSY;
@@ -2621,6 +2637,7 @@ int dl_task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_allo
 		__dl_add(dl_b, p->dl.dl_bw, cpus);
 		ret = 0;
 	}
+unlock:
 	raw_spin_unlock_irqrestore(&dl_b->lock, flags);
 	rcu_read_unlock_sched();
 	return ret;

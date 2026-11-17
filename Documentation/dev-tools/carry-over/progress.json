@@ -1,0 +1,1022 @@
+{
+  "schema": 1,
+  "foundation": "766a32ab1c8b889ac049ccd367e82786e5953bc0",
+  "ordered_batches": [
+    "batch-01/source.json",
+    "batch-02/source.json",
+    "batch-03/source.json",
+    "batch-04/source.json"
+  ],
+  "items": [
+    {
+      "id": "E001",
+      "sha": "149e6887d341948cb079ffab98845addd5e50381",
+      "change": "A01-006 \u2014 inline ARM64 rwlocks under PREEMPT; remove 16 !PREEMPT restrictions",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E002",
+      "sha": "d73dae72f581c0b3fd6c4966773bbe14c6a4be74",
+      "change": "A01-027 \u2014 SCM-call accounting / avoid unsafe reads while SCM is busy",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01",
+      "note": "Four inspiration references covered by one corrected native memlat/SCM implementation, not four donor cherry-picks."
+    },
+    {
+      "id": "E003",
+      "sha": "12798fd3c654f0584f54afadb027f96a07461555",
+      "change": "A01-028 \u2014 keep SCM accounting separate from fixed-register SMC assembly",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01",
+      "note": "Four inspiration references covered by one corrected native memlat/SCM implementation, not four donor cherry-picks."
+    },
+    {
+      "id": "E004",
+      "sha": "143f07a8f3e77aae7dcb48979d424cd1e17b2c4a",
+      "change": "A01-029 \u2014 native asynchronous per-CPU memlat sampling with completion/lifetime handling",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01",
+      "note": "Four inspiration references covered by one corrected native memlat/SCM implementation, not four donor cherry-picks."
+    },
+    {
+      "id": "E005",
+      "sha": "d7fda10ad1dbb38279b6d24fdd9fbf40fca53b73",
+      "change": "A01-030 \u2014 use native four-argument perf_event_read_local API",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01",
+      "note": "Four inspiration references covered by one corrected native memlat/SCM implementation, not four donor cherry-picks."
+    },
+    {
+      "id": "E006",
+      "sha": "28bc6f028c8ee2d2d972ed2284d0cb5973cf3c2d",
+      "change": "A01-036 \u2014 Corrected native integer-only delay in ipa3_disable_wdi_pipe producer path: minimum 10000 us preserved, maximum 12000 us; the other equal-bound sleep and all other IPA code unchanged.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E007",
+      "sha": "b0229e526d8593782fa4806e28b16542b836bf61",
+      "change": "A01-041 \u2014 Exact donor two unlikely() annotations in cpufreq_stats_record_transition; no condition/statistics/locking changes.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E008",
+      "sha": "dd7a5c396220c22784135cfcc755de3bb3d6f110",
+      "change": "A01-046 \u2014 sched: Allow newidle balancing to bail out of load_balance",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E009",
+      "sha": "542e7b0ac23af11146f642c4787a2b11bebf4454",
+      "change": "A01-047 \u2014 cpufreq: schedutil: Inline `sugov_policy_free()`",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E010",
+      "sha": "403836055eec7478e4e431828f0be0d650c39f9c",
+      "change": "A01-048 \u2014 sched: Optimize __calc_delta()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E011",
+      "sha": "c0ff2a937bff4080b8be6ece6e97ec193e2edfb0",
+      "change": "A01-052 \u2014 cpuidle: lpm_levels: Don't print parent clocks during suspend",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E012",
+      "sha": "69cf714073ebe9a68322e5d9041cb325220c0dcd",
+      "change": "A01-056 \u2014 dm-verity: Enable WQ_HIGHPRI on verify_wq",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01",
+      "note": "Series covered by final bound CPU_INTENSIVE|MEM_RECLAIM|HIGHPRI verification queue with max_active=0."
+    },
+    {
+      "id": "E013",
+      "sha": "94a730ad07912c7157f227585a1a90c117e705bd",
+      "change": "A01-057 \u2014 dm-verity: Stop using WQ_UNBOUND for verify_wq",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01",
+      "note": "Series covered by final bound CPU_INTENSIVE|MEM_RECLAIM|HIGHPRI verification queue with max_active=0."
+    },
+    {
+      "id": "E014",
+      "sha": "324bac57ebadbd785dbb0e666505b650880c4fa1",
+      "change": "A01-058 \u2014 adreno: Stop reading registers just for debugging",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E015",
+      "sha": "3ea82acbb35fa12d0c3d09b0f9137240b532e536",
+      "change": "A01-078 \u2014 drivers: base/arch_topology: avoid a stuck risk when cpufreq policy free",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E016",
+      "sha": "3e87d0295c39b2bb9d080a6db7464a0de7a8d651",
+      "change": "A01-079 \u2014 drivers: iommu: silence logging",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E017",
+      "sha": "202b3995f9ad16f01aab59847e1ab9d15afd802d",
+      "change": "A01-092 \u2014 BACKPORT: block: use ktime_get_ns() instead of sched_clock() for cfq",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E018",
+      "sha": "79431f18b1e102a6813c746be21fee0a237006d9",
+      "change": "A01-093 \u2014 cfq: Annotate fall-through in a switch statement",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E019",
+      "sha": "522ab2ee25fc0c802c55ec269dc565411422c129",
+      "change": "A01-094 \u2014 cfq: clear queue pointers from cfqg after unpinning them in cfq_pd_offline",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E020",
+      "sha": "6bbaff1957fa023f5ff2bdb22714eab646abd689",
+      "change": "A01-098 \u2014 drivers: power/irqchip: Add wakeup irq loggers",
+      "status": "applied-bounded-validation",
+      "batch": "batch-01"
+    },
+    {
+      "id": "E021",
+      "sha": "298f4559960e4e14c6ff43638a1da981cf95dee8",
+      "change": "Compare scheduler group min/max capacities directly",
+      "status": "applied-bounded-validation",
+      "batch": "batch-02"
+    },
+    {
+      "id": "E022",
+      "sha": "56c8b07bc33bb8bf83d42834be446e831f47b29b",
+      "change": "Mark task-CPU and migration-state accesses",
+      "status": "applied-bounded-validation",
+      "batch": "batch-02"
+    },
+    {
+      "id": "E023",
+      "sha": "75c9d3457a8aedfe68ef0163b9b8d10c51248ed8",
+      "change": "Skip busiest queues with no runnable hierarchical CFS tasks",
+      "status": "applied-bounded-validation",
+      "batch": "batch-02"
+    },
+    {
+      "id": "E024",
+      "sha": "e250ed8c4d54aa77f461347574cf2994f3bab0c0",
+      "change": "Correct CPU-offline idle IRQ ordering; direct stop-tick call",
+      "status": "applied-bounded-validation",
+      "batch": "batch-02"
+    },
+    {
+      "id": "E025",
+      "sha": "71a6c1d01b6f2fcf407c79f252bb8b3d6177e077",
+      "change": "BACKPORT: msm: kgsl: Fix syncsource spinlock recursion",
+      "status": "applied-bounded-validation",
+      "batch": "batch-02"
+    },
+    {
+      "id": "E026",
+      "sha": "bc7328a77b6be7591052cb226a029a33ee69d13e",
+      "change": "UPSTREAM: sched/deadline: Optimize dl_bw_cpus()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-02"
+    },
+    {
+      "id": "E027",
+      "sha": "ad1345b413fca93af081b5e3be3fa6b85248a8a3",
+      "change": "sched, cpuset: Fix dl_cpu_busy() panic due to empty cs->cpus_allowed",
+      "status": "applied-bounded-validation",
+      "batch": "batch-02"
+    },
+    {
+      "id": "E028",
+      "sha": "a2c7aff131ae3ca2471f0134464e70a982176fff",
+      "change": "BORE 5.1.0, attributed to Masahito Suzuki/firelzrd's legacy Linux 4.19 BORE patches.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E029",
+      "sha": "c684d01fc6f95413c4ce46fadcaf2c6f63123c18",
+      "change": "constant scheduler granularity.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E030",
+      "sha": "222cfabd72a3ca2f69c267decd3acee8278f268d",
+      "change": "short-burst smoothing enabled.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E031",
+      "sha": "3001d4566a0021858005a91d51a6193c1b40ce30",
+      "change": "final granularity/bandwidth tuning.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E032",
+      "sha": "e2c4678c8b532f58a22010e756e04d6da4ecf283",
+      "change": "always-inline task reweighting.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E033",
+      "sha": "12cc0428dcbbe5085132cb02d30db92445935920",
+      "change": "WALT-only migration guards.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E034",
+      "sha": "b53dda13d958ee8bf47e7ad9a9eda3bae51e7f47",
+      "change": "Cambyses v0.6.0: block rotation, scan-budget handling and safe migration progress fallback",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E035",
+      "sha": "27048e83e24d7f2fa141f1e5c769612170722527",
+      "change": "Reapply mm: introduce __lru_cache_add_active_or_unevictable",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E036",
+      "sha": "150b3797156a7243ce0e4d2339c1193a5117b8f6",
+      "change": "UPSTREAM: mm: replace list_move_tail() with add_page_to_lru_list_tail()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E037",
+      "sha": "80429a3f5e58e046d18ba34295f4b4c7e39a5f77",
+      "change": "UPSTREAM: arm64: cpufeature: introduce helper cpu_has_hw_af()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E038",
+      "sha": "f36d767468afda9ebba0bfde87f3974876565ce1",
+      "change": "UPSTREAM: mm/vmscan.c: use update_lru_size() in update_lru_sizes()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E039",
+      "sha": "53489d60f44c4b9f117571c37e32da1370f650ae",
+      "change": "BACKPORT: mm/swapcache: support to handle the shadow entries",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E040",
+      "sha": "f51ecb574eecf197ffb37d3c6fbc576844a3f90c",
+      "change": "BACKPORT: mm: remove superfluous __ClearPageActive()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E041",
+      "sha": "bf8641c30a7831f3da8010ad543e63bc147b33d6",
+      "change": "BACKPORT: mm: use self-explanatory macros rather than \"2\"",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E042",
+      "sha": "ba8564c1202704507dc77d8daca22eb80f6c8003",
+      "change": "BACKPORT: mm/vmscan.c: use add_page_to_lru_list()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E043",
+      "sha": "f97327ca66e9c855951076ba75e157d61e45b9f2",
+      "change": "BACKPORT: include/linux/mm_inline.h: shuffle lru list addition and deletion functions",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E044",
+      "sha": "2615fc64834fbb21d7eaed52958255d2ea57a069",
+      "change": "BACKPORT: mm: don't pass \"enum lru_list\" to lru list addition functions",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E045",
+      "sha": "cf8e44a06b890a55a819bc3459df51aa0a5d1ac7",
+      "change": "UPSTREAM: mm/swap.c: don't pass \"enum lru_list\" to trace_mm_lru_insertion()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E046",
+      "sha": "22902855a3380aecd81938d6d64dc43183bb5e39",
+      "change": "BACKPORT: mm/swap.c: don't pass \"enum lru_list\" to del_page_from_lru_list()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E047",
+      "sha": "f4aaf1dfa4c45dc56bf48f484f79e539d8d10fc9",
+      "change": "BACKPORT: mm: add __clear_page_lru_flags() to replace page_off_lru()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E048",
+      "sha": "c216026c8a0bba13a265be5e08addc2636a71bb5",
+      "change": "UPSTREAM: mm: VM_BUG_ON lru page flags",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E049",
+      "sha": "38f9bf9fcbbfbd7bc8aabedcefe34ea09fb37b25",
+      "change": "BACKPORT: include/linux/mm_inline.h: fold page_lru_base_type() into its sole caller",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E050",
+      "sha": "bc21327232c6b3d0db2a4a11987e60a546b7cba6",
+      "change": "FROMLIST: mm: x86, arm64: add arch_has_hw_pte_young()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E051",
+      "sha": "b0b10a2cb89fcbca4993f6716f05f7470153f28b",
+      "change": "FROMLIST: mm: x86: add CONFIG_ARCH_HAS_NONLEAF_PMD_YOUNG",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E052",
+      "sha": "b329a95b729e5744b81e9b689d9295b31cae8f54",
+      "change": "FROMLIST: mm: multi-gen LRU: groundwork",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E053",
+      "sha": "d04b362714e983a0a4371520e01bef0ecda42fb9",
+      "change": "FROMLIST: mm: multi-gen LRU: minimal implementation",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E054",
+      "sha": "75713ae4030eb0a07f23c1cffea99f797bf91497",
+      "change": "FROMLIST: mm: multi-gen LRU: exploit locality in rmap",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E055",
+      "sha": "cc109a443214740677c2f5bdc4feb98bac50f839",
+      "change": "FROMLIST: mm: multi-gen LRU: support page table walks",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E056",
+      "sha": "be671e5364be509f616627b7e7de157dc6b04c14",
+      "change": "FROMLIST: mm: multi-gen LRU: optimize multiple memcgs",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E057",
+      "sha": "3c8d5dcc8bf0fa170e9e101abf052300da8f7f40",
+      "change": "FROMLIST: mm: multi-gen LRU: kill switch",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E058",
+      "sha": "67e4305510a13d671b09363007986eb17da8c0f6",
+      "change": "FROMLIST: mm: multi-gen LRU: thrashing prevention",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E059",
+      "sha": "cce036fef9e6efe52eaecffaaff7c8cc35a2cb96",
+      "change": "FROMLIST: mm: multi-gen LRU: debugfs interface",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E060",
+      "sha": "f889fcd02d02cae8878c020ede8c7a086e8fcda2",
+      "change": "mglru: fixes",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E061",
+      "sha": "b40b16274a26e5cc62b8109cb2a6ea197a6fc25f",
+      "change": "mm/mglru: don't sync disk for each aging cycle",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E062",
+      "sha": "c2d7c83deb22cf5ed3b65d5c50a0e79864472b15",
+      "change": "mm: vmscan: Fix error when CONFIG_DEBUG_FS is disabled",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E063",
+      "sha": "fa3bb3287d2a649c4bfbcfa2d84c17bf1333a1ba",
+      "change": "mm: vmscan: Don't create debugfs when CONFIG_DEBUG_FS is disabled",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E064",
+      "sha": "3728f6da063f3ac72a0fe71262e9ebfec1f01799",
+      "change": "mm: multi-gen LRU: fix crash during cgroup migration",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E065",
+      "sha": "18ad7ca0baf1b4edbe09aa5c14a8599b22ba4909",
+      "change": "Filemap: guard missing readpage callbacks",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E066",
+      "sha": "b4b6f5c674a5c8efebc3c9cbfdf3ae7d0e0a5935",
+      "change": "Readahead: guard absent callbacks and preserve page/plug cleanup",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E067",
+      "sha": "06295c9d8cf9d940b7e7b3246cf6137bf60c783b",
+      "change": "Cold swap-in PSI exclusion; match both enter and leave using one workingset snapshot",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E068",
+      "sha": "c1965b9730031fa0c8ac368dfc6d9de6d86037e1",
+      "change": "quiet_vmstat likelihood hints",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E069",
+      "sha": "433c12bbd29ba45412a0e606acd4c737cce1fa65",
+      "change": "Compaction retry escalation; correct native trace feedback",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E070",
+      "sha": "864be1f4870e55172c3a587781f9ef091319917e",
+      "change": "Complete zero-seek shrinker handling and users",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E071",
+      "sha": "3ab436a744c58e538f13f7c76d042e508b0cdc1e",
+      "change": "1. SHMLBA alignment",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E072",
+      "sha": "686db5c5c84ad2fc8f0aa5391870c5bfed9e8bf3",
+      "change": "2. Pass VM_USERMAP directly",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E073",
+      "sha": "f75b713d9a23f8b8fc9fb9d19ed7f2e8822ae059",
+      "change": "3. Lazy-purge threshold",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E074",
+      "sha": "46a3b96a5a06feaff17526ed505989c4d5136540",
+      "change": "4. atomic_long lazy counter",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E075",
+      "sha": "255e313d2ad1bb019fece98d4fc315645de090b9",
+      "change": "5. Augmented free-block allocator",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E076",
+      "sha": "a3ac4fd0986b630c0c8f89829b105b2ef0c714a9",
+      "change": "6. Remove unused node argument",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E077",
+      "sha": "5021f6a5d420133f7439a27aaf72d6d431ae5e4a",
+      "change": "7. Split-node preloading",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E078",
+      "sha": "7ef1c5c16b22d7aa3017280670d83629e32f9b27",
+      "change": "8. Avoid redundant unlink",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E079",
+      "sha": "902781dbff5c4e0772cb8f8d4be7a86315bf1172",
+      "change": "9. Warn on invalid unlink",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E080",
+      "sha": "5d1313d1b8bd53d63477fbb671c43410a0cfad30",
+      "change": "10. Per-CPU search correction",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E081",
+      "sha": "64fba55ad5656021ebcd83966c28b3d2190b65dd",
+      "change": "11. Detach pending areas from busy tree",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E082",
+      "sha": "626616a53457553bd19db2dee9419f63181e0406",
+      "change": "12. State-dependent metadata union",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E083",
+      "sha": "69058cd6516c9a9ff73a7fca14f383db378a34f2",
+      "change": "13. Speculative preload without pinning",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E084",
+      "sha": "2e4f46245786621a6334fbdfc009ec8e5d99582a",
+      "change": "14. Respect caller GFP mask",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E085",
+      "sha": "aa7f703ce3ef77974172205272ac0344980b5c67",
+      "change": "15. Separate busy/free locks",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E086",
+      "sha": "0a7dd4e901b8a4ee040ba953900d1d7120b34ee5",
+      "change": "16. Fix unlock order in s_stop(); retain BOTH unlocks",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E087",
+      "sha": "06330f5b58f958c1c51a7c2f2e5f95f3e254fceb",
+      "change": "revert forced little-cluster migration during maps reads.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E088",
+      "sha": "ce389dc0f59a5112175fbf8e633a158e2695fb74",
+      "change": "revert the custom ARM64 formatter and d_path_outlen() path plumbing.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E089",
+      "sha": "b810878560ba56cabdfaab57e4aaf263175de011",
+      "change": "width-aware decimal printing.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E090",
+      "sha": "686a9a0596776176dc9661785a6a21662a64dd21",
+      "change": "hex sequence printing.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E091",
+      "sha": "ad17b568d5b78351d48cc074c9e49f56901f634b",
+      "change": "shared PID/TID map handlers.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E092",
+      "sha": "3638aadffd8b9c06e0dd56aef3112b618398f64e",
+      "change": "gather smaps statistics.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E093",
+      "sha": "90208857deb019965cc1bde69584e103e52dd5bc",
+      "change": "common statistics printer.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E094",
+      "sha": "2321653ec0a7cb2ab31b672463dd96a4b0a9bb6c",
+      "change": "single-value smaps_rollup.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E095",
+      "sha": "869fd85e10145d0cdd986f367ddb72e173dfd343",
+      "change": "no-pkey vma_pkey() fallback.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E096",
+      "sha": "76f0d41fa56f5bb55bbe010d9e8b72f3d53ce965",
+      "change": "no-pkey arch_pkeys_enabled().",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E097",
+      "sha": "8ff3cde162fdb52ad4a8f029a6252af10d9e73e9",
+      "change": "include linux/pkeys.h.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E098",
+      "sha": "d10c142d7e218a5eaa726bb006c3769f31523228",
+      "change": "Pss_Anon/File/Shmem rollup.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E099",
+      "sha": "0253fe4131436c2eb155a109ce55671a42366b3e",
+      "change": "snapshot map_files addresses under mmap_sem and format names after releasing it.",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E100",
+      "sha": "45c506bd3b8de8e79e09b4350354b211ab498aeb",
+      "change": "F2FS compression reserve/release: hold checkpoint operation read lock across dnode operations",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E101",
+      "sha": "d287de5bde53a9777d9bf68a166102fa03f7b92a",
+      "change": "F2FS GC: reject inline-data/external-block inconsistency; log before dropping inode reference",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E102",
+      "sha": "00ad9f9442869ff7cb38f5329f9e1f6a3ce684d6",
+      "change": "F2FS move-range and pin-file ioctls: reject atomic files with correct lock/cleanup ordering",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E103",
+      "sha": "655ae9dbb75a0c11932f8a8a728fdb7c8b9f323d",
+      "change": "Epoll: take a positive-count temporary file reference around poll; preserve native fallback",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E104",
+      "sha": "7209a1acc23b95bbee4bfee238e2fac417d2709a",
+      "change": "Writeback: protect freeing-inode lists with corrected late dirty-state handling",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E105",
+      "sha": "3fcb7aa3e71b25a6bc096ab6d6609ee716f59403",
+      "change": "F2FS sysfs: size-aware1/2/4/8-byte access for42 local RW/stat attributes",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E106",
+      "sha": "5cdb422c839134273866208dad5360835ddb9794",
+      "change": "f2fs: fix to avoid use-after-free for cached IPU bio \u2014 adapted IPU missing-selector fix; caller and helper guarded",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E107",
+      "sha": "edf7e9040fc52c922db947f9c6c36f07377c52ea",
+      "change": "f2fs: fix UAF issue in f2fs_merge_page_bio() \u2014 adapted encrypted-page lifetime fix to original struct page; accounting also moved before publication",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E108",
+      "sha": "6d1f622b9c069378cdb83088be2b15a9b480b8a3",
+      "change": "f2fs: fix submit accounting for IPU writeback \u2014 successful IPU submission accounting",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E109",
+      "sha": "5911d2d1d1a38b26585383478bd71d9254e48bdf",
+      "change": "f2fs: introduce gc_merge mount option \u2014 GC merge intent; adapted to local four-argument GC and embedded request lifetime",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E110",
+      "sha": "8b4468ec023d0d1b4669dfb867588997cc03a06b",
+      "change": "f2fs: fix potential deadlock in gc_merge path of f2fs_balance_fs() \u2014 drain cached OPU and all IPU writes before GC waits; also used before checkpoint queueing",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E111",
+      "sha": "1adaa71ea9bff3a0ca0b37eabbb7f89225b595cb",
+      "change": "f2fs: don't bother wait_ms by foreground gc \u2014 foreground GC must not overwrite background sleep interval",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E112",
+      "sha": "261eeb9c1585de4515a770b48a3c89672c08ae7f",
+      "change": "f2fs: introduce checkpoint_merge mount option \u2014 checkpoint merge intent; adapted request lifetime, publication, ownership, errors and stop",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E113",
+      "sha": "7b02b2201893a71b881026cf574902019ab00db5",
+      "change": "f2fs: fix to destroy sbi->post_read_wq in error path of f2fs_fill_super() \u2014 checkpoint startup failure must retain post_read_wq cleanup",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E114",
+      "sha": "f6f8f34480c78eade6542faea6386c47c9b4c6b3",
+      "change": "f2fs: quota: fix quota flush failure during filesystem freeze \u2014 reviewed freeze/quota cross-task issue; local worker trylock/ownership and caller fallback instead of holder-tracking transplant",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E115",
+      "sha": "c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc",
+      "change": "Upgrade block LZ4/LZ4HC to v1.11.0 (PR2037); retain kernel workspaces, exports and preboot support",
+      "status": "superseded-by-foundation-lz4-1.11.1"
+    },
+    {
+      "id": "E116",
+      "sha": "730abe07b8660c14343031a29e2fea0c1ea045b5",
+      "change": "zram: do not waste zram_table_entry flags bits",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E117",
+      "sha": "d8dfb8482b99ded3f6a0b57395e7edf109acea89",
+      "change": "xxhash: create arch-dependent32/64-bit xxhash()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-03"
+    },
+    {
+      "id": "E118",
+      "sha": "40213eb493f20807f05e830d5777ed58d3d47f39",
+      "change": "BBRplus port; wire TSO callback/fallback, GPL export and private helpers",
+      "status": "excluded-bbrplus"
+    },
+    {
+      "id": "E119",
+      "sha": "90210de4b779d40496dee0b89081780eeddf2a60",
+      "change": "Google BBRv3 loss-based implementation, adapted to native 4.14 TCP and later EDT forecast",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E120",
+      "sha": "a627517bdfe01967c3f8b931cfce99abfa878ef5",
+      "change": "net-tcp_bbr: v2: shrink delivered_mstamp, first_tx_mstamp to u32 to free up 8 bytes",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E121",
+      "sha": "0e6b4413cb4a6a951532611bccd6aca4b22b5bbf",
+      "change": "net-tcp_bbr: v2: snapshot packets in flight at transmit time and pass in rate_sample",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E122",
+      "sha": "3679f3b8da5a5b2528b6e14c5510617ed83db72b",
+      "change": "net-tcp_bbr: v2: count packets lost over TCP rate sampling interval",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E123",
+      "sha": "500bcfec22c478f4f1e07f66fd2a23ab2184b361",
+      "change": "net-tcp_bbr: v2: export FLAG_ECE in rate_sample.is_ece",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E124",
+      "sha": "f2078939d4a8cee55dc24cb4736b1fbb9eae5f97",
+      "change": "net-tcp_bbr: v2: introduce ca_ops->skb_marked_lost() CC module callback API",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E125",
+      "sha": "88e09e2b7c845db4faa3532903da453db745b39c",
+      "change": "net-tcp_bbr: v2: adjust skb tx.in_flight upon merge in tcp_shifted_skb()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E126",
+      "sha": "5093de531d14d864bbc95bd5d3031f3996dc88fc",
+      "change": "net-tcp_bbr: v2: adjust skb tx.in_flight upon split in tcp_fragment()",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E127",
+      "sha": "a631934cbcd8cddc4bac7d3fb91f890a3c07cd85",
+      "change": "net-tcp_bbr: v2: record app-limited status of TLP-repaired flight",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E128",
+      "sha": "3ee83ca004fafa436d448c261472ebe3b1942b42",
+      "change": "net-tcp_bbr: v2: inform CC module of losses repaired by TLP probe",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E129",
+      "sha": "703f20a1052d0c024f0e78bd1228eee6906dabf8",
+      "change": "net-tcp_bbr: v2: introduce is_acking_tlp_retrans_seq into rate_sample",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E130",
+      "sha": "137a508c950878712068b1d7a67ece75e4f2835c",
+      "change": "net-tcp_bbr: broaden app-limited rate sample detection",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E131",
+      "sha": "ab408b6dc7449c0f791e9e5f8de72fa7428584f2",
+      "change": "TCP/fq EDT model; adapted, not wholesale patch applied",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E132",
+      "sha": "08e14fe429a07475ee9f29a283945d602e4a6d92",
+      "change": "EDT packets must still honor fq maxrate",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E133",
+      "sha": "ae63c92098d94bdad1696c74a3ad2e96692118bf",
+      "change": "backslashxx KernelSU v3.3.1+50, numeric32730; built-in native/compat integration",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E134",
+      "sha": "2d5786b9129a254a87ac358c8bec0203ccd53351",
+      "change": "FinaSU manager compatibility: package/certificate-pinned authorization and retained single-manager UID policy",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E135",
+      "sha": "5e9feb6f3fce42423f56b37e344052c59ec16b66",
+      "change": "NoMount dev v2.3/API23; exact C/header, hardened built-in build files",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E136",
+      "sha": "45a057536ddba12fd59fb583a8f5375f83be703e",
+      "change": "Original simonpunk SUSFS2.4.0 adapted from GKI5.10 to native 4.14/backslashxx",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E137",
+      "sha": "d22fb4cf8eedba08edff893f49c284299095715b",
+      "change": "Initial ARM64 JMP32 correction; later integrated atomic fixes extend it",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E138",
+      "sha": "2a58cdc0636e8eedba246338dd565bbfffc84837",
+      "change": "Consolidated Android-focused5.15-era BPF core reference, selectively integrated",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04",
+      "note": "Selective corrected Android-focused 5.15-era BPF integration, not literal replay/full donor or 5.15 ABI equivalence. Partial historical donor metadata does not certify the entire donor patch."
+    },
+    {
+      "id": "E139",
+      "sha": "63e2ed3659752a4850e0ef3a07f809988fcd74a4",
+      "change": "Shared hrtimer prerequisite: mode-aware start tracepoint",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E140",
+      "sha": "42f42da41b54c191ae6a775e84a86c100d66c5e8",
+      "change": "Shared hrtimer prerequisite: real soft/hard clock bases and is_soft initialization",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E141",
+      "sha": "5da70160462e80b0ab8a6960cdd0cdd476907523",
+      "change": "Shared softirq hrtimer foundation endpoint; adapted, not a verbatim full-series replay",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E142",
+      "sha": "108c14858b9ea224686e476c8f5ec345a0df9e27",
+      "change": "Reference for real dynamic lockdep-key registration/lifetime integration",
+      "status": "applied-bounded-validation",
+      "batch": "batch-04"
+    },
+    {
+      "id": "E143",
+      "sha": "636633e1d9b1617842eff0ff3f5c9511b2d7a4d2",
+      "change": "Reference for stream-parser __SK_PASS restoration",
+      "status": "native-equivalent-reference-unresolved",
+      "note": "__SK_PASS already exists in pinned16 include/linux/skmsg.h and consumers; no source replay needed. Supplied upstream SHA metadata remains unresolved (historical HTTP422); not counted as applied donor."
+    }
+  ],
+  "push": false,
+  "ci_dispatched": false,
+  "full_image_qualified": false,
+  "accounting_note": "140 applied/native-corrected reference coverages, not 140 literal donor cherry-picks; E143 already native, supplied reference metadata unresolved; E115 superseded; E118 excluded."
+}

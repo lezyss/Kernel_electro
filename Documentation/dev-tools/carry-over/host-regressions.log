@@ -1,0 +1,86 @@
+
+RUN: azyr_selected/test_rwlocks.py
+PASS: PREEMPT real Kconfig resolves all 16 ARM64 rwlock inlining selectors
+PASS: non-PREEMPT real Kconfig resolves all 16 ARM64 rwlock inlining selectors
+LIMITS: host Kconfig only; no prebuilt vendor-module ABI or lock-stress validation
+
+RUN: memlat/test_memlat.py --self-test-negatives
+PASS: exact three-source inverse patch/hash provenance, unchanged ARMv8 assembly bodies and unchanged legacy workers
+PASS: public async API, completion ownership, sparse allocation, unguarded teardown and non-pinning SCM wrapper contracts
+PASS: observed idle/isolated CPUs receive no sampling IPI; idle votes clear without losing elapsed baseline, isolated epochs reset
+PASS: extracted async samples, completion orders, sparse masks, read/send faults, SCM skips, epochs, zero cycles, allocation unwind and busy teardown
+PASS: 20484 extracted u64 stall-percent cases, including overflow and zero cycles
+PASS: three extracted SCM C wrappers preserve inputs/outputs/errors and balance nested global accounting (mock secure workers)
+PASS: compiled semantic mutant rejected: skip-drain
+PASS: compiled semantic mutant rejected: skip-busy-cleanup
+PASS: compiled semantic mutant rejected: partial-publication
+PASS: compiled semantic mutant rejected: skip-creation-unwind
+PASS: compiled semantic mutant rejected: missing-hotplug-lock
+PASS: compiled semantic mutant rejected: wake-observed-idle
+PASS: compiled semantic mutant rejected: sample-isolated
+
+RUN: cpufreq_ipa/test_tuning.py --self-test-negatives --general-regs-only
+PASS: exact two-source patch/inverse hashes and reviewed preimage chain
+PASS: extracted IPA delay is integer-only 10000..12000 us; other IPA code unchanged
+PASS: 180 extracted cpufreq transition cases preserve guards, counters, last index and transition matrix
+PASS: compiled negative control rejected: changed-minimum
+PASS: compiled negative control rejected: missing-slack
+PASS: compiled negative control rejected: broken-stats-guard
+LIMITS: host mocks/UBSan only; no target build, real timer/PMU, concurrent cpufreq, modem, device or power proof
+
+RUN: azyr_selected/test_selected.py
+{
+  "balance46": "36 newly-idle/runnable/pending/hotplug/other-idle cases",
+  "balance46_negative_no_wakelist": "compiled and rejected at runtime",
+  "balance46_negative_no_nr": "compiled and rejected at runtime",
+  "delta48": "240000 old/new delta and inverse equivalence cases (modeled scale0/10)",
+  "delta48_negative_wrong_shift": "compiled and rejected at runtime",
+  "topology78": "450 topology policy reference cases",
+  "topology78_negative_no_put": "compiled and rejected at runtime",
+  "offline94": "18 CFQ slot-occupancy cases, references and statistics transfer preserved",
+  "offline94_negative_stale_slot": "compiled and rejected at runtime",
+  "clocks92": "36 shared-producer CFQ/BFQ clock-domain/boundary cases",
+  "clocks92_negative_mixed_bfq_clock": "compiled and rejected at runtime",
+  "wakeup98": "2 GIC recording cases, debug console on/off",
+  "wakeup98_negative_debug_gate": "compiled and rejected at runtime",
+  "structural": "verity flags/admission; inline; suspend parent flag; IRQ debug wrapper removal; IOMMU log removal; native wake-list guard; PM wake recorder PASS"
+}
+
+RUN: sched_correctness/test_backport.py --cc gcc --self-test-negatives
+PASS: sanitizer runtime probes
+smp1-thread0-nohz0:
+PASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths
+smp1-thread0-nohz1:
+PASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths
+smp1-thread1-nohz0:
+PASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths
+smp1-thread1-nohz1:
+PASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths
+smp0-thread0-nohz0:
+PASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths
+smp0-thread0-nohz1:
+PASS: 4,198,401 capacity pairs + 100 edges, 50,000 queue cases, migration access/order and 200 idle paths
+PASS: rejected min-margin
+PASS: rejected max-margin
+PASS: rejected plain-cpu-read
+PASS: rejected plain-cpu-write
+PASS: rejected missing-wmb
+PASS: rejected plain-migrating-read
+PASS: rejected plain-migrating-write
+PASS: rejected late-irq-disable
+PASS: rejected protected-tick
+PASS: rejected empty-cfs-source
+
+RUN: gpu_dl_backport/test_backport.py --cc gcc --self-test-negatives
+PASS: 65536 CPU-mask pairs; inherited cpuset; affinity guards; bounds/zero-CPU/overflow accounting; IRQ/RCU balance
+PASS: extracted KGSL create/signal/cleanup; incoming IRQ states; fence list operations; allocation/file/FD/lookup failures
+PASS: non-SMP CPU-count helper
+PASS: rejected gpu-plain-locks
+PASS: rejected count-inactive-cpus
+PASS: rejected configured-mask
+PASS: rejected lose-no-setaffinity
+PASS: rejected missing-destination-check
+PASS: rejected missing-zero-cpu-check
+PASS: rejected reserve-on-overflow
+
+PASS: all requested host suites; NOT full ARM64 image/device/concurrency qualification

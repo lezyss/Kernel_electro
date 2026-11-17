@@ -1,0 +1,7 @@
+Filemap guarded callback/lock cases: 36 PASS
+Readahead cleanup/plug/bulk-fallback cases: 792 PASS
+Swap PSI route/nesting/disabled/flag-change cases: 160 PASS
+Compaction retry cases: 3456 + feedback/escalation PASS
+Shrinker zero/positive seeks/debt/batching/stop cases: 11440 PASS
+quiet_vmstat branch outcomes: 12 PASS
+Integration/default source guards: PASS

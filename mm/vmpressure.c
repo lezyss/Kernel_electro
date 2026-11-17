@@ -88,8 +88,7 @@ static struct vmpressure *work_to_vmpressure(struct work_struct *work)
 #ifdef CONFIG_MEMCG
 static struct vmpressure *vmpressure_parent(struct vmpressure *vmpr)
 {
-	struct cgroup_subsys_state *css = vmpressure_to_css(vmpr);
-	struct mem_cgroup *memcg = mem_cgroup_from_css(css);
+	struct mem_cgroup *memcg = vmpressure_to_memcg(vmpr);
 
 	memcg = parent_mem_cgroup(memcg);
 	if (!memcg)
@@ -309,7 +308,7 @@ static void vmpressure_memcg(gfp_t gfp, struct mem_cgroup *memcg, bool critical,
 		unsigned long pressure;
 
 		/* For now, no users for root-level efficiency */
-		if (!memcg || memcg == root_mem_cgroup)
+		if (!memcg || mem_cgroup_is_root(memcg))
 			return;
 
 		spin_lock_irqsave(&vmpr->sr_lock, flags);
@@ -334,7 +333,7 @@ static void vmpressure_memcg(gfp_t gfp, struct mem_cgroup *memcg, bool critical,
 			 * asserted for a second in which subsequent
 			 * pressure events can occur.
 			 */
-			memcg->socket_pressure = jiffies + HZ;
+			mem_cgroup_set_socket_pressure(memcg);
 		}
 	}
 }
@@ -455,7 +454,34 @@ void vmpressure(gfp_t gfp, struct mem_cgroup *memcg, bool tree,
 	struct vmpressure *vmpr = &global_vmpressure;
 	unsigned long flags;
 
+	if (mem_cgroup_disabled())
+		return;
+
 	if (order > PAGE_ALLOC_COSTLY_ORDER)
+		return;
+
+	/*
+	 * The in-kernel users only care about the reclaim efficiency
+	 * for this @memcg rather than the whole subtree, and there
+	 * isn't and won't be any in-kernel user in a legacy cgroup.
+	 */
+#ifdef CONFIG_MEMCG
+	if (!cgroup_subsys_on_dfl(memory_cgrp_subsys) && !tree)
+		return;
+#endif
+
+	/*
+	 * Here we only want to account pressure that userland is able to
+	 * help us with. For example, suppose that DMA zone is under
+	 * pressure; if we notify userland about that kind of pressure,
+	 * then it will be mostly a waste as it will trigger unnecessary
+	 * freeing of memory by userland (since userland is more likely to
+	 * have HIGHMEM/MOVABLE pages instead of the DMA fallback). That
+	 * is why we include only movable, highmem and FS/IO pages.
+	 * Indirect reclaim (kswapd) sets sc->gfp_mask to GFP_KERNEL, so
+	 * we account it too.
+	 */
+	if (!(gfp & (__GFP_HIGHMEM | __GFP_MOVABLE | __GFP_IO | __GFP_FS)))
 		return;
 
 	/*
@@ -507,26 +533,6 @@ void vmpressure_prio(gfp_t gfp, struct mem_cgroup *memcg, int prio, int order)
 	__vmpressure(gfp, memcg, true, true, 0, 0);
 }
 
-static enum vmpressure_levels str_to_level(const char *arg)
-{
-	enum vmpressure_levels level;
-
-	for (level = 0; level < VMPRESSURE_NUM_LEVELS; level++)
-		if (!strcmp(vmpressure_str_levels[level], arg))
-			return level;
-	return -1;
-}
-
-static enum vmpressure_modes str_to_mode(const char *arg)
-{
-	enum vmpressure_modes mode;
-
-	for (mode = 0; mode < VMPRESSURE_NUM_MODES; mode++)
-		if (!strcmp(vmpressure_str_modes[mode], arg))
-			return mode;
-	return -1;
-}
-
 #define MAX_VMPRESSURE_ARGS_LEN	(strlen("critical") + strlen("hierarchy") + 2)
 
 /**
@@ -543,6 +549,9 @@ static enum vmpressure_modes str_to_mode(const char *arg)
  * "hierarchy" or "local").
  *
  * To be used as memcg event method.
+ *
+ * Return: 0 on success, -ENOMEM on memory failure or -EINVAL if @args could
+ * not be parsed.
  */
 int vmpressure_register_event(struct mem_cgroup *memcg,
 			      struct eventfd_ctx *eventfd, const char *args)
@@ -550,34 +559,29 @@ int vmpressure_register_event(struct mem_cgroup *memcg,
 	struct vmpressure *vmpr = memcg_to_vmpressure(memcg);
 	struct vmpressure_event *ev;
 	enum vmpressure_modes mode = VMPRESSURE_NO_PASSTHROUGH;
-	enum vmpressure_levels level = -1;
+	enum vmpressure_levels level;
 	char *spec, *spec_orig;
 	char *token;
 	int ret = 0;
 
-	spec_orig = spec = kzalloc(MAX_VMPRESSURE_ARGS_LEN + 1, GFP_KERNEL);
-	if (!spec) {
-		ret = -ENOMEM;
-		goto out;
-	}
-	strncpy(spec, args, MAX_VMPRESSURE_ARGS_LEN);
+	spec_orig = spec = kstrndup(args, MAX_VMPRESSURE_ARGS_LEN, GFP_KERNEL);
+	if (!spec)
+		return -ENOMEM;
 
 	/* Find required level */
 	token = strsep(&spec, ",");
-	level = str_to_level(token);
-	if ((int)level == -1) {
-		ret = -EINVAL;
+	ret = match_string(vmpressure_str_levels, VMPRESSURE_NUM_LEVELS, token);
+	if (ret < 0)
 		goto out;
-	}
+	level = ret;
 
 	/* Find optional mode */
 	token = strsep(&spec, ",");
 	if (token) {
-		mode = str_to_mode(token);
-		if ((int)mode == -1) {
-			ret = -EINVAL;
+		ret = match_string(vmpressure_str_modes, VMPRESSURE_NUM_MODES, token);
+		if (ret < 0)
 			goto out;
-		}
+		mode = ret;
 	}
 
 	ev = kzalloc(sizeof(*ev), GFP_KERNEL);
@@ -593,6 +597,7 @@ int vmpressure_register_event(struct mem_cgroup *memcg,
 	mutex_lock(&vmpr->events_lock);
 	list_add(&ev->node, &vmpr->events);
 	mutex_unlock(&vmpr->events_lock);
+	ret = 0;
 out:
 	kfree(spec_orig);
 	return ret;

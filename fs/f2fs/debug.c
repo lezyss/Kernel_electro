@@ -359,6 +359,11 @@ static int stat_show(struct seq_file *s, void *v)
 			   si->dirty_count);
 		seq_printf(s, "  - Prefree: %d\n  - Free: %d (%d)\n\n",
 			   si->prefree_count, si->free_segs, si->free_secs);
+		seq_printf(s, "CP merge: queued=%d issued=%d completed=%d fallback=%d\n",
+			   atomic_read(&si->sbi->cprc_info.queued_ckpt),
+			   atomic_read(&si->sbi->cprc_info.issued_ckpt),
+			   atomic_read(&si->sbi->cprc_info.total_ckpt),
+			   atomic_read(&si->sbi->cprc_info.fallback_ckpt));
 		seq_printf(s, "CP calls: %d (BG: %d)\n",
 				si->cp_count, si->bg_cp_count);
 		seq_printf(s, "  - cp blocks : %u\n", si->meta_count[META_CP]);

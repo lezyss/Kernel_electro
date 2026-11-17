@@ -1,0 +1,23 @@
+{
+  "arch/arm64/Kconfig": "24eccaea9adbef20eabe5acd491eb43ebffaf1e1ebeea17c07a1e294e385e8e6",
+  "block/bfq-cgroup.c": "2513cc7379f19681b20d42a65a0fdad0af6df6f83a48dc44d640087d660f9458",
+  "block/cfq-iosched.c": "216e5364786ba068fb2f4388188b72d9b240a3058fde2892e9b966a929e737d5",
+  "drivers/base/arch_topology.c": "c62179acf8df02afbac88647242679747957560014b81d38e5cfe6fc8644ef17",
+  "drivers/base/power/wakeup.c": "61ad468794f70598d2f24785c3506a03783cb27e5b40ff0827ad2a3392b34982",
+  "drivers/cpufreq/cpufreq_stats.c": "f0913516dd87deaeeaf4e0da1fad439f94a1a6f174cd137507f82a7c303e46ba",
+  "drivers/cpuidle/lpm-levels.c": "db6266c205fe4d75b7ae5e574f177d18e66084de2fad1783a4945b807eb0c9b0",
+  "drivers/devfreq/arm-memlat-mon.c": "a625eb98a765240d26939498e6222f12217d30c7aa37a2d69497a65f1830789d",
+  "drivers/gpu/msm/adreno.c": "097ecba1a81d11e75855ab4a2920edf49658886f93cf9bada177fc88cbc1b11c",
+  "drivers/gpu/msm/kgsl_gmu_core.c": "a0fedbf99ad907f3fdf02113b949aca0eb863ab0cd73add58a47a093a084ac1e",
+  "drivers/gpu/msm/kgsl_gmu_core.h": "daabde959b05b000764f2a3287866bccfa67bc48b9d5295598872dd220bb1f11",
+  "drivers/iommu/iommu.c": "a015faa97f8d37f33f84840f10ccd277ced893e97815781dd51c568e85633286",
+  "drivers/irqchip/irq-gic-v3.c": "31e53663e83c2c042b93449a9099bd11b0a32656b5ef8bf4d4e927993c43b49f",
+  "drivers/md/dm-verity-target.c": "e08fc142a9f499497198b3163f6333ece75e52c3e42dd71ac89da004910baddd",
+  "drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c": "64522cc619a8d6e7ffb869e1c01ebac0cbc8601c00ce6eea4c23d98e82685449",
+  "drivers/soc/qcom/scm.c": "ffad66e99020a9369ffb7dafbc890deb297a7b90142c61147d68639311b3811f",
+  "include/linux/blkdev.h": "84732ba370305ebaf2623904bf234fee27af0e48637d8f83e71fd956cd339176",
+  "include/soc/qcom/scm.h": "622b7bf5872320c13b9c795d42411d7e0e21fe724a250c1554b36f4d4c814cb8",
+  "kernel/sched/cpufreq_schedutil.c": "7d2a177a6329795fa40d6e763e7b8fc21d8e9f4c3fb21a8db55b18e2aa0eaff2",
+  "kernel/sched/fair.c": "2829368e3b36af0325c5f4b0a55c199087ba52d1d00573754674a7d0d902e91b",
+  "kernel/sched/sched.h": "2f38258ef51e7e65b6ac4a2b252c287799a1bdc2d1043c03184f9db63b2003e4"
+}

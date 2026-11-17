@@ -1,0 +1,111 @@
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/basic/bin2c
+  Using /home/user/Kernel_electro as source for kernel
+  HOSTCC  scripts/dtc/dtc.o
+  HOSTCC  scripts/genksyms/genksyms.o
+  HOSTCC  scripts/mod/mk_elfconfig
+  HOSTCC  scripts/selinux/genheaders/genheaders
+  HOSTCC  scripts/dtc/flattree.o
+  CHK     scripts/mod/devicetable-offsets.h
+  MKELF   scripts/mod/elfconfig.h
+  HOSTCC  scripts/mod/modpost.o
+  HOSTCC  scripts/genksyms/parse.tab.o
+  HOSTCC  scripts/selinux/mdp/mdp
+  HOSTCC  scripts/kallsyms
+  HOSTCC  scripts/dtc/fstree.o
+  HOSTCC  scripts/genksyms/lex.lex.o
+  HOSTCC  scripts/dtc/data.o
+  HOSTCC  scripts/dtc/livetree.o
+  HOSTCC  scripts/mod/file2alias.o
+  HOSTCC  scripts/conmakehash
+  HOSTLD  scripts/genksyms/genksyms
+  HOSTCC  scripts/sortextable
+  HOSTCC  scripts/asn1_compiler
+  HOSTCC  scripts/mod/sumversion.o
+  HOSTCC  scripts/dtc/treesource.o
+  HOSTCC  scripts/extract-cert
+  HOSTCC  scripts/dtc/srcpos.o
+  HOSTLD  scripts/mod/modpost
+  HOSTCC  scripts/dtc/checks.o
+  HOSTCC  scripts/dtc/util.o
+  HOSTCC  scripts/dtc/dtc-lexer.lex.o
+  HOSTCC  scripts/dtc/dtc-parser.tab.o
+  HOSTLD  scripts/dtc/dtc
+  CHK     include/generated/timeconst.h
+  CC      kernel/bounds.s
+  UPD     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  UPD     include/generated/bounds.h
+  CC      arch/arm64/kernel/asm-offsets.s
+  CHK     include/generated/asm-offsets.h
+  UPD     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  LDS     arch/arm64/kernel/vdso/vdso.lds
+  VDSOA   arch/arm64/kernel/vdso/gettimeofday.o
+  VDSOA   arch/arm64/kernel/vdso/note.o
+  VDSOA   arch/arm64/kernel/vdso/sigreturn.o
+  LD      arch/arm64/kernel/vdso/vdso.so.dbg
+  VDSOSYM include/generated/vdso-offsets.h
+  CC      lib/lz4/lz4_compress.o
+  CC      lib/lz4/lz4_decompress_main.o
+  AS      lib/lz4/lz4armv8/lz4armv8.o
+  CC      lib/lz4/lz4armv8/lz4accel.o
+  AR      lib/lz4/lz4_decompress.o
+  AR      lib/lz4/built-in.a
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      lib/lz4/lz4hc_compress.o
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  GEN     ./Makefile
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/basic/bin2c
+  HOSTCC  scripts/kconfig/conf.o
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      lib/lz4/lz4_compress.o
+  CC      lib/lz4/lz4_decompress_main.o
+  AR      lib/lz4/lz4_decompress.o
+  AR      lib/lz4/built-in.a
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  AS      lib/lz4/lz4armv8/lz4armv8.o
+  AR      lib/lz4/lz4_decompress.o
+  AR      lib/lz4/built-in.a
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'

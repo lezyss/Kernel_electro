@@ -1,0 +1,12 @@
+Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/user/Kernel_electro/.cache/recency/clang/bin
+AOSP prebuilt commit: 3b86e40facfff1eab4065614255d573293c10373
+
+Host model-only compiler (not target proof):
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+

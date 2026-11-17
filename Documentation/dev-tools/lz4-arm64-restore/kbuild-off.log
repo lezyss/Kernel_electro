@@ -1,0 +1,32 @@
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/basic/bin2c
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'
+  HOSTCC  scripts/basic/fixdep
+  GEN     ./Makefile
+  HOSTCC  scripts/basic/bin2c
+  HOSTCC  scripts/kconfig/conf.o
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+  Using /home/user/Kernel_electro as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    /home/user/Kernel_electro/scripts/checksyscalls.sh
+  CC      lib/lz4/lz4_compress.o
+  CC      lib/lz4/lz4_decompress_main.o
+  AR      lib/lz4/lz4_decompress.o
+  AR      lib/lz4/built-in.a
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/lz4-accel/kbuild'

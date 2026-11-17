@@ -1,0 +1,15 @@
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint: 
+hint: 	git config --global init.defaultBranch <name>
+hint: 
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint: 
+hint: 	git branch -m <name>
+Initialized empty Git repository in /home/user/Kernel_electro/.cache/recency/prebuilts/.git/
+From https://github.com/msft-mirror-aosp/platform.prebuilts.clang.host.linux-x86
+ * branch            3b86e40facfff1eab4065614255d573293c10373 -> FETCH_HEAD
+Fetching selected LLVM binaries
+PASS: 323 pinned LLVM files verified against Git blob IDs

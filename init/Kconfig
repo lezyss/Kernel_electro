@@ -1079,6 +1079,23 @@ config SCHED_CASS
 	  their lowest P-state necessary to satisfy the overall load at any
 	  given moment.
 
+config SCHED_BORE
+	bool "Burst-Oriented Response Enhancer"
+	default n
+	help
+	  In Desktop and Mobile computing, one might prefer interactive
+	  tasks to keep responsive no matter what they run in the background.
+
+	  Enabling this kernel feature modifies the scheduler to discriminate
+	  tasks by their burst time (runtime since it last went sleeping or
+	  yielding state) and prioritize those that run less bursty.
+	  Such tasks usually include window compositor, widgets backend,
+	  terminal emulator, video playback, games and so on.
+	  This changes CPU shares and fairness and may improve
+	  responsiveness especially under heavy background workload.
+
+	  If unsure, say N here.
+
 config SCHED_AUTOGROUP
 	bool "Automatic process group scheduling"
 	select CGROUPS
@@ -1579,6 +1596,7 @@ config BPF_SYSCALL
 	select BPF
 	select IRQ_WORK
 	select TASKS_TRACE_RCU
+	select BINARY_PRINTF
 	default n
 	help
 	  Enable the bpf() system call that allows to manipulate eBPF

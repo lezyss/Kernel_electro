@@ -490,7 +490,6 @@ struct sk_psock *sk_psock_init(struct sock *sk, int node)
 
 	psock->sk = sk;
 	psock->eval =  __SK_NONE;
-	psock->saved_destroy = prot->destroy;
 
 	INIT_LIST_HEAD(&psock->link);
 	spin_lock_init(&psock->link_lock);
@@ -651,7 +650,6 @@ static int sk_psock_bpf_run(struct sk_psock *psock, struct bpf_prog *prog,
 	int ret;
 
 	skb->sk = psock->sk;
-	bpf_compute_data_end_sk_skb(skb);
 	preempt_disable();
 	ret = BPF_PROG_RUN(prog, skb);
 	preempt_enable();
@@ -743,6 +741,22 @@ static void sk_psock_verdict_apply(struct sk_psock *psock,
 	struct sock *sk_other;
 
 	switch (verdict) {
+	case __SK_PASS:
+		sk_other = psock->sk;
+		if (sock_flag(sk_other, SOCK_DEAD) ||
+		    !sk_psock_test_state(psock, SK_PSOCK_TX_ENABLED)) {
+			goto out_free;
+		}
+		if (atomic_read(&sk_other->sk_rmem_alloc) <=
+		    sk_other->sk_rcvbuf) {
+			struct tcp_skb_cb *tcp = TCP_SKB_CB(skb);
+
+			tcp->bpf.flags |= BPF_F_INGRESS;
+			skb_queue_tail(&psock->ingress_skb, skb);
+			schedule_work(&psock->work);
+			break;
+		}
+		goto out_free;
 	case __SK_REDIRECT:
 		sk_psock_skb_redirect(psock, skb);
 		break;

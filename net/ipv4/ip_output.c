@@ -521,6 +521,7 @@ EXPORT_SYMBOL(ip_queue_xmit);
 
 static void ip_copy_metadata(struct sk_buff *to, struct sk_buff *from)
 {
+	to->tcp_edt_ns = from->tcp_edt_ns;
 	to->pkt_type = from->pkt_type;
 	to->priority = from->priority;
 	to->protocol = from->protocol;

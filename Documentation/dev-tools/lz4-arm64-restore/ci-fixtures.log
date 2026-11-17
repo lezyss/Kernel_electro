@@ -1,0 +1,2 @@
+PASS: synthetic build script flow, all LLVM overrides, invalid input/pin rejection; four resolved LZ4 config guards
+SKIP: packaging fixture (supply --anykernel clean pinned checkout)

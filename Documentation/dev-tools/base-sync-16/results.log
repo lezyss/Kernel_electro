@@ -1,0 +1,70 @@
+Raw updated16 foundation checks
+Foundation766a32ab1c8b889ac049ccd367e82786e5953bc0
+Old Electro402566a8597ae7f0ecf3f87054b77aa7c18acdf0
+
+=== Donor-reference mechanical screen ===
+audited 20
+audited 40
+audited 60
+audited 80
+audited 100
+audited 120
+audited 140
+Counter({'semantic-review-required': 75, 'forward-candidate': 59, 'missing-import': 5, 'different-codec-review': 1, 'excluded-bbrplus': 1, 'unresolved-partial-diff': 1, 'unresolved-metadata': 1})
+
+=== Host-GCC ARM64 Kconfig generation (not target compile) ===
+make: Entering directory '/home/user/Kernel_electro/.cache/base-sync/new'
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/base-sync/config'
+  HOSTCC  scripts/basic/fixdep
+  GEN     ./Makefile
+  HOSTCC  scripts/kconfig/conf.o
+  SHIPPED scripts/kconfig/zconf.tab.c
+  SHIPPED scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/base-sync/config'
+make: Leaving directory '/home/user/Kernel_electro/.cache/base-sync/new'
+
+=== Expected STATIC preboot failure ===
+.cache/base-sync/new/lib/decompress_unlz4.c:13:10: fatal error: lz4/lz4_decompress.c: No such file or directory
+   13 | #include "lz4/lz4_decompress.c"
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+
+=== Expected HC optimal-parser host-fixture frame failure ===
+.cache/base-sync/new/lib/lz4/lz4hc.c: In function 'LZ4HC_compress_optimal':
+.cache/base-sync/new/lib/lz4/lz4hc.c:2201:1: error: the frame size of 65968 bytes is larger than 2048 bytes [-Werror=frame-larger-than=]
+ 2201 | }
+      | ^
+cc1: all warnings being treated as errors
+
+=== Host HC workspace sizes ===
+LZ4HC_MEM_COMPRESS=262200, HC plain=262200, HC extended=327784
+
+BASE OUTPUT CONFIG: RD_LZ4=y; DEFAULT_TCP_CONG="cubic"; DEFAULT_NET_SCH="fq_codel"; no BBRplus/KSU/NoMount/MGLRU/BORE selections.
+LIMITS: base swap only; missing integrations not restored; no production target build, push, CI or device test.
+
+=== Installed foundation verification ===
+PASS: all73279 pinned foundation files/modes match; no unreviewed old files or BBRplus carried over.
+PASS:143 inventory references accounted for; BBRplus explicitly excluded.
+LIMITS: base-only audit checkpoint, missing integrations NOT restored; known CI/LZ4 blockers; NOT ready to flash.
+
+=== Installed foundation LZ4 expected blocker reproduction ===
+CONFIRMED BLOCKER: actual STATIC preboot wrapper includes missing lz4_decompress.c
+/home/user/Kernel_electro/lib/decompress_unlz4.c:13:10: fatal error: lz4/lz4_decompress.c: No such file or directory
+   13 | #include "lz4/lz4_decompress.c"
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+CONFIRMED BLOCKER: host fixture detects a >2048-byte HC optimal-parser stack frame
+/home/user/Kernel_electro/lib/lz4/lz4hc.c: In function ‘LZ4HC_compress_optimal’:
+/home/user/Kernel_electro/lib/lz4/lz4hc.c:2201:1: error: the frame size of 65968 bytes is larger than 2048 bytes [-Werror=frame-larger-than=]
+ 2201 | }
+      | ^
+cc1: all warnings being treated as errors
+HOST SIZE FIXTURE (kernel allocation / plain / extended): 262200 262200 327784
+LIMITS: expected failures reproduced, NOT a passing kernel/codec qualification or AOSP ARM64 build.
+
+PASS:143-reference re-audit against installed live foundation reproduces staged classifications.

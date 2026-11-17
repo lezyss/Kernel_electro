@@ -11,6 +11,7 @@
  */
 
 #include <linux/slab.h>
+#include <linux/atomic.h>
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
@@ -35,6 +36,15 @@
 #define SCM_INTERRUPTED		1
 #define SCM_EBUSY		-55
 #define SCM_V2_EBUSY		-12
+
+/* Global ARMv8 hint: never pin a task across a long secure call. */
+static atomic_t scm_call_count = ATOMIC_INIT(0);
+
+bool scm_call_in_progress(void)
+{
+	return atomic_read(&scm_call_count) != 0;
+}
+EXPORT_SYMBOL_GPL(scm_call_in_progress);
 
 static DEFINE_MUTEX(scm_lock);
 
@@ -380,7 +390,8 @@ int scm_call_noalloc(u32 svc_id, u32 cmd_id, const void *cmd_buf,
 
 #ifdef CONFIG_ARM64
 
-static int __scm_call_armv8_64(u64 x0, u64 x1, u64 x2, u64 x3, u64 x4, u64 x5,
+static noinline int __scm_call_armv8_64_raw(u64 x0, u64 x1, u64 x2,
+				u64 x3, u64 x4, u64 x5,
 				u64 *ret1, u64 *ret2, u64 *ret3)
 {
 	register u64 r0 asm("x0") = x0;
@@ -429,7 +440,22 @@ static int __scm_call_armv8_64(u64 x0, u64 x1, u64 x2, u64 x3, u64 x4, u64 x5,
 	return r0;
 }
 
-static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
+/* Keep accounting calls outside the fixed-register assembly worker. */
+static int __scm_call_armv8_64(u64 x0, u64 x1, u64 x2, u64 x3, u64 x4, u64 x5,
+				u64 *ret1, u64 *ret2, u64 *ret3)
+{
+	int ret;
+
+	atomic_inc(&scm_call_count);
+	smp_mb__after_atomic();
+	ret = __scm_call_armv8_64_raw(x0, x1, x2, x3, x4, x5, ret1, ret2, ret3);
+	smp_mb__before_atomic();
+	atomic_dec(&scm_call_count);
+	return ret;
+}
+
+static noinline int __scm_call_armv8_32_raw(u32 w0, u32 w1, u32 w2,
+				u32 w3, u32 w4, u32 w5,
 				u64 *ret1, u64 *ret2, u64 *ret3)
 {
 	register u32 r0 asm("w0") = w0;
@@ -479,9 +505,24 @@ static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
 	return r0;
 }
 
+/* Keep accounting calls outside the fixed-register assembly worker. */
+static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
+				u64 *ret1, u64 *ret2, u64 *ret3)
+{
+	int ret;
+
+	atomic_inc(&scm_call_count);
+	smp_mb__after_atomic();
+	ret = __scm_call_armv8_32_raw(w0, w1, w2, w3, w4, w5, ret1, ret2, ret3);
+	smp_mb__before_atomic();
+	atomic_dec(&scm_call_count);
+	return ret;
+}
+
 #else
 
-static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
+static noinline int __scm_call_armv8_32_raw(u32 w0, u32 w1, u32 w2,
+				u32 w3, u32 w4, u32 w5,
 				u64 *ret1, u64 *ret2, u64 *ret3)
 {
 	register u32 r0 asm("r0") = w0;
@@ -527,6 +568,20 @@ static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
 		*ret3 = r3;
 
 	return r0;
+}
+
+/* Keep accounting calls outside the fixed-register assembly worker. */
+static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
+				u64 *ret1, u64 *ret2, u64 *ret3)
+{
+	int ret;
+
+	atomic_inc(&scm_call_count);
+	smp_mb__after_atomic();
+	ret = __scm_call_armv8_32_raw(w0, w1, w2, w3, w4, w5, ret1, ret2, ret3);
+	smp_mb__before_atomic();
+	atomic_dec(&scm_call_count);
+	return ret;
 }
 
 static int __scm_call_armv8_64(u64 x0, u64 x1, u64 x2, u64 x3, u64 x4, u64 x5,

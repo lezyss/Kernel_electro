@@ -251,6 +251,16 @@ config LZ4KD_COMPRESS
 config LZ4_DECOMPRESS
 	tristate
 	
+config LZ4_ARM64_ACCEL
+	bool "ARM64 NEON LZ4 decompression acceleration (experimental)"
+	depends on ARM64 && KERNEL_MODE_NEON && LZ4_DECOMPRESS != n
+	default n
+	help
+	  Accelerate dictionary-free blocks through the ARM64 helpers and the
+	  first streaming block. Generic APIs, dictionaries, in-place decoding,
+	  preboot and contexts without usable SIMD retain the C decoder.
+	  Enable only after validating on the target device.
+
 config LZ4KD_DECOMPRESS
 	tristate
 

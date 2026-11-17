@@ -1,0 +1,43 @@
+{
+  "clang_version": "Android (16713961, based on r614150) clang version 23.0.1 (https://android.googlesource.com/toolchain/llvm-project 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e)\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /home/user/Kernel_electro/.cache/carry-over/clang/bin\n",
+  "commit": "3b86e40facfff1eab4065614255d573293c10373",
+  "host_models": "GCC/UBSan, not target qualification",
+  "key_blobs": {
+    "bin/clang-23": {
+      "git_blob": "5bdeae5638da6b57380da4d1d286eed31c4dd1b0",
+      "sha256": "5b5324a5b07a45752395b6d97d01771f3f97441924a5adea3eb7c514a119a995"
+    },
+    "bin/lld": {
+      "git_blob": "f421e419d4b6a17ccd9587905df7d030672abe54",
+      "sha256": "94251249c08e56890653db7cdbbe15cbaa88dc388686a517f63fc13c3e8f36c4"
+    },
+    "bin/llvm-ar": {
+      "git_blob": "8a2f6ebb607f79472a1330c2da5a466f5bf2e433",
+      "sha256": "5ea68c48705c3d0a10e103e8d58a35312dcd3e9e03838c85b0a82a942becd229"
+    },
+    "bin/llvm-nm": {
+      "git_blob": "82e97864c9689e8660aa0b2984c2d30231b83676",
+      "sha256": "b60a918aaf60fba25e2819525451d93da2d381d28a30148d9364c8dd1d999ab0"
+    },
+    "bin/llvm-objcopy": {
+      "git_blob": "c0ea1d055aee394efb12d8b173f4cb136e1b489c",
+      "sha256": "716b7c46e16d51feebd01e3cadbb0af3a2779a3ca55144e9889bb5a29a855ca1"
+    },
+    "bin/llvm-objdump": {
+      "git_blob": "ca459671a823f9303f6dd44a6a1bee4d99fa3fad",
+      "sha256": "c8e573a5b3e5be73277f608d596b9c40e6d79268d58aaa52eefc97e200a8befb"
+    },
+    "bin/llvm-readobj": {
+      "git_blob": "ba9ce0fddaf93997872c36abf29962fe46b83e50",
+      "sha256": "110c8bfbec2c249831eb2c26ca4972ffaf361adc02151dc15a1f0aac9480f1b7"
+    },
+    "lib/libxml2.so.16": {
+      "git_blob": "fd54f618f7072ac8a5f188a5f2d063f4da09e119",
+      "sha256": "19853e1c0b9565ff80357e412b3bd293f63215daba60254835eaf4b13defe279"
+    }
+  },
+  "ld_version": "LLD 23.0.1 (/mnt/disks/build-disk/src/googleplex-android/llvm-r614150-release/out/llvm-project/llvm 52d25c7f6cf8d458a5d1cda9729c2ed757ebe86e) (compatible with GNU linkers)\n",
+  "repository": "https://github.com/msft-mirror-aosp/platform.prebuilts.clang.host.linux-x86",
+  "resource_headers": "Selected pinned Git blobs verified by downloader; toolchain-download.log retained in excluded scratch only",
+  "target_build": "real-header ARM64 objects only, not a full kernel image"
+}

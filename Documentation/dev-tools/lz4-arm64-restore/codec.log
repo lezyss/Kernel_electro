@@ -1,0 +1,152 @@
+PASS: UBSan overflow probe traps; sanitizer flags are not silently ignored
+OMITTED lz4: compress_deprecatedFunctions, createStream, stream_returnValues
+OMITTED lz4hc: createStreamHC, streamHC_returnValues, resetStreamStateHC_compressHC2_continue, compressHC2_continue_roundTrip, slideInputBufferHC, compress_HC_extendedState
+[ RUN      ] kernel-tests.kernel_real_STATIC_preboot 
+[       OK ] kernel-tests.kernel_real_STATIC_preboot (1 ms) 
+[ RUN      ] kernel-tests.kernel_sizes_and_bounds 
+[       OK ] kernel-tests.kernel_sizes_and_bounds (0 ms) 
+[ RUN      ] kernel-tests.kernel_HC_caller_owned_workspace 
+[       OK ] kernel-tests.kernel_HC_caller_owned_workspace (54 ms) 
+[ RUN      ] kernel-tests.kernel_upstream_cross_decode 
+[       OK ] kernel-tests.kernel_upstream_cross_decode (173 ms) 
+[ RUN      ] lz4.decompress_safe_emptyInput 
+[       OK ] lz4.decompress_safe_emptyInput (0 ms) 
+[ RUN      ] lz4.decompress_safe_oneByteInput 
+[       OK ] lz4.decompress_safe_oneByteInput (0 ms) 
+[ RUN      ] lz4.decompress_safe_nullInput 
+[       OK ] lz4.decompress_safe_nullInput (0 ms) 
+[ RUN      ] lz4.decompress_safe_shortcutEdgeCase 
+[       OK ] lz4.decompress_safe_shortcutEdgeCase (0 ms) 
+[ RUN      ] lz4.decompress_safe_all0xFF 
+[       OK ] lz4.decompress_safe_all0xFF (0 ms) 
+[ RUN      ] lz4.decompress_safe_ipAtIend 
+[       OK ] lz4.decompress_safe_ipAtIend (0 ms) 
+[ RUN      ] lz4.decompress_safe_errorCodes 
+[       OK ] lz4.decompress_safe_errorCodes (0 ms) 
+[ RUN      ] lz4.decompress_safe_partial_offset0 
+[       OK ] lz4.decompress_safe_partial_offset0 (0 ms) 
+[ RUN      ] lz4.decompress_safe_partial_srcSizeBeyondBlock 
+[       OK ] lz4.decompress_safe_partial_srcSizeBeyondBlock (0 ms) 
+[ RUN      ] lz4.decompress_safe_partial_usingDict_srcSizeBeyondBlock 
+[       OK ] lz4.decompress_safe_partial_usingDict_srcSizeBeyondBlock (0 ms) 
+[ RUN      ] lz4.decompress_safe_zeroCapacity 
+[       OK ] lz4.decompress_safe_zeroCapacity (0 ms) 
+[ RUN      ] lz4.decompress_fast_emptyBlock 
+[       OK ] lz4.decompress_fast_emptyBlock (0 ms) 
+[ RUN      ] lz4.decompress_fast_usingDict_noDict 
+[       OK ] lz4.decompress_fast_usingDict_noDict (0 ms) 
+[ RUN      ] lz4.compress_default_nullInput 
+[       OK ] lz4.compress_default_nullInput (0 ms) 
+[ RUN      ] lz4.compress_default_nullInputAndOutput 
+[       OK ] lz4.compress_default_nullInputAndOutput (0 ms) 
+[ RUN      ] lz4.compress_default_tooLargeInput 
+[       OK ] lz4.compress_default_tooLargeInput (0 ms) 
+[ RUN      ] lz4.compress_smallCapacity 
+[       OK ] lz4.compress_smallCapacity (0 ms) 
+[ RUN      ] lz4.compress_destSize_extState_dirtyState 
+[       OK ] lz4.compress_destSize_extState_dirtyState (0 ms) 
+[ RUN      ] lz4.compress_destSize_extState_outOfRangeAcceleration 
+[       OK ] lz4.compress_destSize_extState_outOfRangeAcceleration (1 ms) 
+[ RUN      ] lz4.compress_default_inPlace 
+[       OK ] lz4.compress_default_inPlace (0 ms) 
+[ RUN      ] lz4.initStream_alignment 
+[       OK ] lz4.initStream_alignment (0 ms) 
+[ RUN      ] lz4.loadDict_returnedSize 
+[       OK ] lz4.loadDict_returnedSize (0 ms) 
+[ RUN      ] lz4.compress_fast_continue_outOfRangeAcceleration 
+[       OK ] lz4.compress_fast_continue_outOfRangeAcceleration (1 ms) 
+[ RUN      ] lz4.compress_fast_continue_roundTrip 
+[       OK ] lz4.compress_fast_continue_roundTrip (0 ms) 
+[ RUN      ] lz4.compress_fast_continue_extDictLargeBlock 
+[       OK ] lz4.compress_fast_continue_extDictLargeBlock (3 ms) 
+[ RUN      ] lz4.attach_dictionary_smallBlocks 
+[       OK ] lz4.attach_dictionary_smallBlocks (0 ms) 
+[ RUN      ] lz4.compress_fast_extState_fastReset_usedState 
+[       OK ] lz4.compress_fast_extState_fastReset_usedState (0 ms) 
+[ RUN      ] lz4.resetStream_fast_largeFirstBlock 
+[       OK ] lz4.resetStream_fast_largeFirstBlock (0 ms) 
+[ RUN      ] lz4.loadDict_tooSmall 
+[       OK ] lz4.loadDict_tooSmall (1 ms) 
+[ RUN      ] lz4.saveDict_afterInit 
+[       OK ] lz4.saveDict_afterInit (0 ms) 
+[ RUN      ] lz4.saveDict_negativeSize 
+[       OK ] lz4.saveDict_negativeSize (0 ms) 
+[ RUN      ] lz4.saveDict_partial 
+[       OK ] lz4.saveDict_partial (1 ms) 
+[ RUN      ] lz4.compress_periodicRuns 
+[       OK ] lz4.compress_periodicRuns (0 ms) 
+[ RUN      ] lz4.compress_continue_inputOverwritesPreviousBlock 
+[       OK ] lz4.compress_continue_inputOverwritesPreviousBlock (26 ms) 
+[ RUN      ] lz4.decompress_safe_partial_usingDict 
+[       OK ] lz4.decompress_safe_partial_usingDict (0 ms) 
+[ RUN      ] lz4.compress_fast_continue_beyond2GB 
+[       OK ] lz4.compress_fast_continue_beyond2GB (460 ms) 
+[ RUN      ] lz4.decompress_safe_addressSpaceOverflow 
+[       OK ] lz4.decompress_safe_addressSpaceOverflow (0 ms) 
+[ RUN      ] lz4.decompress_safe_inPlace_limitCase 
+[       OK ] lz4.decompress_safe_inPlace_limitCase (6 ms) 
+[ RUN      ] lz4.compress_fast_continue_ringBuffer 
+[       OK ] lz4.compress_fast_continue_ringBuffer (1 ms) 
+[ RUN      ] lz4.decoderRingBufferSize_values 
+[       OK ] lz4.decoderRingBufferSize_values (0 ms) 
+[ RUN      ] lz4.decompress_safe_continue_decoderRingBufferSize 
+[       OK ] lz4.decompress_safe_continue_decoderRingBufferSize (5 ms) 
+[ RUN      ] lz4.decompress_safe_continue_ringLargerThanEncoders 
+[       OK ] lz4.decompress_safe_continue_ringLargerThanEncoders (0 ms) 
+[ RUN      ] lz4hc.compress_HC_nullInput 
+[       OK ] lz4hc.compress_HC_nullInput (1 ms) 
+[ RUN      ] lz4hc.compress_HC_nullInputAndOutput 
+[       OK ] lz4hc.compress_HC_nullInputAndOutput (1 ms) 
+[ RUN      ] lz4hc.initStreamHC_alignment 
+[       OK ] lz4hc.initStreamHC_alignment (0 ms) 
+[ RUN      ] lz4hc.compress_HC_misalignedState 
+[       OK ] lz4hc.compress_HC_misalignedState (0 ms) 
+[ RUN      ] lz4hc.compress_HC_outOfRangeLevels 
+[       OK ] lz4hc.compress_HC_outOfRangeLevels (13 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_levels 
+[       OK ] lz4hc.compress_HC_continue_levels (29 ms) 
+[ RUN      ] lz4hc.compress_HC_extStateHC_fastReset_newStream 
+[       OK ] lz4hc.compress_HC_extStateHC_fastReset_newStream (4 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_roundTrip 
+[       OK ] lz4hc.compress_HC_continue_roundTrip (7 ms) 
+[ RUN      ] lz4hc.compress_HC_level2_runs 
+[       OK ] lz4hc.compress_HC_level2_runs (0 ms) 
+[ RUN      ] lz4hc.saveDictHC_beforeCompression 
+[       OK ] lz4hc.saveDictHC_beforeCompression (15 ms) 
+[ RUN      ] lz4hc.compress_HC_destSize_longSequence 
+[       OK ] lz4hc.compress_HC_destSize_longSequence (0 ms) 
+[ RUN      ] lz4hc.favorDecompressionSpeed_afterFailedCompression 
+[       OK ] lz4hc.favorDecompressionSpeed_afterFailedCompression (7 ms) 
+[ RUN      ] lz4hc.resetStreamHC_fast_afterFailedCompression 
+[       OK ] lz4hc.resetStreamHC_fast_afterFailedCompression (79 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_dictionary 
+[       OK ] lz4hc.compress_HC_continue_dictionary (8 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_dictionary_twoBlocks 
+[       OK ] lz4hc.compress_HC_continue_dictionary_twoBlocks (8 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_remoteDictionary 
+[       OK ] lz4hc.compress_HC_continue_remoteDictionary (8 ms) 
+[ RUN      ] lz4hc.loadDictHC_returnedSize 
+[       OK ] lz4hc.loadDictHC_returnedSize (3 ms) 
+[ RUN      ] lz4hc.saveDictHC_sizes 
+[       OK ] lz4hc.saveDictHC_sizes (79 ms) 
+[ RUN      ] lz4hc.compress_HC_destSize_sameAsFast 
+[       OK ] lz4hc.compress_HC_destSize_sameAsFast (861 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_destSize_resume 
+[       OK ] lz4hc.compress_HC_continue_destSize_resume (28 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_destSize_resumeInLongMatch 
+[       OK ] lz4hc.compress_HC_continue_destSize_resumeInLongMatch (16 ms) 
+[ RUN      ] lz4hc.resetStreamHC_fast_beyond1GB 
+[       OK ] lz4hc.resetStreamHC_fast_beyond1GB (245 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_beyond2GB 
+[       OK ] lz4hc.compress_HC_continue_beyond2GB (494 ms) 
+[ RUN      ] lz4hc.attach_HC_dictionary_smallBlocks 
+[       OK ] lz4hc.attach_HC_dictionary_smallBlocks (25 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_runsAcrossDictionary 
+[       OK ] lz4hc.compress_HC_continue_runsAcrossDictionary (21 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_successiveDictionaries 
+[       OK ] lz4hc.compress_HC_continue_successiveDictionaries (7 ms) 
+[ RUN      ] lz4hc.compress_HC_continue_ringBuffer 
+[       OK ] lz4hc.compress_HC_continue_ringBuffer (6 ms) 
+[ RUN      ] lz4hc.decompress_continue_unsynchronizedRing 
+[       OK ] lz4hc.decompress_continue_unsynchronizedRing (338 ms) 
+[==========] 74 tests, 0 failed (3062 ms), seed 1 

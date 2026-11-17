@@ -1,0 +1,4 @@
+PASS: 73279 base paths/modes checked; 412 carried source paths reproduced by ordered patch replay; repaired LZ4/build sources unchanged.
+PASS: 140 inventory references covered; 0 pending; E143 native equivalent (reference unresolved); LZ4 superseded by 1.11.1; BBRplus excluded.
+PASS: historical receipts, batch evidence, new test hashes and no-unreviewed-old-carry-over checks.
+LIMITS: source/provenance only; no whole-image, device, concurrency or performance qualification.

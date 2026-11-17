@@ -1,0 +1,101 @@
+{
+  "added_source": {
+    "tools/testing/selftests/azyr_selected/test_rwlocks.py": {
+      "mode": "100644",
+      "sha256": "592e6d77b12b93e1d1b3970b3d84c70aa719fd2065a1b3283b3572c4a8682430"
+    },
+    "tools/testing/selftests/azyr_selected/test_selected.py": {
+      "mode": "100644",
+      "sha256": "d8692918f1f44dc4aa1d2a5b00c6632cb665e07d059d8b3cacfc2e28cfa7024a"
+    },
+    "tools/testing/selftests/carry_over/README.md": {
+      "mode": "100644",
+      "sha256": "854d309721213ec53ec1cda71145b9d600369beb36594c1c688eb9b370222f43"
+    },
+    "tools/testing/selftests/carry_over/build_batches_01_02.sh": {
+      "mode": "100644",
+      "sha256": "aee94516fbb328a8034b22c2e146f1728be4096fa591ec7f2887f28ebdfe6ff1"
+    },
+    "tools/testing/selftests/carry_over/run_host.py": {
+      "mode": "100644",
+      "sha256": "e1965fa680c1fa43627ff00f3129f9bb5daafa3ae5e06a92cbe729f203bca42e"
+    },
+    "tools/testing/selftests/carry_over/verify.py": {
+      "mode": "100644",
+      "sha256": "cb95ccf6fb82f3f8d05cc3161a7ee71d6d6c598559f273a89aa841c12c5e2739"
+    },
+    "tools/testing/selftests/cpufreq_ipa/test_tuning.py": {
+      "mode": "100644",
+      "sha256": "62659ebccf88d013464b63584dfbc8bc30cfec06b7f74fbdcaae3c8f9c63510a"
+    },
+    "tools/testing/selftests/gpu_dl_backport/deadline_model.c": {
+      "mode": "100644",
+      "sha256": "bf8a235589629fb00d04633b79188d14c41216cdacab8829c2ac2e2bfb6493e9"
+    },
+    "tools/testing/selftests/gpu_dl_backport/gpu_model.c": {
+      "mode": "100644",
+      "sha256": "3cb6e7effcf7c50a5f0fcbad4d4947045f3ef7fdbd8698257720c25fd316dc99"
+    },
+    "tools/testing/selftests/gpu_dl_backport/test_backport.py": {
+      "mode": "100644",
+      "sha256": "2647ac8c38344346af53a341003fd3bb1a079c975d31ec2a1db412cfba054c2f"
+    },
+    "tools/testing/selftests/memlat/model.c": {
+      "mode": "100644",
+      "sha256": "e46e53b0969679b3553fdbe899f990cd8df61bbd80df4b5a4b910f8623a70297"
+    },
+    "tools/testing/selftests/memlat/test_memlat.py": {
+      "mode": "100644",
+      "sha256": "1c7a913fa317ccf6cad47179ab041c6b46c017b805ba6a08ce7a761e68531a3e"
+    },
+    "tools/testing/selftests/sched_correctness/model.c": {
+      "mode": "100644",
+      "sha256": "bd8a0b50bd3d5330c12ce5033a4e40c050062551262e6c87d3b5243e844e9698"
+    },
+    "tools/testing/selftests/sched_correctness/test_backport.py": {
+      "mode": "100644",
+      "sha256": "4f380d91c21cc000727e9ceda92ba8a17cc606a5d89fd369132c75913748cf9d"
+    }
+  },
+  "artifacts_sha256": {
+    "Documentation/dev-tools/carry-over/README.md": "4bfdfb35d8edad5818fefdbbc4dbde43bc6b6a519ed0ce0c353dd19086b8c82f",
+    "Documentation/dev-tools/carry-over/arm64-objects.log": "18de749dd982cedaf605d2895917daca4cf75151b95fd20e2c640cd274450381",
+    "Documentation/dev-tools/carry-over/batch-01/applied.diff": "586f2bdcca38a6631766017343238ea06ebb457dfd84b226215d121008a3ecbe",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-006-validation.json": "4f2f04b4da7eb04982284dba6a97e6b4ae1b2ef9a6d4e766ea6f61a35e8a91ba",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-036-041-validation.json": "efbeaa924f5b476ebcb0930004bb5142f86cbd3e3fabcc2c621cdf0c905a3f0d",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-036-041.diff": "b3d9a7576d1881f96347bc11d79dd4690660f6e8931bc8061ec25d92e5555356",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-memlat-native-validation.json": "8dc182af76e2163e15ac9485587477cac913038f4b86417f39fce3d26112b0ea",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-memlat-native.diff": "67b8b0f113c3a7d0b5fe47172f938825d019812773148b672883bb5e3b6f9658",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-review-04-validation.json": "afff5602c08ef8ee213b0c7d34937077dedf74eb0ec0064530872eaf4a172e5f",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-selected-validation.json": "1988064848611360cbcee1e23e1ce226392fa0e83a1d8c39904e0ffe066d1583",
+    "Documentation/dev-tools/carry-over/batch-01/historical/azyr-sm6250-selected.diff": "96222665e0e06c54417b311bba804304017050167858107a214b408d23f74bde",
+    "Documentation/dev-tools/carry-over/batch-01/preimage-sha256.json": "dcf20d700551c147034eca69e1dc5dea812143b421c5ae920bd22121d9bf42fc",
+    "Documentation/dev-tools/carry-over/batch-01/source.json": "a8045098dc3cba5e22e98585011d5166f44db8581160e852ab1be68a91b7d950",
+    "Documentation/dev-tools/carry-over/batch-02/applied.diff": "9cd06c6bfbe32fef38657a9f18d014bc7bf0123c86e5684ee3fddc0c5d317dcb",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-adaptation.diff": "5458092bb1884463aa48a847065b66df4171e10334c3883a890e7e9ed9101f5c",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-backports.json": "8c17c16fcd6e6b71c8dc0f50e1697e586fa213dd6691d3429119679cd8a9a682",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-backports.rst": "53fc0bdd1cc39c26ba7bc0fdb4c6d3e59643433209bf62043ff20c766c4998f8",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.diff": "d6fdf632e0a88056885f5236a4d1be20d2792561adc0ddbd918fc2206b77b23a",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.json": "345cc07338c8c15403b6c9242cc8203f9d03ab2358017a63e5e241e0f258fc4f",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.rst": "07c6973871674b3b37f6e10ee5a8a8fa55f7cb00f7454b52121558168ace1aea",
+    "Documentation/dev-tools/carry-over/batch-02/preimage-sha256.json": "c410a241ac253db9d8c02411797b8405162392f43dfe3e3d9d5489684c1fe851",
+    "Documentation/dev-tools/carry-over/batch-02/source.json": "3a10f81ef03ec3624ab3bad7fdf8c90f39e92109e701197094322735962197d9",
+    "Documentation/dev-tools/carry-over/host-regressions.log": "e2a0938ebafccb516784f3b3de2268c70d5bae0cd4c9c9076645865af771b566",
+    "Documentation/dev-tools/carry-over/progress.json": "f2a766654347c45dbf3e90a8f3a5805c95f3de747c566d9f132bf4d59a84b30c",
+    "Documentation/dev-tools/carry-over/toolchain.json": "e7b9db28a41ab298cb432937a7a3135f4fcb8b16608d3a0d40bf5a71890ff77c",
+    "Documentation/dev-tools/foundation-repair/manifest.json": "20f25185ae785ff4feb4b66889b049e60cae1fb5b3abd564c0b124951db6d9be"
+  },
+  "ci_dispatch": false,
+  "complete_image_link": false,
+  "device_test": false,
+  "host_suites": 6,
+  "push": false,
+  "semantic_negative_controls": 34,
+  "status": "PASS bounded validation for E001\u2013E027 only",
+  "target_default_objects": 20,
+  "target_extra_profiles": [
+    "CFQ/BFQ debug and group accounting",
+    "SCM with ARM64 LSE atomics"
+  ],
+  "target_toolchain_commit": "3b86e40facfff1eab4065614255d573293c10373"
+}

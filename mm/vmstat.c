@@ -1830,13 +1830,13 @@ static bool need_update(int cpu)
  */
 void quiet_vmstat(void)
 {
-	if (system_state != SYSTEM_RUNNING)
+	if (unlikely(system_state != SYSTEM_RUNNING))
 		return;
 
 	if (!delayed_work_pending(this_cpu_ptr(&vmstat_work)))
 		return;
 
-	if (!need_update(smp_processor_id()))
+	if (likely(!need_update(smp_processor_id())))
 		return;
 
 	/*
@@ -1867,7 +1867,7 @@ static void vmstat_shepherd(struct work_struct *w)
 	for_each_online_cpu(cpu) {
 		struct delayed_work *dw = &per_cpu(vmstat_work, cpu);
 
-		if (!delayed_work_pending(dw) && need_update(cpu) &&
+		if (!work_busy(&dw->work) && need_update(cpu) &&
 		     !cpu_isolated(cpu))
 			queue_delayed_work_on(cpu, mm_percpu_wq, dw, 0);
 	}

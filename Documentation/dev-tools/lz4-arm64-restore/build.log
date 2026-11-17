@@ -1,0 +1,4 @@
+PASS: x86_64-linux-gnu split objects, no codec/allocator cross-references, exports, max frame 552 bytes, real STATIC wrapper
+PASS: i386-linux-gnu split objects, no codec/allocator cross-references, exports, max frame 284 bytes, real STATIC wrapper
+PASS: aarch64-linux-gnu split objects, no codec/allocator cross-references, exports, max frame 448 bytes, real STATIC wrapper
+PASS: all 27 built-in/module/disabled Kbuild selections

@@ -1,0 +1,7 @@
+make[1]: Entering directory '/home/user/Kernel_electro/.cache/recency/kbuild'
+  GEN     ./Makefile
+scripts/kconfig/conf  --olddefconfig Kconfig
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/user/Kernel_electro/.cache/recency/kbuild'

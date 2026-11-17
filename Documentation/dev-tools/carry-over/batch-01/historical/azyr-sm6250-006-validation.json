@@ -1,0 +1,161 @@
+{
+  "source_commit": "149e6887d341948cb079ffab98845addd5e50381",
+  "source": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250",
+  "review_item": 6,
+  "status": "applied locally; configuration-only validation PASS",
+  "source_change": "Remove !PREEMPT conditions from exactly 16 ARM64 read/write-lock inlining selectors.",
+  "kconfig_before_sha256": "99585b4b0ecd638d5cfb255e65bb1e000c0980c3648290202f731e85d927cb29",
+  "kconfig_after_sha256": "017ebc1342b1ea78c6cd9462f30ab863c06609291637b3f19511b492672f33bd",
+  "preempt_configuration_changes": {
+    "CONFIG_ARCH_INLINE_READ_LOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_READ_LOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_READ_LOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_READ_LOCK_IRQSAVE": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_READ_UNLOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_READ_UNLOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_READ_UNLOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_READ_UNLOCK_IRQRESTORE": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_LOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_LOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_LOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_LOCK_IRQSAVE": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_UNLOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_UNLOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_UNLOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_LOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_LOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_LOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_LOCK_IRQSAVE": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_UNLOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_UNLOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_UNLOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_READ_UNLOCK_IRQRESTORE": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_LOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_LOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_LOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_LOCK_IRQSAVE": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_UNLOCK": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_UNLOCK_BH": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_UNLOCK_IRQ": [
+      "n",
+      "y"
+    ],
+    "CONFIG_INLINE_WRITE_UNLOCK_IRQRESTORE": [
+      "n",
+      "y"
+    ]
+  },
+  "nonpreempt_configuration_changes": {},
+  "config_sha256": {
+    "preempt-before.config": "7f0846215d199134ac23267ea23f25d65820bbff5d90bed2e4354ddf013d00a0",
+    "preempt-after.config": "5db6637f0914c83e5eeaf0af681180587c1653f5e5c989060d1c458ef67f1567",
+    "nonpreempt-before.config": "652044c4617d3cebea3cf8253018d3cfa9257b9bd1a67f96e23d555582a9f27c",
+    "nonpreempt-after.config": "652044c4617d3cebea3cf8253018d3cfa9257b9bd1a67f96e23d555582a9f27c"
+  },
+  "validation_method": "Real shipped 4.14 Kconfig parser, built with host GCC; no target compilation.",
+  "limits": [
+    "No pinned-AOSP-Clang target rebuild, code-size comparison, device boot, lock stress or performance measurement.",
+    "Donor 5 percent performance claim is not verified on Electro.",
+    "Inlining conditionally removes the corresponding out-of-line _raw_read/_raw_write exports. In-tree modules must rebuild together; installed prebuilt vendor modules may need compatibility checks."
+  ],
+  "other_items": "#1-#5 and #7-#25 skipped by explicit user decision.",
+  "publication": "No commit, push or CI dispatch.",
+  "donor_diff_match": "Exact 16-line donor transformation verified; no other source edits.",
+  "regression_checks": {
+    "susfs_host_models": "PASS (272 authorization, 1792 unmount safeguards, 3010 readlink, 2404 pagemap)",
+    "susfs_provenance": "PASS (30 tamper controls plus priority-filter disablement control)",
+    "kernelsu_source_and_resolved_config": "PASS",
+    "nomount_source_and_resolved_config": "PASS"
+  }
+}

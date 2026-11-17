@@ -1,0 +1,112 @@
+{
+  "component": "selected KGSL IRQ locking and DEADLINE/cpuset backports",
+  "date": "2026-11-05",
+  "branch": "arena/e63a046d-kernel-electro",
+  "baseline_head": "4afc6f0769f0f3b2b10d50d3fa02f0ba7c89a183",
+  "baseline_kind": "already modified working tree, not clean HEAD",
+  "donors": [
+    {
+      "commit": "71a6c1d01b6f2fcf407c79f252bb8b3d6177e077",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/71a6c1d01b6f2fcf407c79f252bb8b3d6177e077",
+      "subject": "BACKPORT: msm: kgsl: Fix syncsource spinlock recursion",
+      "mode": "exact donor production change",
+      "api_response_sha256": "6d7db4d4016f9bc1efb4099d2f3c729975d2b8756a2202d5eba192c9054babc7"
+    },
+    {
+      "commit": "bc7328a77b6be7591052cb226a029a33ee69d13e",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/bc7328a77b6be7591052cb226a029a33ee69d13e",
+      "subject": "UPSTREAM: sched/deadline: Optimize dl_bw_cpus()",
+      "mode": "exact donor production change",
+      "api_response_sha256": "6a07150f892596ffa71a11d59411fcb0bdf4c3027c89445a5d26dcade5967c57"
+    },
+    {
+      "commit": "ad1345b413fca93af081b5e3be3fa6b85248a8a3",
+      "url": "https://github.com/AzyrRuthless/kernel_xiaomi_sm6250/commit/ad1345b413fca93af081b5e3be3fa6b85248a8a3",
+      "subject": "sched, cpuset: Fix dl_cpu_busy() panic due to empty cs->cpus_allowed",
+      "mode": "corrected adaptation",
+      "api_response_sha256": "5cf1e2f6eddac35500f2b372adc713b6c3a95a17661c2dcd093d84b28ea77537"
+    }
+  ],
+  "production_files": {
+    "drivers/gpu/msm/kgsl_sync.c": {
+      "before_sha256": "0a20eeddcceea19d476f43dc6ad58bcf3e5abce280a015d5792019ad9005ab24",
+      "after_sha256": "c8256c49c91bee2d6b1c2d7488a5ceaee343bb501dc568a7a1a876b3f92814e6"
+    },
+    "kernel/sched/deadline.c": {
+      "before_sha256": "003226fa539e678ec62d1cdaac77229f763d1d2adffe3ab3779909cd5218d6f4",
+      "after_sha256": "64564085fb4cc619168e370dcb3f0f6f065f0e5b41ace9df6797a7c0bc08d842"
+    },
+    "kernel/sched/core.c": {
+      "before_sha256": "7fcca6ec4ad2cdfa1387a8df082091d7c0a3600bf0901d3d2e91e2a2a947092a",
+      "after_sha256": "332912ff935c4f03efc281ff7e54866bb65503a78110bfa699a23bdd4b7d6260"
+    },
+    "kernel/cgroup/cpuset.c": {
+      "before_sha256": "17f2fd00082cb17495e645b6141432668f766d0fb4cc4fac6c96a17547bdb486",
+      "after_sha256": "984df2841d2ed39ff73430b4be125c45b13fff074651a7165965d77be400f089"
+    },
+    "include/linux/sched.h": {
+      "before_sha256": "16affb757a3fece7510010ec34bf7d5409f494eb8fdc93de46c0830788a5d139",
+      "after_sha256": "30e46d472cc25497e266df4937a2af59c1ee0aa945b7cffeaefd2946bec0724f"
+    },
+    "kernel/sched/sched.h": {
+      "before_sha256": "e09d54cd60d08c684fd3241dcbae8db79f4e63482d895b683519a77831c7acd2",
+      "after_sha256": "5d0bfeee44d30acf5e0e159f645892c23a5d86c12e019b7129076c09af6ca962"
+    }
+  },
+  "adaptation_diff": "Documentation/dev-tools/gpu-dl-adaptation.diff",
+  "adaptation_diff_sha256": "5458092bb1884463aa48a847065b66df4171e10334c3883a890e7e9ed9101f5c",
+  "replay": "PASS",
+  "corrections": [
+    "retain PF_NO_SETAFFINITY and all unrelated admission logic",
+    "use effective cpuset CPUs and consistent parameter names",
+    "validate selected destination in dl_task_can_attach before dl_bw_of",
+    "reject zero-active-CPU domain before __dl_add division",
+    "do not import broken rbtree/suspend/config repair bundle"
+  ],
+  "host_validation": {
+    "compiler": "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+    "asan_ubsan": "PASS; overflow and use-after-free runtime probes checked",
+    "ubsan_only": "PASS",
+    "mask_pairs_per_run": 65536,
+    "negative_controls_rejected_per_run": 7,
+    "kgsl_irq_states_and_error_paths": "PASS",
+    "cpuset_admission_paths": "PASS",
+    "non_smp_count_helper": "PASS",
+    "previous_suspend_predicate_regression": "320 cases plus two negative controls PASS",
+    "asan_log_sha256": "86ec7b2db47f1d2689554714fdec03df7074aa179253e5e806bb97a47f04a73e",
+    "ubsan_log_sha256": "86ec7b2db47f1d2689554714fdec03df7074aa179253e5e806bb97a47f04a73e"
+  },
+  "preservation": {
+    "baseline_regular_files": 72952,
+    "changed": [
+      "drivers/gpu/msm/kgsl_sync.c",
+      "kernel/sched/deadline.c",
+      "kernel/sched/core.c",
+      "kernel/cgroup/cpuset.c",
+      "include/linux/sched.h",
+      "kernel/sched/sched.h"
+    ],
+    "added": [
+      "Documentation/dev-tools/gpu-dl-backports.rst",
+      "Documentation/dev-tools/gpu-dl-backports.json",
+      "Documentation/dev-tools/gpu-dl-adaptation.diff",
+      "tools/testing/selftests/gpu_dl_backport/README.md",
+      "tools/testing/selftests/gpu_dl_backport/test_backport.py",
+      "tools/testing/selftests/gpu_dl_backport/deadline_model.c",
+      "tools/testing/selftests/gpu_dl_backport/gpu_model.c"
+    ],
+    "unexpected_changes": [],
+    "deleted": [],
+    "defconfig_sha256": "7d049399dbd01e9f517db96c152a86148d1fdf1a307be95745ba2fa29a456a75",
+    "audit": "PASS"
+  },
+  "limitations": [
+    "host-extracted functions with mocked platform context",
+    "no actual parallel IRQ or CPU-hotplug stress",
+    "no live lockdep run",
+    "no ARM64 object/full-image build using production AOSP compiler",
+    "no device testing or performance/power claims"
+  ],
+  "push_performed": false,
+  "ci_performed": false
+}

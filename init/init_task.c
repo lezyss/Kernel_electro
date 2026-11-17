@@ -22,6 +22,7 @@ static struct signal_struct init_signals = {
 		.list = LIST_HEAD_INIT(init_signals.shared_pending.list),
 		.signal =  {{0}}
 	},
+	.multiprocess	= HLIST_HEAD_INIT,
 	.rlim		= INIT_RLIMITS,
 	.cred_guard_mutex = __MUTEX_INITIALIZER(init_signals.cred_guard_mutex),
 #ifdef CONFIG_POSIX_TIMERS
@@ -132,6 +133,9 @@ struct task_struct init_task
 	INIT_KASAN(init_task)
 	INIT_LIVEPATCH(init_task)
 	INIT_TASK_SECURITY
+#ifdef CONFIG_SECCOMP
+	.seccomp	= { .filter_count = ATOMIC_INIT(0) },
+#endif
 };
 
 EXPORT_SYMBOL(init_task);

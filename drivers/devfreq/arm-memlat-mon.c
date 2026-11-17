@@ -33,6 +33,12 @@
 #include "governor_memlat.h"
 #include <linux/perf_event.h>
 #include <linux/of_device.h>
+#include <linux/completion.h>
+#include <linux/math64.h>
+#include <linux/mutex.h>
+#include <linux/sched.h>
+#include <linux/smp.h>
+#include <soc/qcom/scm.h>
 
 enum ev_index {
 	INST_IDX,
@@ -47,15 +53,25 @@ enum ev_index {
 
 struct event_data {
 	struct perf_event *pevent;
-	unsigned long prev_count;
+	u64 prev_count;
 };
 
 struct cpu_pmu_stats {
 	struct event_data events[NUM_EVENTS];
 	ktime_t prev_ts;
+	ktime_t sample_ts;
+	u64 totals[NUM_EVENTS];
+	bool have_prev;
+	bool sample_valid;
+	struct dev_stats *devstats;
+	call_single_data_t csd;
+	struct completion done;
 };
 
 struct cpu_grp_info {
+	/* Serializes sampling, event creation and teardown. */
+	struct mutex lock;
+	bool running;
 	cpumask_t cpus;
 	unsigned int event_ids[NUM_EVENTS];
 	struct cpu_pmu_stats *cpustats;
@@ -67,72 +83,147 @@ struct memlat_mon_spec {
 };
 
 #define to_cpustats(cpu_grp, cpu) \
-	(&cpu_grp->cpustats[cpu - cpumask_first(&cpu_grp->cpus)])
-#define to_devstats(cpu_grp, cpu) \
-	(&cpu_grp->hw.core_stats[cpu - cpumask_first(&cpu_grp->cpus)])
+	(&(cpu_grp)->cpustats[(cpu)])
 #define to_cpu_grp(hwmon) container_of(hwmon, struct cpu_grp_info, hw)
 
 
-static unsigned long compute_freq(struct cpu_pmu_stats *cpustats,
-						unsigned long cyc_cnt)
+/* No partial sample is published and no baseline moves on a failed read. */
+static void memlat_read_cpu(void *info)
 {
-	ktime_t ts;
-	unsigned int diff;
-	uint64_t freq = 0;
+	struct cpu_pmu_stats *cpustats = info;
+	u64 totals[NUM_EVENTS] = { 0 };
+	int i;
 
-	ts = ktime_get();
-	diff = ktime_to_us(ktime_sub(ts, cpustats->prev_ts));
-	if (!diff)
-		diff = 1;
-	cpustats->prev_ts = ts;
-	freq = cyc_cnt;
-	do_div(freq, diff);
+	for (i = 0; i < NUM_EVENTS; i++) {
+		struct perf_event *event = cpustats->events[i].pevent;
 
-	return freq;
-}
-
-#define MAX_COUNT_LIM 0xFFFFFFFFFFFFFFFF
-static inline unsigned long read_event(struct event_data *event)
-{
-	unsigned long ev_count;
-	u64 total, enabled, running;
-
-	if (!event->pevent)
-		return 0;
-
-	total = perf_event_read_value(event->pevent, &enabled, &running);
-	ev_count = total - event->prev_count;
-	event->prev_count = total;
-	return ev_count;
-}
-
-static void read_perf_counters(int cpu, struct cpu_grp_info *cpu_grp)
-{
-	struct cpu_pmu_stats *cpustats = to_cpustats(cpu_grp, cpu);
-	struct dev_stats *devstats = to_devstats(cpu_grp, cpu);
-	unsigned long cyc_cnt, stall_cnt;
-
-	devstats->inst_count = read_event(&cpustats->events[INST_IDX]);
-	devstats->mem_count = read_event(&cpustats->events[CM_IDX]);
-	cyc_cnt = read_event(&cpustats->events[CYC_IDX]);
-	devstats->freq = compute_freq(cpustats, cyc_cnt);
-	if (cpustats->events[STALL_CYC_IDX].pevent) {
-		stall_cnt = read_event(&cpustats->events[STALL_CYC_IDX]);
-		stall_cnt = min(stall_cnt, cyc_cnt);
-		devstats->stall_pct = mult_frac(100, stall_cnt, cyc_cnt);
-	} else {
-		devstats->stall_pct = 100;
+		if (event && perf_event_read_local(event, &totals[i], NULL, NULL))
+			goto out;
 	}
+
+	memcpy(cpustats->totals, totals, sizeof(totals));
+	cpustats->sample_ts = ktime_get();
+	cpustats->sample_valid = true;
+out:
+	/* Last access: the waiter may proceed to teardown after completion. */
+	complete(&cpustats->done);
+}
+
+/* Exact floor(100 * stall / cycles), including large u64 counter deltas. */
+static unsigned int memlat_stall_pct(u64 stall, u64 cycles)
+{
+	u64 q, rem, threshold;
+	unsigned int lo = 0, hi = 100, mid;
+
+	if (!cycles)
+		return 0;
+	stall = min(stall, cycles);
+	if (stall <= (~0ULL / 100))
+		return div64_u64(stall * 100, cycles);
+
+	/* Avoid multiplying a near-U64_MAX count by 100. */
+	q = div64_u64_rem(cycles, 100, &rem);
+	while (lo < hi) {
+		mid = (lo + hi + 1) / 2;
+		threshold = q * mid + DIV_ROUND_UP(rem * mid, 100);
+		if (stall >= threshold)
+			lo = mid;
+		else
+			hi = mid - 1;
+	}
+	return lo;
+}
+
+static void memlat_clear_stats(struct cpu_pmu_stats *cpustats)
+{
+	struct dev_stats *stats = cpustats->devstats;
+
+	stats->inst_count = 0;
+	stats->mem_count = 0;
+	stats->freq = 0;
+	stats->stall_pct = 0;
+}
+
+static void compute_perf_counters(struct cpu_pmu_stats *cpustats)
+{
+	struct dev_stats *stats = cpustats->devstats;
+	u64 delta[NUM_EVENTS];
+	s64 elapsed;
+	int i;
+
+	if (cpustats->have_prev) {
+		elapsed = ktime_to_us(ktime_sub(cpustats->sample_ts,
+					      cpustats->prev_ts));
+		if (elapsed <= 0)
+			return;
+		for (i = 0; i < NUM_EVENTS; i++)
+			delta[i] = cpustats->totals[i] -
+				   cpustats->events[i].prev_count;
+
+		stats->inst_count = min_t(u64, delta[INST_IDX], ULONG_MAX);
+		stats->mem_count = min_t(u64, delta[CM_IDX], ULONG_MAX);
+		stats->freq = min_t(u64, div64_u64(delta[CYC_IDX], elapsed),
+				    ULONG_MAX);
+		stats->stall_pct = cpustats->events[STALL_CYC_IDX].pevent ?
+			memlat_stall_pct(delta[STALL_CYC_IDX], delta[CYC_IDX]) : 100;
+	} else {
+		/* First sample (also after hotplug) establishes a fresh epoch. */
+		memlat_clear_stats(cpustats);
+	}
+
+	for (i = 0; i < NUM_EVENTS; i++)
+		cpustats->events[i].prev_count = cpustats->totals[i];
+	cpustats->prev_ts = cpustats->sample_ts;
+	cpustats->have_prev = true;
 }
 
 static unsigned long get_cnt(struct memlat_hwmon *hw)
 {
-	int cpu;
 	struct cpu_grp_info *cpu_grp = to_cpu_grp(hw);
+	cpumask_t pending;
+	int cpu;
 
-	for_each_cpu(cpu, &cpu_grp->cpus)
-		read_perf_counters(cpu, cpu_grp);
+	mutex_lock(&cpu_grp->lock);
+	if (!cpu_grp->running)
+		goto out;
 
+	cpumask_clear(&pending);
+	/* Keep selected CPUs online until every accepted callback has finished. */
+	cpus_read_lock();
+	for_each_cpu(cpu, &cpu_grp->cpus) {
+		struct cpu_pmu_stats *cpustats = to_cpustats(cpu_grp, cpu);
+
+		if (!cpu_online(cpu) || cpu_isolated(cpu)) {
+			cpustats->have_prev = false;
+			memlat_clear_stats(cpustats);
+			continue;
+		}
+		/* Preserve the native exclude-idle no-wakeup intent. */
+		if (idle_cpu(cpu)) {
+			memlat_clear_stats(cpustats);
+			continue;
+		}
+		/* Best effort only: SCM can start after this check. Keep old data. */
+		if (scm_call_in_progress())
+			continue;
+
+		cpustats->sample_valid = false;
+		reinit_completion(&cpustats->done);
+		if (!smp_call_function_single_async(cpu, &cpustats->csd))
+			cpumask_set_cpu(cpu, &pending);
+	}
+
+	for_each_cpu(cpu, &pending) {
+		struct cpu_pmu_stats *cpustats = to_cpustats(cpu_grp, cpu);
+
+		/* No timeout: callbacks must never outlive event ownership. */
+		wait_for_completion(&cpustats->done);
+		if (cpustats->sample_valid)
+			compute_perf_counters(cpustats);
+	}
+	cpus_read_unlock();
+out:
+	mutex_unlock(&cpu_grp->lock);
 	return 0;
 }
 
@@ -140,6 +231,11 @@ static void delete_events(struct cpu_pmu_stats *cpustats)
 {
 	int i;
 
+	/* Called under the monitor mutex, after all sampling callbacks drain. */
+	cpustats->have_prev = false;
+	cpustats->sample_valid = false;
+	cpustats->prev_ts = 0;
+	memlat_clear_stats(cpustats);
 	for (i = 0; i < ARRAY_SIZE(cpustats->events); i++) {
 		cpustats->events[i].prev_count = 0;
 		if (cpustats->events[i].pevent) {
@@ -151,20 +247,14 @@ static void delete_events(struct cpu_pmu_stats *cpustats)
 
 static void stop_hwmon(struct memlat_hwmon *hw)
 {
-	int cpu;
 	struct cpu_grp_info *cpu_grp = to_cpu_grp(hw);
-	struct dev_stats *devstats;
+	int cpu;
 
-	for_each_cpu(cpu, &cpu_grp->cpus) {
+	mutex_lock(&cpu_grp->lock);
+	cpu_grp->running = false;
+	for_each_cpu(cpu, &cpu_grp->cpus)
 		delete_events(to_cpustats(cpu_grp, cpu));
-
-		/* Clear governor data */
-		devstats = to_devstats(cpu_grp, cpu);
-		devstats->inst_count = 0;
-		devstats->mem_count = 0;
-		devstats->freq = 0;
-		devstats->stall_pct = 0;
-	}
+	mutex_unlock(&cpu_grp->lock);
 }
 
 static struct perf_event_attr *alloc_attr(void)
@@ -221,17 +311,27 @@ err_out:
 
 static int start_hwmon(struct memlat_hwmon *hw)
 {
-	int cpu, ret = 0;
 	struct cpu_grp_info *cpu_grp = to_cpu_grp(hw);
+	int cpu, ret = 0;
 
+	mutex_lock(&cpu_grp->lock);
+	if (cpu_grp->running)
+		goto out;
 	for_each_cpu(cpu, &cpu_grp->cpus) {
 		ret = set_events(cpu_grp, cpu);
 		if (ret) {
 			pr_warn("Perf event init failed on CPU%d\n", cpu);
-			break;
+			goto unwind;
 		}
 	}
-
+	cpu_grp->running = true;
+	goto out;
+unwind:
+	/* Includes the failing CPU's partially created events. Never skip SCM. */
+	for_each_cpu(cpu, &cpu_grp->cpus)
+		delete_events(to_cpustats(cpu_grp, cpu));
+out:
+	mutex_unlock(&cpu_grp->lock);
 	return ret;
 }
 
@@ -281,18 +381,35 @@ static struct device_node *parse_child_nodes(struct device *dev)
 	return NULL;
 }
 
+static void init_cpu_stats(struct cpu_grp_info *cpu_grp)
+{
+	struct memlat_hwmon *hw = &cpu_grp->hw;
+	int cpu, index = 0;
+
+	for_each_cpu(cpu, &cpu_grp->cpus) {
+		struct cpu_pmu_stats *cpustats = to_cpustats(cpu_grp, cpu);
+
+		cpustats->devstats = &hw->core_stats[index++];
+		cpustats->devstats->id = cpu;
+		init_completion(&cpustats->done);
+		cpustats->csd.func = memlat_read_cpu;
+		cpustats->csd.info = cpustats;
+	}
+}
+
 static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct memlat_hwmon *hw;
 	struct cpu_grp_info *cpu_grp;
 	const struct memlat_mon_spec *spec;
-	int cpu, ret;
+	int ret;
 	u32 event_id;
 
 	cpu_grp = devm_kzalloc(dev, sizeof(*cpu_grp), GFP_KERNEL);
 	if (!cpu_grp)
 		return -ENOMEM;
+	mutex_init(&cpu_grp->lock);
 	hw = &cpu_grp->hw;
 
 	hw->dev = dev;
@@ -313,15 +430,15 @@ static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 	if (!hw->core_stats)
 		return -ENOMEM;
 
-	cpu_grp->cpustats = devm_kzalloc(dev, hw->num_cores *
-			sizeof(*(cpu_grp->cpustats)), GFP_KERNEL);
+	/* Index by CPU id, including holes in a non-contiguous DT CPU list. */
+	cpu_grp->cpustats = devm_kcalloc(dev, nr_cpu_ids,
+				       sizeof(*cpu_grp->cpustats), GFP_KERNEL);
 	if (!cpu_grp->cpustats)
 		return -ENOMEM;
 
 	cpu_grp->event_ids[CYC_IDX] = CYC_EV;
 
-	for_each_cpu(cpu, &cpu_grp->cpus)
-		to_devstats(cpu_grp, cpu)->id = cpu;
+	init_cpu_stats(cpu_grp);
 
 	hw->start_hwmon = &start_hwmon;
 	hw->stop_hwmon = &stop_hwmon;
@@ -390,3 +507,5 @@ static struct platform_driver arm_memlat_mon_driver = {
 };
 
 module_platform_driver(arm_memlat_mon_driver);
+
+MODULE_LICENSE("GPL v2");
