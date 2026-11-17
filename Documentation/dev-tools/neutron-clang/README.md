@@ -118,3 +118,15 @@ has not been dispatched. Its first compatible-host run must qualify the archive
 layout/tool availability, native dependencies and Clang 24 compatibility before
 this migration can be considered build-validated. Do not relabel older AOSP
 results as Neutron results.
+
+## First CI integration findings
+
+The compatible container successfully installed and integrity-verified the real
+Neutron release. Neutron passed the x86-64/i386/ARM64 freestanding codec checks.
+The native Clang sanitizer tests require explicit `libclang-rt-dev` when apt
+recommendations are disabled; this dependency is now installed. With it, all
+74 applicable codec tests passed. Neutron omits the driver's default CFI
+ignorelist; the bare-metal ARM64 test now specifies `-fno-sanitize-ignorelist`
+while retaining `-fsanitize=shadow-call-stack,cfi` and ThinLTO. This adds no
+exclusions and changes neither the downloaded compiler nor kernel configuration.
+Full-kernel and device qualification remain outstanding until separately recorded.

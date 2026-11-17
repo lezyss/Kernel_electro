@@ -149,10 +149,14 @@ def build(cc, out):
                             '-Wl,--entry=LZ4_decompress_safe', str(obj), str(objs[5]),
                             '-o', str(out / (name + '.elf'))], check=True)
     # Also exercise Clang's SCS/ThinLTO compiler and linker on the whole path.
+    # This freestanding fixture has no userspace exclusions. Neutron omits the
+    # driver's default share/cfi_ignorelist.txt: explicitly use no ignorelist,
+    # retaining CFI instrumentation rather than inventing package contents.
     lto = []
     for i in (0, 3, 5):
         obj = out / ('scs' + str(i) + '.o')
-        subprocess.run([*common, '-fsanitize=shadow-call-stack,cfi', '-fvisibility=hidden', '-flto=thin',
+        subprocess.run([*common, '-fsanitize=shadow-call-stack,cfi', '-fno-sanitize-ignorelist',
+                        '-fvisibility=hidden', '-flto=thin',
                         '-c', str(srcs[i]), '-o', str(obj)], check=True)
         lto.append(obj)
     subprocess.run([*cc, *linker, *zig_cpu, '-target', 'aarch64-none-elf', '-nostdlib',
