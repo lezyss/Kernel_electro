@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT"
-TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/r614150"}
+TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/neutron-06092026"}
 DEFCONFIG=${DEFCONFIG:-vendor/xiaomi/miatoll_defconfig}
 JOBS=${JOBS:-$(nproc)}
 
@@ -27,15 +27,20 @@ for tool in clang clang++ ld.lld llvm-ar llvm-nm llvm-strip llvm-objcopy llvm-ob
         exit 1
     fi
 done
-# Standalone local invocation must enforce the workflow's pin too.
-expected_clang_commit=3b86e40facfff1eab4065614255d573293c10373
-if [[ ! -f "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt" ]] ||
-   [[ "$(cat "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt")" != "$expected_clang_commit" ]]; then
-    echo "Expected pinned AOSP r614150 toolchain ($expected_clang_commit)" >&2
-    exit 1
-fi
-if ! "$TOOLCHAIN_DIR/bin/clang" --version | grep -q 'clang version 23.0.1'; then
-    echo "Unexpected compiler version for AOSP r614150" >&2
+# Both standalone builds and CI enforce the same immutable release lock.
+python3 scripts/ci/neutron-toolchain.py verify --directory "$TOOLCHAIN_DIR"
+# Neutron is kernel/bare-metal focused. Native LLVM supplies libc-aware host
+# utilities; never substitute GCC or silently assume target runtimes exist.
+HOST_LLVM_BIN=${HOST_LLVM_BIN:-/usr/bin}
+HOST_LLVM_BIN=$(cd "$HOST_LLVM_BIN" && pwd)
+for tool in clang clang++ ld.lld; do
+    if [[ ! -x "$HOST_LLVM_BIN/$tool" ]]; then
+        echo "Missing native host LLVM tool: $HOST_LLVM_BIN/$tool" >&2
+        exit 1
+    fi
+done
+if ! "$HOST_LLVM_BIN/clang" --version | grep -q 'clang version'; then
+    echo "HOST_LLVM_BIN must contain native Clang, not GCC" >&2
     exit 1
 fi
 mkdir -p out
@@ -44,9 +49,12 @@ mkdir -p out
     echo "Tracked worktree changes: $(git status --porcelain --untracked-files=no | wc -l)"
     echo "Defconfig: $DEFCONFIG"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
-    if [[ -f "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt" ]]; then
-        echo "AOSP prebuilts commit: $(cat "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt")"
-    fi
+    echo "Neutron lock:"
+    cat scripts/ci/neutron.lock.json
+    echo "Host glibc: $(getconf GNU_LIBC_VERSION)"
+    echo "Native host LLVM: $HOST_LLVM_BIN"
+    "$HOST_LLVM_BIN/clang" --version
+    "$HOST_LLVM_BIN/ld.lld" --version
     "$TOOLCHAIN_DIR/bin/clang" --version
     "$TOOLCHAIN_DIR/bin/ld.lld" --version
 } | tee out/build-info.txt
@@ -67,14 +75,14 @@ make_args=(
     "OBJCOPY=$TOOLCHAIN_DIR/bin/llvm-objcopy"
     "OBJDUMP=$TOOLCHAIN_DIR/bin/llvm-objdump"
     "READELF=$TOOLCHAIN_DIR/bin/llvm-readelf"
-    "HOSTCC=$TOOLCHAIN_DIR/bin/clang"
-    "HOSTCXX=$TOOLCHAIN_DIR/bin/clang++"
-    HOSTLDFLAGS=-fuse-ld=lld
+    "HOSTCC=$HOST_LLVM_BIN/clang"
+    "HOSTCXX=$HOST_LLVM_BIN/clang++"
+    "HOSTLDFLAGS=-fuse-ld=$HOST_LLVM_BIN/ld.lld"
 )
 
 make "${make_args[@]}" "$DEFCONFIG" 2>&1 | tee out/configure.log
-# The defconfig's custom Polly flags are not portable to stock AOSP LLVM.
-# Keep ThinLTO and the other device settings, changing only the output config.
+# Preserve the prior build's Polly-off policy during this compiler migration.
+# Do not simultaneously enable old custom optimization flags or change defaults.
 scripts/config --file out/.config --disable LLVM_POLLY
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
 # Check the resolved configuration, not just the defconfig request.

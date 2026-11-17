@@ -10,13 +10,19 @@ Documentation/dev-tools/lz4-arm64-restore/README.md. Historical repair receipts
 are unchanged. The ARM64 helper exports and first dictionary-free streaming
 block can use assembly; generic APIs and dictionary continuations stay C-only.
 
-Prerequisites: native Linux, Clang with its native ASan runtime, make, git,
-Python 3, pyelftools and Unicorn (see requirements.txt). The CI entry point uses the
-pinned AOSP Clang r614150 snapshot, not GCC and not an arbitrary system Clang.
-To use the manual CI test entry point locally, install that complete toolchain
-at .toolchains/r614150 with its aosp-prebuilts-commit.txt provenance file:
+The current manual CI uses pinned Neutron 06092026 (Clang 24) for
+freestanding/cross and ARM64 assembly tests. Native Clang/LLD supplies the
+userspace ASan/UBSan codec tests because Neutron is kernel/bare-metal focused.
+See Documentation/dev-tools/neutron-clang/README.md and scripts/ci/neutron.lock.json.
+The old AOSP r614150 logs remain historical evidence, not Neutron results.
 
-  bash scripts/ci/test-lz4.sh
+Prerequisites: an x86-64 Linux host with glibc >= 2.43 (use the pinned CI
+container), native Clang/LLD with ASan, make, git, curl, zstd, Python 3,
+pyelftools and Unicorn (see requirements.txt). Do not patch the host system libc.
+Install the SHA-256-pinned Antman-catalogue release, then run the manual entry:
+
+  python3 scripts/ci/neutron-toolchain.py install
+  HOST_LLVM_BIN=/usr/bin bash scripts/ci/test-lz4.sh
 
 This downloads the pinned upstream archive, creates a temporary venv under
 out/lz4-tests, verifies all upstream test inputs by SHA-256, and retains test
@@ -25,10 +31,10 @@ logs and objects under out/lz4-tests. It does NOT build a bootable image.
 For independently obtained, read-only upstream sources and an existing venv:
 
   python3 -m pip install -r tools/testing/selftests/lz4/requirements.txt
-  python3 tools/testing/selftests/lz4/test_codec.py --cc /path/to/clang \
+  python3 tools/testing/selftests/lz4/test_codec.py --cc /path/to/native/clang \
     --asan --ubsan --upstream /path/to/lz4-aa4647fad575d01a874aaaadcdbe8e6a40e072f5
-  python3 tools/testing/selftests/lz4/test_build.py --cc /path/to/clang
-  python3 tools/testing/selftests/lz4/test_arm64.py --cc /path/to/clang
+  python3 tools/testing/selftests/lz4/test_build.py --cc /path/to/neutron/bin/clang
+  python3 tools/testing/selftests/lz4/test_arm64.py --cc /path/to/neutron/bin/clang
   python3 tools/testing/selftests/lz4/test_ci.py \
     --anykernel /path/to/clean-pinned-AnyKernel3
 

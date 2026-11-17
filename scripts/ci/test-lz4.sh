@@ -3,14 +3,17 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT"
-TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/r614150"}
+TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/neutron-06092026"}
 TOOLCHAIN_DIR=$(cd "$TOOLCHAIN_DIR" && pwd)
-expected=3b86e40facfff1eab4065614255d573293c10373
-if [[ ! -f "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt" ]] ||
-   [[ "$(cat "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt")" != "$expected" ]]; then
-    echo "Expected pinned AOSP r614150 toolchain ($expected)" >&2
-    exit 1
-fi
+python3 scripts/ci/neutron-toolchain.py verify --directory "$TOOLCHAIN_DIR"
+HOST_LLVM_BIN=${HOST_LLVM_BIN:-/usr/bin}
+HOST_LLVM_BIN=$(cd "$HOST_LLVM_BIN" && pwd)
+for tool in clang ld.lld; do
+    test -x "$HOST_LLVM_BIN/$tool" || { echo "Missing native host LLVM: $tool" >&2; exit 1; }
+done
+# Only native userspace sanitizer tests use distro LLVM. Cross/freestanding
+# and actual ARM64 assembly tests use the pinned Neutron compiler below.
+HOST_TEST_CC="$HOST_LLVM_BIN/clang -fuse-ld=$HOST_LLVM_BIN/ld.lld -Wno-unused-command-line-argument"
 mkdir -p out/lz4-tests
 work=$(mktemp -d "$ROOT/out/lz4-tests/upstream.XXXXXX")
 trap 'rm -rf "$work"' EXIT
@@ -24,7 +27,7 @@ python3 -m venv "$work/venv"
 "$work/venv/bin/python" tools/testing/selftests/lz4/test_build.py \
     --cc "$TOOLCHAIN_DIR/bin/clang" --output out/lz4-tests/objects 2>&1 | tee out/lz4-tests/build.log
 "$work/venv/bin/python" tools/testing/selftests/lz4/test_codec.py \
-    --cc "$TOOLCHAIN_DIR/bin/clang" --upstream "$work/source" \
+    --cc "$HOST_TEST_CC" --upstream "$work/source" \
     --asan --ubsan --output out/lz4-tests/codec 2>&1 | tee out/lz4-tests/codec.log
 "$work/venv/bin/python" tools/testing/selftests/lz4/test_arm64.py \
     --cc "$TOOLCHAIN_DIR/bin/clang" --output out/lz4-tests/arm64 2>&1 | tee out/lz4-tests/arm64.log

@@ -9,11 +9,11 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import tarfile
 import zipfile
 
 from shims import ROOT
 
-PIN = '3b86e40facfff1eab4065614255d573293c10373'
 TOOLS = ('clang', 'clang++', 'ld.lld', 'llvm-ar', 'llvm-nm', 'llvm-strip',
          'llvm-objcopy', 'llvm-objdump', 'llvm-readelf')
 
@@ -29,7 +29,7 @@ def run(root, name, env, ok=True):
 def tests(root, anykernel):
     scripts = root / 'scripts/ci'
     scripts.mkdir(parents=True)
-    for name in ('build-kernel.sh', 'package-anykernel.sh', 'anykernel.sh'):
+    for name in ('build-kernel.sh', 'package-anykernel.sh', 'anykernel.sh', 'neutron-toolchain.py'):
         shutil.copyfile(ROOT / 'scripts/ci' / name, scripts / name)
     (root / 'scripts/config').write_bytes((ROOT / 'scripts/config').read_bytes())
     (root / 'scripts/config').chmod(0o755)
@@ -45,10 +45,29 @@ def tests(root, anykernel):
     (toolchain / 'bin').mkdir(parents=True)
     for name in TOOLS:
         p = toolchain / 'bin' / name
-        p.write_text('#!/bin/sh\necho "Fixture clang version 23.0.1"\n')
+        p.write_text('#!/bin/sh\necho "Neutron clang version 24.0.0git (SYNTHETIC FIXTURE)"\n')
+        p.chmod(0o755)
+    hostbin = root / 'host-llvm'
+    hostbin.mkdir()
+    for name in ('clang', 'clang++', 'ld.lld'):
+        p = hostbin / name
+        p.write_text('#!/bin/sh\necho "Native fixture clang version 24.0.0"\n')
         p.chmod(0o755)
     fakebin = root / 'fakebin'
     fakebin.mkdir()
+    # Synthetic uncompressed tar + zstd stub: tests verifier/build contracts,
+    # NOT a downloaded Neutron toolchain or its real decompression.
+    for name, body in [('zstd', 'cat "$2"'),
+                       ('getconf', 'echo "glibc 2.43"')]:
+        p = fakebin / name
+        p.write_text('#!/bin/sh\n' + body + '\n')
+        p.chmod(0o755)
+    archive = toolchain / '.neutron-archive.tar.zst'
+    with tarfile.open(archive, 'w') as tar:
+        tar.add(toolchain / 'bin', arcname='bin')
+    lock = json.loads((ROOT / 'scripts/ci/neutron.lock.json').read_text())
+    lock['archive_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
+    (scripts / 'neutron.lock.json').write_text(json.dumps(lock))
     p = fakebin / 'make'
     p.write_text('''#!/usr/bin/env python3
 import json, pathlib, sys
@@ -64,27 +83,30 @@ if 'Image.gz-dtb' in sys.argv:
  p.write_text('fixture-not-bootable\\n')
 ''')
     p.chmod(0o755)
-    env = {'TOOLCHAIN_DIR': str(toolchain), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
+    env = {'TOOLCHAIN_DIR': str(toolchain), 'HOST_LLVM_BIN': str(hostbin), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
            'DEFCONFIG': 'vendor/xiaomi/miatoll_defconfig', 'JOBS': '2'}
     run(root, 'build-kernel.sh', {**env, 'DEFCONFIG': '../../escape_defconfig'}, False)
     run(root, 'build-kernel.sh', {**env, 'JOBS': '-j8'}, False)
     run(root, 'build-kernel.sh', env, False)  # missing compiler pin
-    (toolchain / 'aosp-prebuilts-commit.txt').write_text('wrong\n')
+    (toolchain / 'neutron-install.json').write_text('{}\n')
     run(root, 'build-kernel.sh', env, False)
-    (toolchain / 'aosp-prebuilts-commit.txt').write_text(PIN + '\n')
+    (toolchain / 'neutron-install.json').write_text(json.dumps(lock))
     run(root, 'build-kernel.sh', env)
     calls = [json.loads(x) for x in (root / 'make-calls.jsonl').read_text().splitlines()]
     assert len(calls) == 4
     for call in calls:
         assert 'LLVM_IAS=1' in call and 'ARCH=arm64' in call
         for variable in ('CC', 'AS', 'LD', 'AR', 'NM', 'STRIP', 'OBJCOPY',
-                         'OBJDUMP', 'READELF', 'HOSTCC', 'HOSTCXX'):
+                         'OBJDUMP', 'READELF'):
             assert any(x.startswith(variable + '=' + str(toolchain / 'bin') + '/') for x in call), call
+        assert 'HOSTCC=' + str(hostbin / 'clang') in call
+        assert 'HOSTCXX=' + str(hostbin / 'clang++') in call
+        assert 'HOSTLDFLAGS=-fuse-ld=' + str(hostbin / 'ld.lld') in call
     assert '# CONFIG_LLVM_POLLY is not set' in (root / 'out/.config').read_text()
     for option in ('ARM64', 'KERNEL_MODE_NEON', 'LZ4_DECOMPRESS', 'LZ4_ARM64_ACCEL'):
         log = run(root, 'build-kernel.sh', {**env, 'DROP_OPTION': option}, False)
         assert 'Required miatoll LZ4 acceleration option lost: CONFIG_' + option in log
-    print('PASS: synthetic build script flow, all LLVM overrides, invalid input/pin rejection; four resolved LZ4 config guards')
+    print('PASS: synthetic build script flow, all LLVM overrides, invalid input/pin rejection; four resolved LZ4 config guards; separate native host LLVM')
 
     if anykernel:
         env = {'ANYKERNEL_DIR': str(anykernel), 'GITHUB_RUN_NUMBER': 'fixture',
@@ -93,6 +115,7 @@ if 'Image.gz-dtb' in sys.argv:
         run(root, 'package-anykernel.sh', {**env, 'ANYKERNEL_DIR': str(root)}, False)
         run(root, 'package-anykernel.sh', env)
         archive, = (root / 'out/flashable').glob('*.zip')
+        assert '-neutron-06092026-' in archive.name
         with zipfile.ZipFile(archive) as z:
             assert z.read('Image.gz').startswith(b'SYNTHETIC SCRIPT FIXTURE')
             assert {'dtb', 'dtbo.img', 'anykernel.sh', 'tools/ak3-core.sh',

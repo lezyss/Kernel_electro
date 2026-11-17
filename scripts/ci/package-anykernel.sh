@@ -69,7 +69,7 @@ cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
 } > "$stage/build-info.txt"
 cp "$stage/build-info.txt" out/package-info.txt
 
-zipfile="$ROOT/out/flashable/Electro-miatoll-${release}-r614150-${build}.zip"
+zipfile="$ROOT/out/flashable/Electro-miatoll-${release}-neutron-06092026-${build}.zip"
 # Remove an earlier archive so zip cannot retain stale entries on local reruns.
 rm -f "$zipfile"
 (cd "$stage" && zip -9 -r "$zipfile" .)
