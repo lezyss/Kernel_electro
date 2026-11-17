@@ -1,4 +1,4 @@
-name: Build kernel (AOSP Clang r614150)
+name: Build kernel (Neutron Clang 06092026)
 
 on:
   workflow_dispatch:
@@ -20,65 +20,84 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 180
+    # Neutron 06092026 requires glibc >= 2.43. Keep it isolated from the
+    # runner host; pin the amd64 image, not a moving tag or Antman libc patch.
+    container:
+      image: ubuntu:26.04@sha256:88a381d5b5eeb2b35d3ad70925a362c37ce569daf43ede89ff818ec20e4d3794
+    defaults:
+      run:
+        shell: bash
     env:
-      CLANG_REVISION: r614150
-      AOSP_CLANG_COMMIT: 3b86e40facfff1eab4065614255d573293c10373
+      HOST_LLVM_BIN: /usr/bin
       DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
       KBUILD_BUILD_USER: github-actions
       KBUILD_BUILD_HOST: kernel-ci
     steps:
+      # Bootstrap before checkout: the minimal container may not include Git.
+      - name: Install container build dependencies and native host LLVM
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bc bison flex libssl-dev libelf-dev libncurses-dev \
+            make python3 python3-venv git curl ca-certificates cpio rsync zip unzip \
+            xz-utils zstd lz4 clang lld libclang-rt-dev
+
       - name: Check out kernel
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Test Neutron installer and build-script contracts (synthetic)
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            bc bison flex libssl-dev libelf-dev libncurses-dev \
-            make python3 git ca-certificates cpio rsync zip unzip \
-            xz-utils zstd lz4
+          python3 tools/testing/selftests/neutron/test_toolchain.py
+          python3 tools/testing/selftests/lz4/test_ci.py
 
-      - name: Restore AOSP toolchain
+      - name: Restore pinned Neutron toolchain
         id: clang-cache
         uses: actions/cache@v4
         with:
-          path: .toolchains/r614150
-          key: aosp-clang-linux-x86-${{ env.CLANG_REVISION }}-${{ env.AOSP_CLANG_COMMIT }}-v2
+          path: .toolchains/neutron-06092026
+          key: neutron-linux-x86_64-${{ hashFiles('scripts/ci/neutron.lock.json') }}-v1
 
-      - name: Download AOSP Clang r614150 (no GCC toolchain)
-        if: steps.clang-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Pin the snapshot: the same r614150 directory can be rebuilt upstream.
-          checkout="$RUNNER_TEMP/aosp-clang"
-          git init "$checkout"
-          git -C "$checkout" remote add origin \
-            https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
-          git -C "$checkout" sparse-checkout init --cone
-          git -C "$checkout" sparse-checkout set "clang-${CLANG_REVISION}"
-          git -C "$checkout" fetch --depth=1 --filter=blob:none origin "$AOSP_CLANG_COMMIT"
-          git -C "$checkout" checkout --detach FETCH_HEAD
-          test -x "$checkout/clang-${CLANG_REVISION}/bin/clang"
-          mkdir -p .toolchains
-          mv "$checkout/clang-${CLANG_REVISION}" ".toolchains/${CLANG_REVISION}"
-          git -C "$checkout" rev-parse HEAD > ".toolchains/${CLANG_REVISION}/aosp-prebuilts-commit.txt"
+      - name: Install or verify the pinned Antman-catalogue release
+        run: python3 scripts/ci/neutron-toolchain.py install
 
-      - name: Verify pinned toolchain provenance
-        shell: bash
+      - name: Record native host toolchain and container provenance
         run: |
-          set -euo pipefail
-          actual=$(cat ".toolchains/${CLANG_REVISION}/aosp-prebuilts-commit.txt")
-          if [[ "$actual" != "$AOSP_CLANG_COMMIT" ]]; then
-            echo "Toolchain commit mismatch: expected $AOSP_CLANG_COMMIT, got $actual" >&2
-            exit 1
+          mkdir -p out
+          cat /etc/os-release > out/host-environment.log
+          getconf GNU_LIBC_VERSION >> out/host-environment.log
+          clang --version >> out/host-environment.log
+          ld.lld --version >> out/host-environment.log
+          dpkg-query -W >> out/host-environment.log
+
+      - name: Test LZ4 v1.11.1 block codec and kernel adaptation
+        env:
+          TOOLCHAIN_DIR: ${{ github.workspace }}/.toolchains/neutron-06092026
+        run: |
+          mkdir -p out
+          set +e
+          bash scripts/ci/test-lz4.sh 2>&1 | tee out/lz4-driver.log
+          status=${PIPESTATUS[0]}
+          if (( status != 0 )); then
+            python3 -c 'from pathlib import Path; text="\n".join(Path("out/lz4-driver.log").read_text(errors="replace").splitlines()[-45:]); print("::error::" + text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))'
           fi
-          ".toolchains/${CLANG_REVISION}/bin/clang" --version
+          exit "$status"
 
       - name: Build with Clang and LLVM tools
         env:
-          TOOLCHAIN_DIR: ${{ github.workspace }}/.toolchains/r614150
-        run: bash scripts/ci/build-kernel.sh
+          TOOLCHAIN_DIR: ${{ github.workspace }}/.toolchains/neutron-06092026
+        run: |
+          mkdir -p out
+          set +e
+          bash scripts/ci/build-kernel.sh 2>&1 | tee out/kernel-driver.log
+          status=${PIPESTATUS[0]}
+          if (( status != 0 )); then
+            python3 -c 'from pathlib import Path; text="\n".join(Path("out/kernel-driver.log").read_text(errors="replace").splitlines()[-45:]); print("::error::" + text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))'
+          fi
+          exit "$status"
 
       - name: Check out pinned AnyKernel3 installer
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
@@ -89,6 +108,10 @@ jobs:
           path: out/anykernel3
           persist-credentials: false
 
+      - name: Test packaging script with synthetic payloads (not bootable)
+        if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
+        run: python3 tools/testing/selftests/lz4/test_ci.py --anykernel out/anykernel3
+
       - name: Package flashable miatoll kernel
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         shell: bash
@@ -98,7 +121,7 @@ jobs:
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         uses: actions/upload-artifact@v4
         with:
-          name: Electro-miatoll-AnyKernel3-r614150-${{ github.run_number }}
+          name: Electro-miatoll-AnyKernel3-neutron-06092026-${{ github.run_number }}
           path: |
             out/flashable/*.zip
             out/flashable/*.zip.sha256
@@ -109,7 +132,7 @@ jobs:
       - name: Upload kernel images and modules
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-arm64-clang-r614150-${{ github.run_number }}
+          name: kernel-arm64-neutron-06092026-${{ github.run_number }}
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/Image.gz
@@ -134,6 +157,8 @@ jobs:
             out/*.log
             out/.config
             out/build-info.txt
+            scripts/ci/neutron.lock.json
             out/package-info.txt
+            out/lz4-tests/*.log
           if-no-files-found: warn
           retention-days: 14
