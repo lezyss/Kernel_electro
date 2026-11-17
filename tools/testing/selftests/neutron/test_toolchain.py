@@ -137,6 +137,7 @@ class Toolchain(unittest.TestCase):
         self.assertIn('--cc "$HOST_TEST_CC" --upstream', script)
         self.assertIn('--asan --ubsan', script)
         self.assertIn('--cc "$TOOLCHAIN_DIR/bin/clang" --output out/lz4-tests/arm64', script)
+        self.assertIn('clang lld libclang-rt-dev', text)
         self.assertIn('020dfeccf9d7e962a48400fc94d3e451df92eead', text)
 
 

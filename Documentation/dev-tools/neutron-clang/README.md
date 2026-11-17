@@ -57,7 +57,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends \
   bc bison flex libssl-dev libelf-dev libncurses-dev make python3 python3-venv \
-  git curl ca-certificates cpio rsync zip unzip xz-utils zstd lz4 clang lld
+  git curl ca-certificates cpio rsync zip unzip xz-utils zstd lz4 clang lld libclang-rt-dev
 python3 scripts/ci/neutron-toolchain.py install
 HOST_LLVM_BIN=/usr/bin bash scripts/ci/test-lz4.sh
 HOST_LLVM_BIN=/usr/bin bash scripts/ci/build-kernel.sh
