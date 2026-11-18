@@ -45,7 +45,13 @@ def tests(root, anykernel):
     (toolchain / 'bin').mkdir(parents=True)
     for name in TOOLS:
         p = toolchain / 'bin' / name
-        p.write_text('#!/bin/sh\necho "Neutron clang version 24.0.0git (SYNTHETIC FIXTURE)"\n')
+        p.write_text('#!/bin/sh\n'
+                     'case " $* " in *" -polly "*)\n'
+                     '  test "${FAKE_POLLY_UNAVAILABLE:-0}" = 0 || exit 1\n'
+                     '  if test "${FAKE_POLLY_NO_PASS:-0}" = 0; then\n'
+                     '    echo "Running pass: polly::PollyFunctionPass on synthetic_fixture" >&2\n'
+                     '  fi ;;\nesac\n'
+                     'echo "Neutron clang version 24.0.0git (SYNTHETIC FIXTURE)"\n')
         p.chmod(0o755)
     hostbin = root / 'host-llvm'
     hostbin.mkdir()
@@ -83,10 +89,11 @@ if 'Image.gz-dtb' in sys.argv:
  p.write_text('fixture-not-bootable\\n')
 ''')
     p.chmod(0o755)
-    env = {'TOOLCHAIN_DIR': str(toolchain), 'HOST_LLVM_BIN': str(hostbin), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
+    env = {'ENABLE_POLLY': '0', 'TOOLCHAIN_DIR': str(toolchain), 'HOST_LLVM_BIN': str(hostbin), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
            'DEFCONFIG': 'vendor/xiaomi/miatoll_defconfig', 'JOBS': '2'}
     run(root, 'build-kernel.sh', {**env, 'DEFCONFIG': '../../escape_defconfig'}, False)
     run(root, 'build-kernel.sh', {**env, 'JOBS': '-j8'}, False)
+    run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': 'yes'}, False)
     run(root, 'build-kernel.sh', env, False)  # missing compiler pin
     (toolchain / 'neutron-install.json').write_text('{}\n')
     run(root, 'build-kernel.sh', env, False)
@@ -106,7 +113,19 @@ if 'Image.gz-dtb' in sys.argv:
     for option in ('ARM64', 'KERNEL_MODE_NEON', 'LZ4_DECOMPRESS', 'LZ4_ARM64_ACCEL'):
         log = run(root, 'build-kernel.sh', {**env, 'DROP_OPTION': option}, False)
         assert 'Required miatoll LZ4 acceleration option lost: CONFIG_' + option in log
-    print('PASS: synthetic build script flow, all LLVM overrides, invalid input/pin rejection; four resolved LZ4 config guards; separate native host LLVM')
+    # Opt-in enables only the generated config and proves pipeline scheduling.
+    # These remain fake toolchain contracts, not real Polly/ARM64 compilation.
+    run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1'})
+    assert 'CONFIG_LLVM_POLLY=y' in (root / 'out/.config').read_text().splitlines()
+    assert 'Experimental Polly: 1' in (root / 'out/build-info.txt').read_text()
+    assert 'PollyFunctionPass' in (root / 'out/polly-probe.log').read_text()
+    run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1', 'FAKE_POLLY_UNAVAILABLE': '1'}, False)
+    log = run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1', 'FAKE_POLLY_NO_PASS': '1'}, False)
+    assert 'no Polly pass ran' in log
+    # Do not leave the optional path selected when testing the baseline packager.
+    run(root, 'build-kernel.sh', env)
+    assert '# CONFIG_LLVM_POLLY is not set' in (root / 'out/.config').read_text()
+    print('PASS: synthetic build script flow, LLVM overrides, invalid input/pin rejection; four resolved LZ4 guards; native host LLVM; opt-in Polly and unavailable/no-pass rejection')
 
     if anykernel:
         env = {'ANYKERNEL_DIR': str(anykernel), 'GITHUB_RUN_NUMBER': 'fixture',
@@ -128,6 +147,11 @@ if 'Image.gz-dtb' in sys.argv:
         with zipfile.ZipFile(archive, 'a') as z: z.writestr('STALE-ENTRY', b'stale')
         run(root, 'package-anykernel.sh', env)
         with zipfile.ZipFile(archive) as z: assert 'STALE-ENTRY' not in z.namelist()
+        with (root / 'out/.config').open('a') as f:
+            f.write('CONFIG_LLVM_POLLY=y\n')
+        run(root, 'package-anykernel.sh', env)
+        polly_archive, = (root / 'out/flashable').glob('*-polly-*.zip')
+        assert polly_archive != archive
         (root / 'out/arch/arm64/boot/Image.gz').unlink()
         run(root, 'package-anykernel.sh', env, False)
         print('PASS: synthetic pinned-AK3 package, layout/checksum/stale-entry and negative checks')

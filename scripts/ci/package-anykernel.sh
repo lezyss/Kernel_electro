@@ -41,6 +41,11 @@ if [[ "$(git -C "$ANYKERNEL_DIR" rev-parse --show-toplevel)" != "$ANYKERNEL_DIR"
 fi
 release=$(cat out/include/config/kernel.release)
 build=${GITHUB_RUN_NUMBER:-local}
+# Derive the label from the actual resolved build, not a caller's environment.
+variant=
+if grep -qx 'CONFIG_LLVM_POLLY=y' out/.config; then
+    variant=-polly
+fi
 if [[ ! "$release" =~ ^[a-zA-Z0-9._+-]+$ || ! "$build" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     echo "Invalid release or build identifier for ZIP filename" >&2
     exit 1
@@ -69,7 +74,7 @@ cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
 } > "$stage/build-info.txt"
 cp "$stage/build-info.txt" out/package-info.txt
 
-zipfile="$ROOT/out/flashable/Electro-miatoll-${release}-neutron-06092026-${build}.zip"
+zipfile="$ROOT/out/flashable/Electro-miatoll-${release}-neutron-06092026${variant}-${build}.zip"
 # Remove an earlier archive so zip cannot retain stale entries on local reruns.
 rm -f "$zipfile"
 (cd "$stage" && zip -9 -r "$zipfile" .)

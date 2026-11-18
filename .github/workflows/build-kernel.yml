@@ -8,6 +8,10 @@ on:
         type: string
         default: vendor/xiaomi/miatoll_defconfig
         required: true
+      polly:
+        description: Experimental minimal Polly optimization (not boot-qualified)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,6 +32,7 @@ jobs:
       run:
         shell: bash
     env:
+      ENABLE_POLLY: ${{ inputs.polly && '1' || '0' }}
       HOST_LLVM_BIN: /usr/bin
       DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
       KBUILD_BUILD_USER: github-actions
@@ -121,7 +126,7 @@ jobs:
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         uses: actions/upload-artifact@v4
         with:
-          name: Electro-miatoll-AnyKernel3-neutron-06092026-${{ github.run_number }}
+          name: Electro-miatoll-AnyKernel3-neutron-06092026${{ inputs.polly && '-polly' || '' }}-${{ github.run_number }}
           path: |
             out/flashable/*.zip
             out/flashable/*.zip.sha256
@@ -132,7 +137,7 @@ jobs:
       - name: Upload kernel images and modules
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-arm64-neutron-06092026-${{ github.run_number }}
+          name: kernel-arm64-neutron-06092026${{ inputs.polly && '-polly' || '' }}-${{ github.run_number }}
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/Image.gz
@@ -157,6 +162,7 @@ jobs:
             out/*.log
             out/.config
             out/build-info.txt
+            out/polly-probe.ll
             scripts/ci/neutron.lock.json
             out/package-info.txt
             out/lz4-tests/*.log
