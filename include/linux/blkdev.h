@@ -527,6 +527,9 @@ struct request_queue {
 	struct device		*dev;
 	int			rpm_status;
 	unsigned int		nr_pending;
+#ifdef CONFIG_BLK_MQ_RUNTIME_PM
+	atomic_t		mq_pm_only;
+#endif
 #endif
 
 	/*
@@ -998,6 +1001,8 @@ extern int sg_scsi_ioctl(struct request_queue *, struct gendisk *, fmode_t,
 			 struct scsi_ioctl_command __user *);
 
 extern int blk_queue_enter(struct request_queue *q, bool nowait);
+/* Internal mq admission with an allocation-time PM/preempt exemption. */
+extern int blk_queue_enter_pm(struct request_queue *q, bool nowait, bool pm);
 extern void blk_queue_exit(struct request_queue *q);
 extern void blk_start_queue(struct request_queue *q);
 extern void blk_start_queue_async(struct request_queue *q);

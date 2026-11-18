@@ -92,12 +92,14 @@ if 'Image.gz-dtb' in sys.argv:
  p.write_text('fixture-not-bootable\\n')
 ''')
     p.chmod(0o755)
-    env = {'TEST_SCSI_MQ': '0', 'ENABLE_POLLY': '0', 'TOOLCHAIN_DIR': str(toolchain), 'HOST_LLVM_BIN': str(hostbin), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
+    env = {'TEST_SCSI_MQ_PM': '0', 'TEST_SCSI_MQ': '0', 'ENABLE_POLLY': '0', 'TOOLCHAIN_DIR': str(toolchain), 'HOST_LLVM_BIN': str(hostbin), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
            'DEFCONFIG': 'vendor/xiaomi/miatoll_defconfig', 'JOBS': '2'}
     run(root, 'build-kernel.sh', {**env, 'DEFCONFIG': '../../escape_defconfig'}, False)
     run(root, 'build-kernel.sh', {**env, 'JOBS': '-j8'}, False)
     run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': 'yes'}, False)
     run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': 'yes'}, False)
+    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ_PM': 'yes'}, False)
+    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ_PM': '1'}, False)
     run(root, 'build-kernel.sh', env, False)  # missing compiler pin
     (toolchain / 'neutron-install.json').write_text('{}\n')
     run(root, 'build-kernel.sh', env, False)
@@ -142,6 +144,11 @@ if 'Image.gz-dtb' in sys.argv:
                    'BLK_INLINE_ENCRYPTION_FALLBACK', 'IOSCHED_CFQ', 'DEFAULT_CFQ'):
         log = run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': '1', 'DROP_MQ_OPTION': option}, False)
         assert 'SCSI mq experiment lost required CONFIG_' + option in log
+    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': '1', 'TEST_SCSI_MQ_PM': '1'})
+    assert 'CONFIG_BLK_MQ_RUNTIME_PM=y' in (root / 'out/.config').read_text().splitlines()
+    log = run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': '1', 'TEST_SCSI_MQ_PM': '1',
+                                      'DROP_MQ_OPTION': 'BLK_MQ_RUNTIME_PM'}, False)
+    assert 'lost CONFIG_BLK_MQ_RUNTIME_PM=y' in log
     print('PASS: SCSI mq default-off, opt-in with Polly, invalid selection and ten resolved-config guards')
     # Select the explicit opt-out when testing the no-Polly packager.
     run(root, 'build-kernel.sh', env)
@@ -182,6 +189,12 @@ if 'Image.gz-dtb' in sys.argv:
         mq_archive, = (root / 'out/flashable').glob('*-polly-scsi-mq-*.zip')
         with zipfile.ZipFile(mq_archive) as z:
             assert 'EXPERIMENTAL SCSI blk-mq' in z.read('build-info.txt').decode()
+        with (root / 'out/.config').open('a') as f:
+            f.write('CONFIG_BLK_MQ_RUNTIME_PM=y\n')
+        run(root, 'package-anykernel.sh', env)
+        pm_archive, = (root / 'out/flashable').glob('*-scsi-mq-pm-*.zip')
+        with zipfile.ZipFile(pm_archive) as z:
+            assert 'EXPERIMENTAL mq runtime-PM backport' in z.read('build-info.txt').decode()
         (root / 'out/arch/arm64/boot/Image.gz').unlink()
         run(root, 'package-anykernel.sh', env, False)
         print('PASS: synthetic pinned-AK3 package, layout/checksum/stale-entry and negative checks')

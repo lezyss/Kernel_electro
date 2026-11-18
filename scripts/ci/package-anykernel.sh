@@ -53,6 +53,13 @@ if grep -qx 'CONFIG_SCSI_MQ_DEFAULT=y' out/.config; then
         exit 1
     fi
 fi
+if grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
+    if [[ "$variant" != *-scsi-mq ]]; then
+        echo "mq runtime PM package requires SCSI mq selection" >&2
+        exit 1
+    fi
+    variant+=-pm
+fi
 if [[ ! "$release" =~ ^[a-zA-Z0-9._+-]+$ || ! "$build" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     echo "Invalid release or build identifier for ZIP filename" >&2
     exit 1
@@ -77,6 +84,9 @@ cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
     echo "Devices: curtana, joyeuse, excalibur, gram (miatoll)"
     if [[ "$variant" == *-scsi-mq* ]]; then
         echo "EXPERIMENTAL SCSI blk-mq: runtime queue mode, crypto, recovery and PM require device validation"
+    fi
+    if [[ "$variant" == *-scsi-mq-pm ]]; then
+        echo "EXPERIMENTAL mq runtime-PM backport: requires device suspend/resume and integrity retest"
     fi
     if [[ -f out/build-info.txt ]]; then
         cat out/build-info.txt

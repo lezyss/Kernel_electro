@@ -2,9 +2,9 @@
 
 ## Scope and evidence
 
-This is a queue-path experiment, **not an ADIOS port**. No UFS, SCSI, Qualcomm
-ICE, filesystem, device-tree, boot-argument or PM implementation is changed.
-Only the generated build configuration adds:
+This is a queue-path experiment, **not an ADIOS port**. The initial mq-only
+selection changes generated configuration, not vendor UFS/ICE, filesystems,
+device-tree or boot arguments. It adds:
 
 ```
 CONFIG_SCSI_MQ_DEFAULT=y
@@ -28,6 +28,24 @@ User-provided runtime evidence from the existing legacy build:
 
 No device identifiers or full boot command line are retained here.
 
+## Runtime-PM regression discovered by device A/B
+
+**The initial review below missed an explicit block-layer PM disable.**
+The user booted the mq trial and verified host mq, mq-deadline and basic
+file/reboot/unlock behavior, but sda reported `runtime_status=unsupported` and
+the controller had zero suspended time. The CFQ comparison accumulated about
+10 seconds of runtime-suspended time on both controller and sda.
+`blk_pm_runtime_init()` explicitly calls `pm_runtime_disable()` on mq queues.
+This is not a hardware-capability failure and cannot be repaired with
+`power/control=auto` alone. Runtime suspend working on CFQ does not prove deep
+system suspend; battery impact has not been measured.
+
+CFQ remains the daily-driver baseline. A separate **default-off**
+[experimental runtime-PM adaptation](../scsi-mq-pm/README.md) adds the missing
+admission/refcount integration, not merely guard removal. It requires both
+`scsi_mq=true` and `scsi_mq_pm=true`, a full build and new device qualification.
+The mq-only selection retains its known PM limitation.
+
 ## Bounded source review (not a concurrency/safety proof)
 
 | Area | Existing source path | Remaining qualification |
@@ -39,9 +57,10 @@ No device identifiers or full boot command line are retained here.
 | Recovery | SCSI mq supplies a timeout callback into `scsi_times_out`; UFS registers abort, device-reset, host-reset and timed-out handlers. Request blocking/unblocking and mq-aware device quiescing already exist in SCSI. | Source presence does not prove recovery races are safe. Controlled hardware/error testing remains unperformed; do not inject faults into daily-driver mounted data. |
 | PM/crypto restore | UFS suspend/resume calls shared crypto hooks. Crypto enable has key reprogramming support; Qualcomm supplies its own enable/resume operations. Clock-gating and hibern8 holds remain in the shared request path. | Runtime PM, verified system suspend, reset/key restoration and unlock cycles require device tests. |
 
-This inspection found a plausible existing integration path and no explicit UFS
-mq prohibition in the reviewed selection code. It is not an exhaustive block
-stack audit, a guarantee of encrypted-data integrity, or a runtime sign-off.
+The reviewed UFS selection code had no explicit mq prohibition, but that was
+not sufficient: the block-layer runtime-PM disable above was missed. This
+inspection is not an exhaustive block-stack audit, an encrypted-data integrity
+guarantee, or runtime sign-off.
 
 `block/elevator.c:elevator_init` tries built-in `mq-deadline` when the mq queue
 has one hardware queue, otherwise falls back to `none` if no scheduler was
@@ -72,8 +91,10 @@ remains `4.14.357-electro`; SUSFS uname spoofing is unchanged.
 
 Local synthetic fixtures cover default-off, explicit opt-in alongside Polly,
 invalid selection, ten lost-option cases and labeled packaging. They do not run
-UFS or prove the actual Kconfig dependencies resolve. The real CI build must
-provide that compilation/configuration evidence, followed by device testing.
+UFS or prove the actual Kconfig dependencies resolve. A later host run of the
+real Kconfig parser resolved the miatoll PM trial with the expected options and
+legacy/crypto guards. The compatible CI build must still supply compilation
+evidence, followed by device testing.
 
 ## Before flashing and first checks
 

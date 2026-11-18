@@ -26,6 +26,17 @@ menuconfig BLOCK
 
 if BLOCK
 
+config BLK_MQ_RUNTIME_PM
+	bool "Experimental runtime PM for SCSI blk-mq"
+	depends on PM && SCSI_MQ_DEFAULT
+	default n
+	help
+	  Enable the adapted request-admission and queue-reference protocol for
+	  runtime PM on blk-mq queues. This is an experimental 4.14 backport;
+	  enable only for controlled storage testing with a recoverable image.
+	  Legacy request queues retain their existing runtime PM implementation.
+	  If unsure, say N.
+
 config LBDAF
 	bool "Support for large (2TB+) block devices and files"
 	depends on !64BIT

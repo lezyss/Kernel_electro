@@ -9,6 +9,16 @@ DEFCONFIG=${DEFCONFIG:-vendor/xiaomi/miatoll_defconfig}
 JOBS=${JOBS:-$(nproc)}
 ENABLE_POLLY=${ENABLE_POLLY:-1}
 TEST_SCSI_MQ=${TEST_SCSI_MQ:-0}
+TEST_SCSI_MQ_PM=${TEST_SCSI_MQ_PM:-0}
+
+if [[ "$TEST_SCSI_MQ_PM" != 0 && "$TEST_SCSI_MQ_PM" != 1 ]]; then
+    echo "TEST_SCSI_MQ_PM must be 0 or 1" >&2
+    exit 1
+fi
+if [[ "$TEST_SCSI_MQ_PM" == 1 && "$TEST_SCSI_MQ" != 1 ]]; then
+    echo "SCSI mq runtime PM requires TEST_SCSI_MQ=1" >&2
+    exit 1
+fi
 
 if [[ "$TEST_SCSI_MQ" != 0 && "$TEST_SCSI_MQ" != 1 ]]; then
     echo "TEST_SCSI_MQ must be 0 or 1" >&2
@@ -67,6 +77,7 @@ rm -f out/polly-probe.ll out/polly-probe.log
     echo "Tracked worktree changes: $(git status --porcelain --untracked-files=no | wc -l)"
     echo "Defconfig: $DEFCONFIG"
     echo "Experimental SCSI blk-mq: $TEST_SCSI_MQ (runtime activation must be verified)"
+    echo "Experimental SCSI mq runtime PM: $TEST_SCSI_MQ_PM"
     echo "LLVM Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
     echo "Neutron lock:"
@@ -112,7 +123,21 @@ fi
 if [[ "$TEST_SCSI_MQ" == 1 ]]; then
     scripts/config --file out/.config --enable SCSI_MQ_DEFAULT --enable MQ_IOSCHED_DEADLINE
 fi
+if [[ "$TEST_SCSI_MQ_PM" == 1 ]]; then
+    scripts/config --file out/.config --enable BLK_MQ_RUNTIME_PM
+else
+    scripts/config --file out/.config --disable BLK_MQ_RUNTIME_PM
+fi
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
+if [[ "$TEST_SCSI_MQ_PM" == 1 ]]; then
+    if ! grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
+        echo "SCSI mq runtime PM lost CONFIG_BLK_MQ_RUNTIME_PM=y" >&2
+        exit 1
+    fi
+elif grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
+    echo "SCSI mq runtime PM must remain disabled without explicit selection" >&2
+    exit 1
+fi
 if [[ "$TEST_SCSI_MQ" == 1 ]]; then
     for option in SCSI_MQ_DEFAULT MQ_IOSCHED_DEADLINE SCSI_UFSHCD SCSI_UFS_QCOM \
                   SCSI_UFS_CRYPTO SCSI_UFS_CRYPTO_QTI BLK_INLINE_ENCRYPTION \

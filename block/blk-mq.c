@@ -31,6 +31,7 @@
 #include <linux/blk-mq.h>
 #include "blk.h"
 #include "blk-mq.h"
+#include "blk-mq-pm.h"
 #include "blk-mq-debugfs.h"
 #include "blk-mq-tag.h"
 #include "blk-stat.h"
@@ -200,7 +201,11 @@ void blk_mq_unfreeze_queue(struct request_queue *q)
 	freeze_depth = atomic_dec_return(&q->mq_freeze_depth);
 	WARN_ON_ONCE(freeze_depth < 0);
 	if (!freeze_depth) {
-		percpu_ref_reinit(&q->q_usage_counter);
+		/* Runtime PM can abort a freeze with requests still in flight. */
+		if (blk_mq_pm_managed(q))
+			percpu_ref_resurrect(&q->q_usage_counter);
+		else
+			percpu_ref_reinit(&q->q_usage_counter);
 		wake_up_all(&q->mq_freeze_wq);
 	}
 }
@@ -411,7 +416,8 @@ struct request *blk_mq_alloc_request(struct request_queue *q, unsigned int op,
 	struct request *rq;
 	int ret;
 
-	ret = blk_queue_enter(q, flags & BLK_MQ_REQ_NOWAIT);
+	ret = blk_queue_enter_pm(q, flags & BLK_MQ_REQ_NOWAIT,
+				flags & BLK_MQ_REQ_PREEMPT);
 	if (ret)
 		return ERR_PTR(ret);
 
@@ -426,6 +432,8 @@ struct request *blk_mq_alloc_request(struct request_queue *q, unsigned int op,
 	rq->__data_len = 0;
 	rq->__sector = (sector_t) -1;
 	rq->bio = rq->biotail = NULL;
+	if (flags & BLK_MQ_REQ_PREEMPT)
+		rq->rq_flags |= RQF_PREEMPT;
 	return rq;
 }
 EXPORT_SYMBOL(blk_mq_alloc_request);
@@ -450,7 +458,7 @@ struct request *blk_mq_alloc_request_hctx(struct request_queue *q,
 	if (hctx_idx >= q->nr_hw_queues)
 		return ERR_PTR(-EIO);
 
-	ret = blk_queue_enter(q, true);
+	ret = blk_queue_enter_pm(q, true, flags & BLK_MQ_REQ_PREEMPT);
 	if (ret)
 		return ERR_PTR(ret);
 
@@ -472,6 +480,8 @@ struct request *blk_mq_alloc_request_hctx(struct request_queue *q,
 	if (!rq)
 		return ERR_PTR(-EWOULDBLOCK);
 
+	if (flags & BLK_MQ_REQ_PREEMPT)
+		rq->rq_flags |= RQF_PREEMPT;
 	return rq;
 }
 EXPORT_SYMBOL_GPL(blk_mq_alloc_request_hctx);
@@ -484,6 +494,7 @@ void blk_mq_free_request(struct request *rq)
 	struct blk_mq_hw_ctx *hctx = blk_mq_map_queue(q, ctx->cpu);
 	const int sched_tag = rq->internal_tag;
 
+	blk_mq_pm_mark_last_busy(rq);
 	if (rq->rq_flags & RQF_ELVPRIV) {
 		if (e && e->type->ops.mq.finish_request)
 			e->type->ops.mq.finish_request(rq);

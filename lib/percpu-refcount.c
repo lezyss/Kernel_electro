@@ -354,16 +354,27 @@ EXPORT_SYMBOL_GPL(percpu_ref_kill_and_confirm);
  */
 void percpu_ref_reinit(struct percpu_ref *ref)
 {
+	WARN_ON_ONCE(!percpu_ref_is_zero(ref));
+	percpu_ref_resurrect(ref);
+}
+EXPORT_SYMBOL_GPL(percpu_ref_reinit);
+
+/**
+ * percpu_ref_resurrect - revive a killed reference, possibly still nonzero
+ * @ref: killed reference which has not exited
+ *
+ * Unlike reinit, this permits undoing a freeze before all users have left.
+ * The caller must keep the reference storage alive across the operation.
+ */
+void percpu_ref_resurrect(struct percpu_ref *ref)
+{
 	unsigned long flags;
 
 	spin_lock_irqsave(&percpu_ref_switch_lock, flags);
-
-	WARN_ON_ONCE(!percpu_ref_is_zero(ref));
-
+	WARN_ON_ONCE(!(ref->percpu_count_ptr & __PERCPU_REF_DEAD));
 	ref->percpu_count_ptr &= ~__PERCPU_REF_DEAD;
 	percpu_ref_get(ref);
 	__percpu_ref_switch_mode(ref, NULL);
-
 	spin_unlock_irqrestore(&percpu_ref_switch_lock, flags);
 }
-EXPORT_SYMBOL_GPL(percpu_ref_reinit);
+EXPORT_SYMBOL_GPL(percpu_ref_resurrect);

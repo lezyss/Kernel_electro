@@ -16,6 +16,10 @@ on:
         description: Experimental UFS/SCSI blk-mq with mq-deadline available (backup required)
         type: boolean
         default: false
+      scsi_mq_pm:
+        description: Experimental mq runtime-PM backport (requires scsi_mq)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,6 +42,7 @@ jobs:
     env:
       ENABLE_POLLY: ${{ inputs.polly && '1' || '0' }}
       TEST_SCSI_MQ: ${{ inputs.scsi_mq && '1' || '0' }}
+      TEST_SCSI_MQ_PM: ${{ inputs.scsi_mq_pm && '1' || '0' }}
       HOST_LLVM_BIN: /usr/bin
       DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
       KBUILD_BUILD_USER: github-actions
@@ -62,6 +67,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           python3 tools/testing/selftests/neutron/test_toolchain.py
+          python3 tools/testing/selftests/scsi_mq_pm/test_pm.py --cc /usr/bin/clang
           python3 tools/testing/selftests/lz4/test_ci.py
 
       - name: Restore pinned Neutron toolchain
@@ -131,7 +137,7 @@ jobs:
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         uses: actions/upload-artifact@v4
         with:
-          name: Electro-miatoll-AnyKernel3-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}-${{ github.run_number }}
+          name: Electro-miatoll-AnyKernel3-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}-${{ github.run_number }}
           path: |
             out/flashable/*.zip
             out/flashable/*.zip.sha256
@@ -142,7 +148,7 @@ jobs:
       - name: Upload kernel images and modules
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-arm64-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}-${{ github.run_number }}
+          name: kernel-arm64-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}-${{ github.run_number }}
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/Image.gz

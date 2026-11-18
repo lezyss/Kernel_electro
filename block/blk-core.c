@@ -41,6 +41,7 @@
 #include <trace/events/block.h>
 
 #include "blk.h"
+#include "blk-mq-pm.h"
 #include "blk-mq.h"
 #include "blk-mq-sched.h"
 #include "blk-wbt.h"
@@ -813,11 +814,23 @@ struct request_queue *blk_alloc_queue(gfp_t gfp_mask)
 }
 EXPORT_SYMBOL(blk_alloc_queue);
 
-int blk_queue_enter(struct request_queue *q, bool nowait)
+int blk_queue_enter_pm(struct request_queue *q, bool nowait, bool pm)
 {
 	while (true) {
+		bool success = false;
 
-		if (percpu_ref_tryget_live(&q->q_usage_counter))
+		/* Paired with this tree's call_rcu_sched() refcount switch. */
+		rcu_read_lock_sched();
+		if (percpu_ref_tryget_live(&q->q_usage_counter)) {
+			if (pm || !blk_mq_pm_only(q)) {
+				success = true;
+			} else {
+				blk_mq_pm_request_resume(q);
+				percpu_ref_put(&q->q_usage_counter);
+			}
+		}
+		rcu_read_unlock_sched();
+		if (success)
 			return 0;
 
 		if (nowait)
@@ -833,11 +846,18 @@ int blk_queue_enter(struct request_queue *q, bool nowait)
 		smp_rmb();
 
 		wait_event(q->mq_freeze_wq,
-			   !atomic_read(&q->mq_freeze_depth) ||
+			   (!atomic_read(&q->mq_freeze_depth) &&
+			    (pm || (blk_mq_pm_request_resume(q),
+				    !blk_mq_pm_only(q)))) ||
 			   blk_queue_dying(q));
 		if (blk_queue_dying(q))
 			return -ENODEV;
 	}
+}
+
+int blk_queue_enter(struct request_queue *q, bool nowait)
+{
+	return blk_queue_enter_pm(q, nowait, false);
 }
 
 void blk_queue_exit(struct request_queue *q)
@@ -3549,7 +3569,7 @@ EXPORT_SYMBOL(blk_finish_plug);
 void blk_pm_runtime_init(struct request_queue *q, struct device *dev)
 {
 	/* Don't enable runtime PM for blk-mq until it is ready */
-	if (q->mq_ops) {
+	if (q->mq_ops && !IS_ENABLED(CONFIG_BLK_MQ_RUNTIME_PM)) {
 		pm_runtime_disable(dev);
 		return;
 	}
@@ -3560,6 +3580,41 @@ void blk_pm_runtime_init(struct request_queue *q, struct device *dev)
 	pm_runtime_use_autosuspend(q->dev);
 }
 EXPORT_SYMBOL(blk_pm_runtime_init);
+
+#ifdef CONFIG_BLK_MQ_RUNTIME_PM
+/* Adapted from 7cedffec8e75, including fa4d0f1992a9 admission race fix. */
+static int blk_mq_pm_pre_suspend(struct request_queue *q)
+{
+	int ret = -EBUSY;
+
+	WARN_ON_ONCE(q->rpm_status != RPM_ACTIVE);
+	spin_lock_irq(q->queue_lock);
+	q->rpm_status = RPM_SUSPENDING;
+	spin_unlock_irq(q->queue_lock);
+
+	blk_mq_pm_set_only(q);
+	blk_freeze_queue_start(q);
+	/* Collect all live request/submission references and publish the gate. */
+	percpu_ref_switch_to_atomic_sync(&q->q_usage_counter);
+	if (percpu_ref_is_zero(&q->q_usage_counter))
+		ret = 0;
+	/*
+	 * Old 4.14 force_atomic survives reinit; restore its original policy
+	 * while the reference is still dead, before resurrecting it.
+	 */
+	percpu_ref_switch_to_percpu(&q->q_usage_counter);
+	blk_mq_unfreeze_queue(q);
+
+	if (ret) {
+		spin_lock_irq(q->queue_lock);
+		q->rpm_status = RPM_ACTIVE;
+		pm_runtime_mark_last_busy(q->dev);
+		spin_unlock_irq(q->queue_lock);
+		blk_mq_pm_clear_only(q);
+	}
+	return ret;
+}
+#endif
 
 /**
  * blk_pre_runtime_suspend - Pre runtime suspend check
@@ -3588,6 +3643,10 @@ int blk_pre_runtime_suspend(struct request_queue *q)
 
 	if (!q->dev)
 		return ret;
+#ifdef CONFIG_BLK_MQ_RUNTIME_PM
+	if (blk_mq_pm_managed(q))
+		return blk_mq_pm_pre_suspend(q);
+#endif
 
 	spin_lock_irq(q->queue_lock);
 	if (q->nr_pending) {
@@ -3627,6 +3686,10 @@ void blk_post_runtime_suspend(struct request_queue *q, int err)
 		pm_runtime_mark_last_busy(q->dev);
 	}
 	spin_unlock_irq(q->queue_lock);
+#ifdef CONFIG_BLK_MQ_RUNTIME_PM
+	if (err && blk_mq_pm_managed(q))
+		blk_mq_pm_clear_only(q);
+#endif
 }
 EXPORT_SYMBOL(blk_post_runtime_suspend);
 
@@ -3670,6 +3733,15 @@ void blk_post_runtime_resume(struct request_queue *q, int err)
 {
 	if (!q->dev)
 		return;
+#ifdef CONFIG_BLK_MQ_RUNTIME_PM
+	if (blk_mq_pm_managed(q)) {
+		/* 6e1fcab00a23: recovery must not deadlock behind a failed resume.
+		 * The caller still returns the device callback's original error.
+		 */
+		blk_set_runtime_active(q);
+		return;
+	}
+#endif
 
 	spin_lock_irq(q->queue_lock);
 	if (!err) {
@@ -3700,6 +3772,22 @@ EXPORT_SYMBOL(blk_post_runtime_resume);
  */
 void blk_set_runtime_active(struct request_queue *q)
 {
+#ifdef CONFIG_BLK_MQ_RUNTIME_PM
+	if (blk_mq_pm_managed(q)) {
+		int old_status;
+
+		spin_lock_irq(q->queue_lock);
+		old_status = q->rpm_status;
+		q->rpm_status = RPM_ACTIVE;
+		pm_runtime_mark_last_busy(q->dev);
+		pm_request_autosuspend(q->dev);
+		spin_unlock_irq(q->queue_lock);
+		/* 8f38f8e0a30e: system resume may arrive already active. */
+		if (old_status != RPM_ACTIVE)
+			blk_mq_pm_clear_only(q);
+		return;
+	}
+#endif
 	spin_lock_irq(q->queue_lock);
 	q->rpm_status = RPM_ACTIVE;
 	pm_runtime_mark_last_busy(q->dev);
