@@ -10,6 +10,15 @@ JOBS=${JOBS:-$(nproc)}
 ENABLE_POLLY=${ENABLE_POLLY:-1}
 TEST_SCSI_MQ=${TEST_SCSI_MQ:-0}
 TEST_SCSI_MQ_PM=${TEST_SCSI_MQ_PM:-0}
+TEST_ADIOS=${TEST_ADIOS:-0}
+if [[ "$TEST_ADIOS" != 0 && "$TEST_ADIOS" != 1 ]]; then
+    echo "TEST_ADIOS must be 0 or 1" >&2
+    exit 1
+fi
+if [[ "$TEST_ADIOS" == 1 && ( "$TEST_SCSI_MQ" != 1 || "$TEST_SCSI_MQ_PM" != 1 ) ]]; then
+    echo "ADIOS prototype requires TEST_SCSI_MQ=1 and TEST_SCSI_MQ_PM=1" >&2
+    exit 1
+fi
 
 if [[ "$TEST_SCSI_MQ_PM" != 0 && "$TEST_SCSI_MQ_PM" != 1 ]]; then
     echo "TEST_SCSI_MQ_PM must be 0 or 1" >&2
@@ -78,6 +87,7 @@ rm -f out/polly-probe.ll out/polly-probe.log
     echo "Defconfig: $DEFCONFIG"
     echo "Experimental SCSI blk-mq: $TEST_SCSI_MQ (runtime activation must be verified)"
     echo "Experimental SCSI mq runtime PM: $TEST_SCSI_MQ_PM"
+    echo "ADIOS prototype available (manual runtime selection): $TEST_ADIOS"
     echo "LLVM Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
     echo "Neutron lock:"
@@ -119,7 +129,7 @@ else
     scripts/config --file out/.config --disable LLVM_POLLY
 fi
 # Queue-mode experiment only: preserve the source defconfig and all driver,
-# crypto, PM and legacy scheduler settings. No ADIOS or boot-argument changes.
+# crypto and legacy scheduler settings. ADIOS is a separate opt-in; no boot-argument changes.
 if [[ "$TEST_SCSI_MQ" == 1 ]]; then
     scripts/config --file out/.config --enable SCSI_MQ_DEFAULT --enable MQ_IOSCHED_DEADLINE
 fi
@@ -128,7 +138,21 @@ if [[ "$TEST_SCSI_MQ_PM" == 1 ]]; then
 else
     scripts/config --file out/.config --disable BLK_MQ_RUNTIME_PM
 fi
+if [[ "$TEST_ADIOS" == 1 ]]; then
+    scripts/config --file out/.config --enable MQ_IOSCHED_ADIOS
+else
+    scripts/config --file out/.config --disable MQ_IOSCHED_ADIOS
+fi
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
+if [[ "$TEST_ADIOS" == 1 ]]; then
+    if ! grep -qx 'CONFIG_MQ_IOSCHED_ADIOS=y' out/.config; then
+        echo "ADIOS prototype lost CONFIG_MQ_IOSCHED_ADIOS=y" >&2
+        exit 1
+    fi
+elif grep -qx 'CONFIG_MQ_IOSCHED_ADIOS=y' out/.config; then
+    echo "ADIOS must remain disabled without explicit selection" >&2
+    exit 1
+fi
 if [[ "$TEST_SCSI_MQ_PM" == 1 ]]; then
     if ! grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
         echo "SCSI mq runtime PM lost CONFIG_BLK_MQ_RUNTIME_PM=y" >&2

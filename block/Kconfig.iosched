@@ -3,6 +3,19 @@ if BLOCK
 
 menu "IO Schedulers"
 
+config MQ_IOSCHED_ADIOS
+	bool "Experimental ADIOS 3.3.0 single-hctx prototype"
+	depends on SCSI_MQ_DEFAULT && BLK_MQ_RUNTIME_PM
+	default n
+	help
+	  Experimental 4.14 adaptation with allocation-failure FIFO fallback,
+	  completion-driven learning, fixed settings and no scheduler merging
+	  or shallow tag throttling. Only single hardware queues are supported.
+	  Built-in availability does not select ADIOS; mq-deadline remains the
+	  mq default. Test only with backups and a recoverable boot image.
+	  If unsure, say N.
+
+
 config IOSCHED_NOOP
 	bool
 	default y

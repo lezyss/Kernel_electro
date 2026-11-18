@@ -60,6 +60,13 @@ if grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
     fi
     variant+=-pm
 fi
+if grep -qx 'CONFIG_MQ_IOSCHED_ADIOS=y' out/.config; then
+    if [[ "$variant" != *-scsi-mq-pm ]]; then
+        echo "ADIOS package requires SCSI mq and runtime PM" >&2
+        exit 1
+    fi
+    variant+=-adios-prototype
+fi
 if [[ ! "$release" =~ ^[a-zA-Z0-9._+-]+$ || ! "$build" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     echo "Invalid release or build identifier for ZIP filename" >&2
     exit 1
@@ -85,8 +92,12 @@ cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
     if [[ "$variant" == *-scsi-mq* ]]; then
         echo "EXPERIMENTAL SCSI blk-mq: runtime queue mode, crypto, recovery and PM require device validation"
     fi
-    if [[ "$variant" == *-scsi-mq-pm ]]; then
+    if [[ "$variant" == *-scsi-mq-pm* ]]; then
         echo "EXPERIMENTAL mq runtime-PM backport: requires device suspend/resume and integrity retest"
+    fi
+    if [[ "$variant" == *-adios-prototype ]]; then
+        echo "EXPERIMENTAL ADIOS prototype: fixed settings, no scheduler merging; manual selection required"
+        echo "mq-deadline remains the boot default and runtime fallback"
     fi
     if [[ -f out/build-info.txt ]]; then
         cat out/build-info.txt

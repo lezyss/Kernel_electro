@@ -20,6 +20,10 @@ on:
         description: Experimental mq runtime-PM backport (requires scsi_mq)
         type: boolean
         default: false
+      adios:
+        description: Build default-off ADIOS prototype (requires mq and mq PM; manual runtime selection)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -43,6 +47,7 @@ jobs:
       ENABLE_POLLY: ${{ inputs.polly && '1' || '0' }}
       TEST_SCSI_MQ: ${{ inputs.scsi_mq && '1' || '0' }}
       TEST_SCSI_MQ_PM: ${{ inputs.scsi_mq_pm && '1' || '0' }}
+      TEST_ADIOS: ${{ inputs.adios && '1' || '0' }}
       HOST_LLVM_BIN: /usr/bin
       DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
       KBUILD_BUILD_USER: github-actions
@@ -68,6 +73,7 @@ jobs:
         run: |
           python3 tools/testing/selftests/neutron/test_toolchain.py
           python3 tools/testing/selftests/scsi_mq_pm/test_pm.py --cc /usr/bin/clang
+          python3 tools/testing/selftests/adios/test_adios.py --cc /usr/bin/clang
           python3 tools/testing/selftests/lz4/test_ci.py
 
       - name: Restore pinned Neutron toolchain
@@ -137,7 +143,7 @@ jobs:
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         uses: actions/upload-artifact@v4
         with:
-          name: Electro-miatoll-AnyKernel3-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}-${{ github.run_number }}
+          name: Electro-miatoll-AnyKernel3-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}${{ inputs.adios && '-adios-prototype' || '' }}-${{ github.run_number }}
           path: |
             out/flashable/*.zip
             out/flashable/*.zip.sha256
@@ -148,7 +154,7 @@ jobs:
       - name: Upload kernel images and modules
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-arm64-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}-${{ github.run_number }}
+          name: kernel-arm64-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}${{ inputs.adios && '-adios-prototype' || '' }}-${{ github.run_number }}
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/Image.gz
