@@ -8,6 +8,16 @@ TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/neutron-06092026"}
 DEFCONFIG=${DEFCONFIG:-vendor/xiaomi/miatoll_defconfig}
 JOBS=${JOBS:-$(nproc)}
 ENABLE_POLLY=${ENABLE_POLLY:-1}
+TEST_SCSI_MQ=${TEST_SCSI_MQ:-0}
+
+if [[ "$TEST_SCSI_MQ" != 0 && "$TEST_SCSI_MQ" != 1 ]]; then
+    echo "TEST_SCSI_MQ must be 0 or 1" >&2
+    exit 1
+fi
+if [[ "$TEST_SCSI_MQ" == 1 && "$DEFCONFIG" != vendor/xiaomi/miatoll_defconfig ]]; then
+    echo "SCSI mq experiment is restricted to miatoll_defconfig" >&2
+    exit 1
+fi
 
 if [[ "$ENABLE_POLLY" != 0 && "$ENABLE_POLLY" != 1 ]]; then
     echo "ENABLE_POLLY must be 0 or 1" >&2
@@ -56,6 +66,7 @@ rm -f out/polly-probe.ll out/polly-probe.log
     echo "Kernel commit: $(git rev-parse HEAD)"
     echo "Tracked worktree changes: $(git status --porcelain --untracked-files=no | wc -l)"
     echo "Defconfig: $DEFCONFIG"
+    echo "Experimental SCSI blk-mq: $TEST_SCSI_MQ (runtime activation must be verified)"
     echo "LLVM Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
     echo "Neutron lock:"
@@ -96,7 +107,23 @@ if [[ "$ENABLE_POLLY" == 1 ]]; then
 else
     scripts/config --file out/.config --disable LLVM_POLLY
 fi
+# Queue-mode experiment only: preserve the source defconfig and all driver,
+# crypto, PM and legacy scheduler settings. No ADIOS or boot-argument changes.
+if [[ "$TEST_SCSI_MQ" == 1 ]]; then
+    scripts/config --file out/.config --enable SCSI_MQ_DEFAULT --enable MQ_IOSCHED_DEADLINE
+fi
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
+if [[ "$TEST_SCSI_MQ" == 1 ]]; then
+    for option in SCSI_MQ_DEFAULT MQ_IOSCHED_DEADLINE SCSI_UFSHCD SCSI_UFS_QCOM \
+                  SCSI_UFS_CRYPTO SCSI_UFS_CRYPTO_QTI BLK_INLINE_ENCRYPTION \
+                  BLK_INLINE_ENCRYPTION_FALLBACK IOSCHED_CFQ DEFAULT_CFQ; do
+        if ! grep -qx "CONFIG_${option}=y" out/.config; then
+            echo "SCSI mq experiment lost required CONFIG_${option}=y" >&2
+            exit 1
+        fi
+    done
+    echo "WARNING: experimental storage queue mode; build success does not validate device integrity/recovery"
+fi
 if [[ "$ENABLE_POLLY" == 1 ]]; then
     if ! grep -qx 'CONFIG_LLVM_POLLY=y' out/.config ||
        grep -qx 'CONFIG_CC_OPTIMIZE_FOR_SIZE=y' out/.config; then

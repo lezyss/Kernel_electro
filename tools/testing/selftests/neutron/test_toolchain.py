@@ -142,6 +142,13 @@ class Toolchain(unittest.TestCase):
         self.assertIn('        default: true', polly_input)
         build = (ROOT / 'scripts/ci/build-kernel.sh').read_text()
         self.assertIn('ENABLE_POLLY=${ENABLE_POLLY:-1}', build)
+        mq_input = text.split('      scsi_mq:', 1)[1].split('\npermissions:', 1)[0]
+        self.assertIn('        default: false', mq_input)
+        self.assertIn("TEST_SCSI_MQ: ${{ inputs.scsi_mq && '1' || '0' }}", text)
+        self.assertIn("inputs.scsi_mq && '-scsi-mq'", text)
+        self.assertIn('TEST_SCSI_MQ=${TEST_SCSI_MQ:-0}', build)
+        self.assertIn('--enable SCSI_MQ_DEFAULT --enable MQ_IOSCHED_DEADLINE', build)
+
         self.assertIn("ENABLE_POLLY: ${{ inputs.polly && '1' || '0' }}", text)
         self.assertIn("inputs.polly && '-polly'", text)
         makefile = (ROOT / 'Makefile').read_text()

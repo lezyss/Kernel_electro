@@ -81,7 +81,9 @@ import json, pathlib, sys
 with open('make-calls.jsonl', 'a') as f: f.write(json.dumps(sys.argv[1:])+'\\n')
 out=pathlib.Path('out');out.mkdir(exist_ok=True)
 if 'vendor/xiaomi/miatoll_defconfig' in sys.argv:
- (out/'.config').write_text('CONFIG_ARCH_ATOLL=y\\nCONFIG_LLVM_POLLY=y\\n' + ''.join('CONFIG_'+x+'=y\\n' for x in ('ARM64','KERNEL_MODE_NEON','LZ4_DECOMPRESS','LZ4_ARM64_ACCEL') if x != __import__('os').environ.get('DROP_OPTION')))
+ (out/'.config').write_text('CONFIG_ARCH_ATOLL=y\\nCONFIG_LLVM_POLLY=y\\n# CONFIG_SCSI_MQ_DEFAULT is not set\\n# CONFIG_MQ_IOSCHED_DEADLINE is not set\\n' + ''.join('CONFIG_'+x+'=y\\n' for x in ('ARM64','KERNEL_MODE_NEON','LZ4_DECOMPRESS','LZ4_ARM64_ACCEL','SCSI_UFSHCD','SCSI_UFS_QCOM','SCSI_UFS_CRYPTO','SCSI_UFS_CRYPTO_QTI','BLK_INLINE_ENCRYPTION','BLK_INLINE_ENCRYPTION_FALLBACK','IOSCHED_CFQ','DEFAULT_CFQ') if x != __import__('os').environ.get('DROP_OPTION')))
+if 'olddefconfig' in sys.argv and __import__('os').environ.get('DROP_MQ_OPTION'):
+ p=out/'.config'; key='CONFIG_'+__import__('os').environ['DROP_MQ_OPTION']; p.write_text(p.read_text().replace(key+'=y', '# '+key+' is not set'))
 if 'Image.gz-dtb' in sys.argv:
  for name in ('Image.gz-dtb','Image.gz','dtb.img','dtbo.img'):
   p=out/'arch/arm64/boot'/name;p.parent.mkdir(parents=True,exist_ok=True)
@@ -90,11 +92,12 @@ if 'Image.gz-dtb' in sys.argv:
  p.write_text('fixture-not-bootable\\n')
 ''')
     p.chmod(0o755)
-    env = {'ENABLE_POLLY': '0', 'TOOLCHAIN_DIR': str(toolchain), 'HOST_LLVM_BIN': str(hostbin), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
+    env = {'TEST_SCSI_MQ': '0', 'ENABLE_POLLY': '0', 'TOOLCHAIN_DIR': str(toolchain), 'HOST_LLVM_BIN': str(hostbin), 'PATH': str(fakebin) + ':' + os.environ['PATH'],
            'DEFCONFIG': 'vendor/xiaomi/miatoll_defconfig', 'JOBS': '2'}
     run(root, 'build-kernel.sh', {**env, 'DEFCONFIG': '../../escape_defconfig'}, False)
     run(root, 'build-kernel.sh', {**env, 'JOBS': '-j8'}, False)
     run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': 'yes'}, False)
+    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': 'yes'}, False)
     run(root, 'build-kernel.sh', env, False)  # missing compiler pin
     (toolchain / 'neutron-install.json').write_text('{}\n')
     run(root, 'build-kernel.sh', env, False)
@@ -125,6 +128,21 @@ if 'Image.gz-dtb' in sys.argv:
     run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1', 'FAKE_POLLY_UNAVAILABLE': '1'}, False)
     log = run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1', 'FAKE_POLLY_NO_PASS': '1'}, False)
     assert 'no Polly pass ran' in log
+    # Synthetic storage-mode contracts, not UFS execution or data-integrity tests.
+    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': None})
+    assert '# CONFIG_SCSI_MQ_DEFAULT is not set' in (root / 'out/.config').read_text()
+    assert '# CONFIG_MQ_IOSCHED_DEADLINE is not set' in (root / 'out/.config').read_text()
+    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': '1', 'ENABLE_POLLY': '1'})
+    resolved = (root / 'out/.config').read_text().splitlines()
+    assert 'CONFIG_SCSI_MQ_DEFAULT=y' in resolved and 'CONFIG_MQ_IOSCHED_DEADLINE=y' in resolved
+    assert 'CONFIG_LLVM_POLLY=y' in resolved
+    assert 'Experimental SCSI blk-mq: 1' in (root / 'out/build-info.txt').read_text()
+    for option in ('SCSI_MQ_DEFAULT', 'MQ_IOSCHED_DEADLINE', 'SCSI_UFSHCD', 'SCSI_UFS_QCOM',
+                   'SCSI_UFS_CRYPTO', 'SCSI_UFS_CRYPTO_QTI', 'BLK_INLINE_ENCRYPTION',
+                   'BLK_INLINE_ENCRYPTION_FALLBACK', 'IOSCHED_CFQ', 'DEFAULT_CFQ'):
+        log = run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': '1', 'DROP_MQ_OPTION': option}, False)
+        assert 'SCSI mq experiment lost required CONFIG_' + option in log
+    print('PASS: SCSI mq default-off, opt-in with Polly, invalid selection and ten resolved-config guards')
     # Select the explicit opt-out when testing the no-Polly packager.
     run(root, 'build-kernel.sh', env)
     assert '# CONFIG_LLVM_POLLY is not set' in (root / 'out/.config').read_text()
@@ -155,6 +173,15 @@ if 'Image.gz-dtb' in sys.argv:
         run(root, 'package-anykernel.sh', env)
         polly_archive, = (root / 'out/flashable').glob('*-polly-*.zip')
         assert polly_archive != archive
+        with (root / 'out/.config').open('a') as f:
+            f.write('CONFIG_SCSI_MQ_DEFAULT=y\n')
+        run(root, 'package-anykernel.sh', env, False)  # must include mq-deadline
+        with (root / 'out/.config').open('a') as f:
+            f.write('CONFIG_MQ_IOSCHED_DEADLINE=y\n')
+        run(root, 'package-anykernel.sh', env)
+        mq_archive, = (root / 'out/flashable').glob('*-polly-scsi-mq-*.zip')
+        with zipfile.ZipFile(mq_archive) as z:
+            assert 'EXPERIMENTAL SCSI blk-mq' in z.read('build-info.txt').decode()
         (root / 'out/arch/arm64/boot/Image.gz').unlink()
         run(root, 'package-anykernel.sh', env, False)
         print('PASS: synthetic pinned-AK3 package, layout/checksum/stale-entry and negative checks')
