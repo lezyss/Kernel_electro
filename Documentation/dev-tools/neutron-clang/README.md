@@ -86,8 +86,8 @@ workflow labels and fixture updates together.
 
 * Manual `workflow_dispatch` only; no push/PR trigger added.
 * miatoll defconfig, ThinLTO/SCS and existing device settings are retained.
-  Polly remains disabled in the generated output config by default. A separate
-  explicit experiment is now available; see the opt-in section below.
+  Polly is enabled by default following the successful Polly CI run and the
+  user's boot confirmation; an explicit opt-out remains available below.
 * All four resolved ARM64/LZ4 acceleration config guards and the full existing
   codec, freestanding, ARM64 emulation and packaging test paths remain enabled.
 * AnyKernel3 remains pinned to `020dfeccf9d7e962a48400fc94d3e451df92eead`.
@@ -109,15 +109,11 @@ Executed in the available sandbox:
 * Shell syntax checks passed for the modified build/test/package entry points.
 * Actual install on this glibc 2.36 sandbox correctly rejected the host.
 
-These checks **do not execute the real Neutron compiler**. This sandbox lacks a
-container runtime, and both direct release download and the GitHub asset API
-redirect were blocked at `release-assets.githubusercontent.com`. No real archive
-was downloaded/verified here, and no container pull, Neutron ARM64 build, full
-kernel link, boot or device/performance test is claimed. The new manual workflow
-has not been dispatched. Its first compatible-host run must qualify the archive
-layout/tool availability, native dependencies and Clang 24 compatibility before
-this migration can be considered build-validated. Do not relabel older AOSP
-results as Neutron results.
+Those local checks do not execute the real Neutron compiler. This sandbox lacks
+a container runtime and cannot retrieve release-asset redirects. Subsequent CI
+runs in the compatible container did execute Neutron, including full kernel
+builds and packaging; see the build/boot results below. Do not relabel older
+AOSP results as Neutron results or local fixture tests as kernel compilation.
 
 ## First CI integration findings
 
@@ -129,23 +125,34 @@ recommendations are disabled; this dependency is now installed. With it, all
 ignorelist; the bare-metal ARM64 test now specifies `-fno-sanitize-ignorelist`
 while retaining `-fsanitize=shadow-call-stack,cfi` and ThinLTO. This adds no
 exclusions and changes neither the downloaded compiler nor kernel configuration.
-Full-kernel and device qualification remain outstanding until separately recorded.
+Full-build and user-reported boot results are recorded below; long-term device
+stability and performance qualification remain outstanding.
 
-## Optional Polly experiment (not yet build/boot qualified)
+## LLVM Polly default and comparison opt-out
 
-The baseline Neutron build completed CI successfully (run `44131331960`), and
-its boot was confirmed by the user. That result does **not** qualify Polly.
+The no-Polly Neutron build completed CI successfully (run
+[44131331960](https://github.com/lezyss/Kernel_electro/actions/runs/44131331960)),
+and its boot was confirmed by the user. The Polly-enabled build at commit
+`3925bf63947005cb34153f121bdfa285944249a9` then completed successfully in run
+[44217793325](https://github.com/lezyss/Kernel_electro/actions/runs/44217793325),
+including kernel compilation, packaging and artifact upload. The user reported
+that this Polly build boots and explicitly requested making it the default.
+That is user-reported boot evidence, not an independently observed device test
+or proof of performance, battery benefit or long-term stability.
 
-The manual workflow has a `polly` boolean input, default **false**. Locally:
+The manual workflow's `polly` boolean now defaults to **true**. Local builds also
+default to `ENABLE_POLLY=1`, enabling `CONFIG_LLVM_POLLY=y`. For comparison or
+troubleshooting, uncheck `polly` in the workflow or run:
 
 ```sh
 # Run in the compatible isolated environment described above.
-ENABLE_POLLY=1 HOST_LLVM_BIN=/usr/bin bash scripts/ci/build-kernel.sh
+ENABLE_POLLY=0 HOST_LLVM_BIN=/usr/bin bash scripts/ci/build-kernel.sh
 ```
 
 The output config is explicitly enabled/disabled after defconfig generation and
 checked again after olddefconfig. The source device defconfig is not rewritten.
-The experiment uses `-mllvm -polly -mllvm -polly-position=early`; the legacy bundle of inlining,
+The build uses `-mllvm -polly -mllvm -polly-position=early`; the legacy bundle
+of inlining,
 strip-mining, OpenMP and scheduling flags has been removed from the Polly block.
 No other optimization thresholds, CPU tuning, ThinLTO, or SCS policy are changed.
 The pinned LLVM source's `polly/lib/Support/RegisterPasses.cpp` registers this
@@ -162,17 +169,17 @@ scheduling in `out/polly-probe.log`; accepting an option alone is insufficient.
 The probe IR is retained as `out/polly-probe.ll`. This demonstrates pipeline
 participation, not useful loop transformation, whole-kernel coverage or speedup.
 Unsupported options, missing pass scheduling, lost config, or size-optimization
-configs fail closed. `out/build-info.txt` records the requested experiment.
+configs fail closed. `out/build-info.txt` records the requested Polly mode.
 
-Experiment ZIPs and image artifact names include `-polly`; the ZIP label comes
+Polly-enabled ZIPs and image artifact names include `-polly`; the ZIP label comes
 from the actual output config. The kernel release remains `4.14.357-electro`
 and the SUSFS uname policy is unchanged. Rebuild both variants from the same
 commit for an A/B comparison; keep a known-working boot image and a working
 recovery path before device testing. Compare boot, suspend/resume, app use,
-thermals, battery, image size and repeatable workloads before making this the
-default. No Polly performance improvement or boot result is claimed here.
+thermals, battery, image size and repeatable workloads to evaluate the default.
+No Polly performance improvement is claimed here.
 
-Synthetic script tests cover default-off and opt-in behavior, invalid selection,
-compiler rejection and missing pipeline scheduling. Real compiler/build/device
-validation of this experimental path is still pending; preparing it does not
-automatically publish or dispatch the workflow.
+Synthetic script tests cover default-on behavior with the environment variable
+unset, explicit on/off selections, invalid selection, compiler rejection and
+missing pipeline scheduling. Changing this default does not automatically
+publish or dispatch another workflow run.

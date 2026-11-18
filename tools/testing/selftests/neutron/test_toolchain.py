@@ -138,6 +138,10 @@ class Toolchain(unittest.TestCase):
         self.assertIn('--asan --ubsan', script)
         self.assertIn('--cc "$TOOLCHAIN_DIR/bin/clang" --output out/lz4-tests/arm64', script)
         self.assertIn('      polly:', text)
+        polly_input = text.split('      polly:', 1)[1].split('\npermissions:', 1)[0]
+        self.assertIn('        default: true', polly_input)
+        build = (ROOT / 'scripts/ci/build-kernel.sh').read_text()
+        self.assertIn('ENABLE_POLLY=${ENABLE_POLLY:-1}', build)
         self.assertIn("ENABLE_POLLY: ${{ inputs.polly && '1' || '0' }}", text)
         self.assertIn("inputs.polly && '-polly'", text)
         makefile = (ROOT / 'Makefile').read_text()

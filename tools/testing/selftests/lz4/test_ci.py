@@ -19,8 +19,9 @@ TOOLS = ('clang', 'clang++', 'ld.lld', 'llvm-ar', 'llvm-nm', 'llvm-strip',
 
 
 def run(root, name, env, ok=True):
+    process_env = {k: v for k, v in {**os.environ, **env}.items() if v is not None}
     p = subprocess.run(['bash', str(root / 'scripts/ci' / name)],
-                       cwd=root, env={**os.environ, **env}, text=True,
+                       cwd=root, env=process_env, text=True,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     assert (p.returncode == 0) == ok, p.stdout
     return p.stdout
@@ -113,19 +114,21 @@ if 'Image.gz-dtb' in sys.argv:
     for option in ('ARM64', 'KERNEL_MODE_NEON', 'LZ4_DECOMPRESS', 'LZ4_ARM64_ACCEL'):
         log = run(root, 'build-kernel.sh', {**env, 'DROP_OPTION': option}, False)
         assert 'Required miatoll LZ4 acceleration option lost: CONFIG_' + option in log
-    # Opt-in enables only the generated config and proves pipeline scheduling.
+    # With no selection, Polly is enabled and proves pipeline scheduling.
     # These remain fake toolchain contracts, not real Polly/ARM64 compilation.
+    run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': None})
+    assert 'CONFIG_LLVM_POLLY=y' in (root / 'out/.config').read_text().splitlines()
+    assert 'LLVM Polly: 1' in (root / 'out/build-info.txt').read_text()
+    assert 'PollyFunctionPass' in (root / 'out/polly-probe.log').read_text()
     run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1'})
     assert 'CONFIG_LLVM_POLLY=y' in (root / 'out/.config').read_text().splitlines()
-    assert 'Experimental Polly: 1' in (root / 'out/build-info.txt').read_text()
-    assert 'PollyFunctionPass' in (root / 'out/polly-probe.log').read_text()
     run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1', 'FAKE_POLLY_UNAVAILABLE': '1'}, False)
     log = run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1', 'FAKE_POLLY_NO_PASS': '1'}, False)
     assert 'no Polly pass ran' in log
-    # Do not leave the optional path selected when testing the baseline packager.
+    # Select the explicit opt-out when testing the no-Polly packager.
     run(root, 'build-kernel.sh', env)
     assert '# CONFIG_LLVM_POLLY is not set' in (root / 'out/.config').read_text()
-    print('PASS: synthetic build script flow, LLVM overrides, invalid input/pin rejection; four resolved LZ4 guards; native host LLVM; opt-in Polly and unavailable/no-pass rejection')
+    print('PASS: synthetic build script flow, LLVM overrides, invalid input/pin rejection; four resolved LZ4 guards; native host LLVM; default-on Polly, explicit on/off and unavailable/no-pass rejection')
 
     if anykernel:
         env = {'ANYKERNEL_DIR': str(anykernel), 'GITHUB_RUN_NUMBER': 'fixture',

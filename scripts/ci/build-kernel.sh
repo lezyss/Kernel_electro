@@ -7,7 +7,7 @@ cd "$ROOT"
 TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/neutron-06092026"}
 DEFCONFIG=${DEFCONFIG:-vendor/xiaomi/miatoll_defconfig}
 JOBS=${JOBS:-$(nproc)}
-ENABLE_POLLY=${ENABLE_POLLY:-0}
+ENABLE_POLLY=${ENABLE_POLLY:-1}
 
 if [[ "$ENABLE_POLLY" != 0 && "$ENABLE_POLLY" != 1 ]]; then
     echo "ENABLE_POLLY must be 0 or 1" >&2
@@ -50,13 +50,13 @@ if ! "$HOST_LLVM_BIN/clang" --version | grep -q 'clang version'; then
     exit 1
 fi
 mkdir -p out
-# Do not misattribute evidence from a prior local experiment to this build.
+# Do not misattribute probe evidence from a prior local build to this build.
 rm -f out/polly-probe.ll out/polly-probe.log
 {
     echo "Kernel commit: $(git rev-parse HEAD)"
     echo "Tracked worktree changes: $(git status --porcelain --untracked-files=no | wc -l)"
     echo "Defconfig: $DEFCONFIG"
-    echo "Experimental Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
+    echo "LLVM Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
     echo "Neutron lock:"
     cat scripts/ci/neutron.lock.json
@@ -90,7 +90,7 @@ make_args=(
 )
 
 make "${make_args[@]}" "$DEFCONFIG" 2>&1 | tee out/configure.log
-# Preserve the boot-tested baseline unless explicitly opting into the experiment.
+# Polly is the build/boot-tested default; retain an explicit comparison opt-out.
 if [[ "$ENABLE_POLLY" == 1 ]]; then
     scripts/config --file out/.config --enable LLVM_POLLY
 else
@@ -100,7 +100,7 @@ make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
 if [[ "$ENABLE_POLLY" == 1 ]]; then
     if ! grep -qx 'CONFIG_LLVM_POLLY=y' out/.config ||
        grep -qx 'CONFIG_CC_OPTIMIZE_FOR_SIZE=y' out/.config; then
-        echo "Polly experiment requires resolved CONFIG_LLVM_POLLY=y and non-size optimization" >&2
+        echo "Polly build requires resolved CONFIG_LLVM_POLLY=y and non-size optimization" >&2
         exit 1
     fi
     # Prove that this compiler actually schedules Polly, not merely accepts a
@@ -127,7 +127,7 @@ PROBE
         exit 1
     fi
 elif ! grep -qx '# CONFIG_LLVM_POLLY is not set' out/.config; then
-    echo "Baseline must keep CONFIG_LLVM_POLLY disabled" >&2
+    echo "Polly opt-out must keep CONFIG_LLVM_POLLY disabled" >&2
     exit 1
 fi
 # Check the resolved configuration, not just the defconfig request.

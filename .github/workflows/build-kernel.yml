@@ -9,9 +9,9 @@ on:
         default: vendor/xiaomi/miatoll_defconfig
         required: true
       polly:
-        description: Experimental minimal Polly optimization (not boot-qualified)
+        description: Enable LLVM Polly (disable for a no-Polly comparison build)
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
