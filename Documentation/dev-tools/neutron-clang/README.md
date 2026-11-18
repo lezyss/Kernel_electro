@@ -145,12 +145,15 @@ ENABLE_POLLY=1 HOST_LLVM_BIN=/usr/bin bash scripts/ci/build-kernel.sh
 
 The output config is explicitly enabled/disabled after defconfig generation and
 checked again after olddefconfig. The source device defconfig is not rewritten.
-The experiment uses only `-mllvm -polly`; the legacy bundle of inlining,
+The experiment uses `-mllvm -polly -mllvm -polly-position=early`; the legacy bundle of inlining,
 strip-mining, OpenMP and scheduling flags has been removed from the Polly block.
 No other optimization thresholds, CPU tuning, ThinLTO, or SCS policy are changed.
 The pinned LLVM source's `polly/lib/Support/RegisterPasses.cpp` registers this
 option with the new pass manager, defaults to the ISL optimizer and defaults to
-no Polly vectorizer. `polly/lib/CodeGen/IslAst.cpp` leaves thread-parallel codegen
+no Polly vectorizer. The first real probe (run `44217419934`) accepted `-polly`
+but correctly failed because no Polly pass ran in the ThinLTO pre-link pipeline.
+That pipeline skips the default pre-vectorizer callback; `-polly-position=early`
+selects the pipeline-start callback instead, for both kernel and probe. `polly/lib/CodeGen/IslAst.cpp` leaves thread-parallel codegen
 off by default. We do not enable either feature. ARM64 `-mgeneral-regs-only`
 remains under Kbuild control.
 

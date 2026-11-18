@@ -56,7 +56,7 @@ rm -f out/polly-probe.ll out/polly-probe.log
     echo "Kernel commit: $(git rev-parse HEAD)"
     echo "Tracked worktree changes: $(git status --porcelain --untracked-files=no | wc -l)"
     echo "Defconfig: $DEFCONFIG"
-    echo "Experimental Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly)"
+    echo "Experimental Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
     echo "Neutron lock:"
     cat scripts/ci/neutron.lock.json
@@ -108,7 +108,7 @@ if [[ "$ENABLE_POLLY" == 1 ]]; then
     # This is pipeline evidence, not proof of a useful transformation or speedup.
     if ! "$TOOLCHAIN_DIR/bin/clang" --target=aarch64-linux-gnu -O2 -flto=thin \
         -ffreestanding -fno-builtin -mgeneral-regs-only -ffixed-x18 \
-        -mllvm -polly -Xclang -fdebug-pass-manager -S -emit-llvm -x c \
+        -mllvm -polly -mllvm -polly-position=early -Xclang -fdebug-pass-manager -S -emit-llvm -x c \
         -o out/polly-probe.ll - 2>out/polly-probe.log <<'PROBE'
 void polly_probe(int * restrict dst, const int * restrict src)
 {
@@ -122,6 +122,7 @@ PROBE
         exit 1
     fi
     if ! grep -q 'Running pass: .*Polly' out/polly-probe.log; then
+        tail -45 out/polly-probe.log >&2
         echo "Compiler accepted -polly but no Polly pass ran; see out/polly-probe.log" >&2
         exit 1
     fi

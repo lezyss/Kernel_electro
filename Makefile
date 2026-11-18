@@ -763,9 +763,10 @@ KBUILD_CFLAG	+= -fwhole-program-vtables
 endif
 
 ifdef CONFIG_LLVM_POLLY
-# Minimal opt-in experiment. Keep Polly's default profitability decisions;
-# do not enable strip-mining, OpenMP, or legacy internal tuning options.
-KBUILD_CFLAGS	+= -mllvm -polly
+# ThinLTO pre-link skips the default pre-vectorizer extension point. Run
+# Polly early so enabling this option actually schedules the optimizer.
+# Retain default profitability; no strip-mining or OpenMP tuning bundle.
+KBUILD_CFLAGS	+= -mllvm -polly -mllvm -polly-position=early
 endif # CONFIG_LLVM_POLLY
 
 endif # $(cc-name),clang

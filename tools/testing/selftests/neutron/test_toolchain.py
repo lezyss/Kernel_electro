@@ -142,7 +142,7 @@ class Toolchain(unittest.TestCase):
         self.assertIn("inputs.polly && '-polly'", text)
         makefile = (ROOT / 'Makefile').read_text()
         block = makefile.split('ifdef CONFIG_LLVM_POLLY\n', 1)[1].split('endif # CONFIG_LLVM_POLLY', 1)[0]
-        self.assertIn('-mllvm -polly\n', block)
+        self.assertIn('-mllvm -polly -mllvm -polly-position=early\n', block)
         self.assertNotIn('-polly-run-inliner', block)
         self.assertNotIn('-polly-vectorizer=', block)
         self.assertNotIn('-polly-omp-backend=', block)
