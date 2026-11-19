@@ -75,6 +75,7 @@ jobs:
           python3 tools/testing/selftests/scsi_mq_pm/test_pm.py --cc /usr/bin/clang
           python3 tools/testing/selftests/adios/test_adios.py --cc /usr/bin/clang
           python3 tools/testing/selftests/adios/test_defaults.py --cc /usr/bin/clang
+          python3 tools/testing/selftests/bpf_upgrade/test_cves_2026.py --cc /usr/bin/clang
           python3 tools/testing/selftests/lz4/test_ci.py
 
       - name: Restore pinned Neutron toolchain
