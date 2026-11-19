@@ -1,4 +1,4 @@
-name: Build kernel (Neutron Clang 06092026)
+name: Build kernel-electro-miatoll-4.14.357
 
 on:
   workflow_dispatch:
@@ -15,15 +15,15 @@ on:
       scsi_mq:
         description: Experimental UFS/SCSI blk-mq with mq-deadline available (backup required)
         type: boolean
-        default: false
+        default: true
       scsi_mq_pm:
         description: Experimental mq runtime-PM backport (requires scsi_mq)
         type: boolean
-        default: false
+        default: true
       adios:
-        description: Build default-off ADIOS prototype (requires mq and mq PM; manual runtime selection)
+        description: Enable ADIOS boot default (disable for mq-deadline comparison)
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -74,6 +74,7 @@ jobs:
           python3 tools/testing/selftests/neutron/test_toolchain.py
           python3 tools/testing/selftests/scsi_mq_pm/test_pm.py --cc /usr/bin/clang
           python3 tools/testing/selftests/adios/test_adios.py --cc /usr/bin/clang
+          python3 tools/testing/selftests/adios/test_defaults.py --cc /usr/bin/clang
           python3 tools/testing/selftests/lz4/test_ci.py
 
       - name: Restore pinned Neutron toolchain
@@ -143,10 +144,10 @@ jobs:
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         uses: actions/upload-artifact@v4
         with:
-          name: Electro-miatoll-AnyKernel3-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}${{ inputs.adios && '-adios-prototype' || '' }}-${{ github.run_number }}
+          name: kernel-electro-miatoll-4.14.357
           path: |
-            out/flashable/*.zip
-            out/flashable/*.zip.sha256
+            out/flashable/kernel-electro-miatoll-4.14.357.zip
+            out/flashable/kernel-electro-miatoll-4.14.357.zip.sha256
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
@@ -154,7 +155,7 @@ jobs:
       - name: Upload kernel images and modules
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-arm64-neutron-06092026${{ inputs.polly && '-polly' || '' }}${{ inputs.scsi_mq && '-scsi-mq' || '' }}${{ inputs.scsi_mq_pm && '-pm' || '' }}${{ inputs.adios && '-adios-prototype' || '' }}-${{ github.run_number }}
+          name: kernel-electro-miatoll-4.14.357-images
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/Image.gz
@@ -173,7 +174,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-build-details-${{ github.run_number }}
+          name: kernel-electro-miatoll-4.14.357-details
           include-hidden-files: true
           path: |
             out/*.log

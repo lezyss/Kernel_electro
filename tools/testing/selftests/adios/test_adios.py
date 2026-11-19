@@ -24,8 +24,8 @@ def main():
     assert 'q->nr_hw_queues != 1' in source
     assert 'static ssize_t adios_' in source and '_store(' not in source
     assert 'default n' in (ROOT / 'block/Kconfig.iosched').read_text().split('config MQ_IOSCHED_ADIOS', 1)[1].split('\nconfig ', 1)[0]
-    assert 'adios' not in (ROOT / 'block/elevator.c').read_text().lower()
-    assert 'CONFIG_MQ_IOSCHED_ADIOS=y' not in (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
+    assert 'CONFIG_MQ_IOSCHED_DEFAULT_ADIOS' in (ROOT / 'block/elevator.c').read_text()
+    assert 'CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y' in (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
     # Exclude only kernel includes and kernel init/sysfs/registration. Exercise
     # unmodified request allocation, queues, trees, models and lifecycle helpers.
     core = source[:source.index('static int adios_init_sched(')]
@@ -41,7 +41,7 @@ def main():
                    str(cfile), str(ROOT / 'tools/lib/rbtree.c'), '-o', str(tmp / 'test')]
         subprocess.run(command, check=True)
         subprocess.run([str(tmp / 'test')], check=True)
-    print('PASS: default-off/native callback wiring and unchanged elevator/source defconfig')
+    print('PASS: native callback wiring and miatoll default selection')
     print('Host mocks do NOT validate real IRQ/RCU concurrency, UFS, crypto, recovery or PM.')
 
 

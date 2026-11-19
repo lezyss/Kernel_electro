@@ -1,5 +1,9 @@
 # ADIOS 3.3.0 Electro prototype 1
 
+> **Current policy:** the user requested ADIOS as the miatoll default after
+> device smoke tests. See [current defaults and naming](DEFAULTS.md). The
+> default-off/manual-selection descriptions below record the earlier trial.
+
 **Experimental storage scheduler. Back up data off-device and keep the working
 CFQ boot image and a verified recovery method. Not qualified for irreplaceable
 data, error recovery, long-term stability, performance or battery improvement.**

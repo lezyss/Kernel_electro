@@ -86,6 +86,8 @@ cp out/arch/arm64/boot/dtb.img "$stage/dtb"
 cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
 {
     echo "Kernel release: $release"
+    echo "Build identifier: $build"
+    echo "Resolved configuration variant: ${variant:-baseline}"
     echo "Kernel commit: $(git rev-parse HEAD)"
     echo "AnyKernel3 commit: $(git -C "$ANYKERNEL_DIR" rev-parse HEAD)"
     echo "Devices: curtana, joyeuse, excalibur, gram (miatoll)"
@@ -96,8 +98,12 @@ cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
         echo "EXPERIMENTAL mq runtime-PM backport: requires device suspend/resume and integrity retest"
     fi
     if [[ "$variant" == *-adios-prototype ]]; then
-        echo "EXPERIMENTAL ADIOS prototype: fixed settings, no scheduler merging; manual selection required"
-        echo "mq-deadline remains the boot default and runtime fallback"
+        echo "EXPERIMENTAL ADIOS prototype: fixed settings, no scheduler merging"
+        if grep -qx 'CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y' out/.config; then
+            echo "ADIOS is the boot default on supported queues; mq-deadline remains the fallback"
+        else
+            echo "mq-deadline remains the boot default; ADIOS requires runtime selection"
+        fi
     fi
     if [[ -f out/build-info.txt ]]; then
         cat out/build-info.txt
@@ -105,7 +111,7 @@ cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
 } > "$stage/build-info.txt"
 cp "$stage/build-info.txt" out/package-info.txt
 
-zipfile="$ROOT/out/flashable/Electro-miatoll-${release}-neutron-06092026${variant}-${build}.zip"
+zipfile="$ROOT/out/flashable/kernel-electro-miatoll-4.14.357.zip"
 # Remove an earlier archive so zip cannot retain stale entries on local reruns.
 rm -f "$zipfile"
 (cd "$stage" && zip -9 -r "$zipfile" .)

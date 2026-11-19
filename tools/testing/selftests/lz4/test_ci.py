@@ -131,7 +131,7 @@ if 'Image.gz-dtb' in sys.argv:
     log = run(root, 'build-kernel.sh', {**env, 'ENABLE_POLLY': '1', 'FAKE_POLLY_NO_PASS': '1'}, False)
     assert 'no Polly pass ran' in log
     # Synthetic storage-mode contracts, not UFS execution or data-integrity tests.
-    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': None})
+    run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': '0'})
     assert '# CONFIG_SCSI_MQ_DEFAULT is not set' in (root / 'out/.config').read_text()
     assert '# CONFIG_MQ_IOSCHED_DEADLINE is not set' in (root / 'out/.config').read_text()
     run(root, 'build-kernel.sh', {**env, 'TEST_SCSI_MQ': '1', 'ENABLE_POLLY': '1'})
@@ -156,8 +156,12 @@ if 'Image.gz-dtb' in sys.argv:
     assert 'CONFIG_MQ_IOSCHED_ADIOS=y' in (root / 'out/.config').read_text().splitlines()
     log = run(root, 'build-kernel.sh', {**adios_env, 'DROP_MQ_OPTION': 'MQ_IOSCHED_ADIOS'}, False)
     assert 'ADIOS prototype lost CONFIG_MQ_IOSCHED_ADIOS=y' in log
-    print('PASS: ADIOS default-off, prerequisite/input/lost-option guards and explicit availability')
-    print('PASS: SCSI mq default-off, opt-in with Polly, invalid selection and ten resolved-config guards')
+    run(root, 'build-kernel.sh', {**env, 'TEST_ADIOS': None, 'TEST_SCSI_MQ': None, 'TEST_SCSI_MQ_PM': None})
+    assert 'CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y' in (root / 'out/.config').read_text().splitlines()
+    log = run(root, 'build-kernel.sh', {**adios_env, 'DROP_MQ_OPTION': 'MQ_IOSCHED_DEFAULT_ADIOS'}, False)
+    assert 'ADIOS default selection lost' in log
+    print('PASS: ADIOS default-on, explicit opt-out, prerequisite/input/lost-option guards and explicit availability')
+    print('PASS: SCSI mq explicit opt-out, default-on with Polly, invalid selection and ten resolved-config guards')
     # Select the explicit opt-out when testing the no-Polly packager.
     run(root, 'build-kernel.sh', env)
     assert '# CONFIG_LLVM_POLLY is not set' in (root / 'out/.config').read_text()
@@ -170,7 +174,7 @@ if 'Image.gz-dtb' in sys.argv:
         run(root, 'package-anykernel.sh', {**env, 'ANYKERNEL_DIR': str(root)}, False)
         run(root, 'package-anykernel.sh', env)
         archive, = (root / 'out/flashable').glob('*.zip')
-        assert '-neutron-06092026-' in archive.name
+        assert archive.name == 'kernel-electro-miatoll-4.14.357.zip'
         with zipfile.ZipFile(archive) as z:
             assert z.read('Image.gz').startswith(b'SYNTHETIC SCRIPT FIXTURE')
             assert {'dtb', 'dtbo.img', 'anykernel.sh', 'tools/ak3-core.sh',
@@ -186,30 +190,37 @@ if 'Image.gz-dtb' in sys.argv:
         with (root / 'out/.config').open('a') as f:
             f.write('CONFIG_LLVM_POLLY=y\n')
         run(root, 'package-anykernel.sh', env)
-        polly_archive, = (root / 'out/flashable').glob('*-polly-*.zip')
-        assert polly_archive != archive
+        polly_archive = archive
+        with zipfile.ZipFile(polly_archive) as z:
+            assert 'Resolved configuration variant: -polly' in z.read('build-info.txt').decode()
         with (root / 'out/.config').open('a') as f:
             f.write('CONFIG_SCSI_MQ_DEFAULT=y\n')
         run(root, 'package-anykernel.sh', env, False)  # must include mq-deadline
         with (root / 'out/.config').open('a') as f:
             f.write('CONFIG_MQ_IOSCHED_DEADLINE=y\n')
         run(root, 'package-anykernel.sh', env)
-        mq_archive, = (root / 'out/flashable').glob('*-polly-scsi-mq-*.zip')
+        mq_archive = archive
         with zipfile.ZipFile(mq_archive) as z:
             assert 'EXPERIMENTAL SCSI blk-mq' in z.read('build-info.txt').decode()
         with (root / 'out/.config').open('a') as f:
             f.write('CONFIG_BLK_MQ_RUNTIME_PM=y\n')
         run(root, 'package-anykernel.sh', env)
-        pm_archive, = (root / 'out/flashable').glob('*-scsi-mq-pm-*.zip')
+        pm_archive = archive
         with zipfile.ZipFile(pm_archive) as z:
             assert 'EXPERIMENTAL mq runtime-PM backport' in z.read('build-info.txt').decode()
         with (root / 'out/.config').open('a') as f:
             f.write('CONFIG_MQ_IOSCHED_ADIOS=y\n')
         run(root, 'package-anykernel.sh', env)
-        adios_archive, = (root / 'out/flashable').glob('*-adios-prototype-*.zip')
+        adios_archive = archive
         with zipfile.ZipFile(adios_archive) as z:
             assert 'EXPERIMENTAL ADIOS prototype' in z.read('build-info.txt').decode()
             assert 'mq-deadline remains the boot default' in z.read('build-info.txt').decode()
+        with (root / 'out/.config').open('a') as f:
+            f.write('CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y\n')
+        run(root, 'package-anykernel.sh', env)
+        with zipfile.ZipFile(archive) as z:
+            assert 'ADIOS is the boot default' in z.read('build-info.txt').decode()
+        assert len(list((root / 'out/flashable').glob('*.zip'))) == 1
         (root / 'out/arch/arm64/boot/Image.gz').unlink()
         run(root, 'package-anykernel.sh', env, False)
         print('PASS: synthetic pinned-AK3 package, layout/checksum/stale-entry and negative checks')

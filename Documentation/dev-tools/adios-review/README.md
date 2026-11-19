@@ -1,5 +1,9 @@
 # ADIOS → Electro 4.14: compatibility and dependency review
 
+> **Current policy:** the user requested ADIOS as the miatoll default after
+> device smoke tests. See [current defaults and naming](DEFAULTS.md). The
+> default-off/manual-selection descriptions below record the earlier trial.
+
 > Historical review, before prototype implementation. The user subsequently
 > authorized a trial. See [prototype 1](PROTOTYPE.md) for what was implemented,
 > intentionally omitted, tested, and still unqualified. Statements below about

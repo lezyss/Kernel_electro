@@ -8,9 +8,14 @@ TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/neutron-06092026"}
 DEFCONFIG=${DEFCONFIG:-vendor/xiaomi/miatoll_defconfig}
 JOBS=${JOBS:-$(nproc)}
 ENABLE_POLLY=${ENABLE_POLLY:-1}
-TEST_SCSI_MQ=${TEST_SCSI_MQ:-0}
-TEST_SCSI_MQ_PM=${TEST_SCSI_MQ_PM:-0}
-TEST_ADIOS=${TEST_ADIOS:-0}
+# The user-qualified miatoll prototype is now the requested default.
+storage_default=0
+if [[ "$DEFCONFIG" == vendor/xiaomi/miatoll_defconfig ]]; then
+    storage_default=1
+fi
+TEST_SCSI_MQ=${TEST_SCSI_MQ:-$storage_default}
+TEST_SCSI_MQ_PM=${TEST_SCSI_MQ_PM:-$storage_default}
+TEST_ADIOS=${TEST_ADIOS:-$storage_default}
 if [[ "$TEST_ADIOS" != 0 && "$TEST_ADIOS" != 1 ]]; then
     echo "TEST_ADIOS must be 0 or 1" >&2
     exit 1
@@ -87,7 +92,7 @@ rm -f out/polly-probe.ll out/polly-probe.log
     echo "Defconfig: $DEFCONFIG"
     echo "Experimental SCSI blk-mq: $TEST_SCSI_MQ (runtime activation must be verified)"
     echo "Experimental SCSI mq runtime PM: $TEST_SCSI_MQ_PM"
-    echo "ADIOS prototype available (manual runtime selection): $TEST_ADIOS"
+    echo "ADIOS prototype enabled as boot default: $TEST_ADIOS"
     echo "LLVM Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
     echo "Neutron lock:"
@@ -128,10 +133,12 @@ if [[ "$ENABLE_POLLY" == 1 ]]; then
 else
     scripts/config --file out/.config --disable LLVM_POLLY
 fi
-# Queue-mode experiment only: preserve the source defconfig and all driver,
-# crypto and legacy scheduler settings. ADIOS is a separate opt-in; no boot-argument changes.
+# Retain explicit comparison opt-outs, including with the new miatoll defconfig.
+# Do not change vendor driver/crypto settings or boot arguments.
 if [[ "$TEST_SCSI_MQ" == 1 ]]; then
     scripts/config --file out/.config --enable SCSI_MQ_DEFAULT --enable MQ_IOSCHED_DEADLINE
+elif [[ "$DEFCONFIG" == vendor/xiaomi/miatoll_defconfig ]]; then
+    scripts/config --file out/.config --disable SCSI_MQ_DEFAULT
 fi
 if [[ "$TEST_SCSI_MQ_PM" == 1 ]]; then
     scripts/config --file out/.config --enable BLK_MQ_RUNTIME_PM
@@ -139,9 +146,9 @@ else
     scripts/config --file out/.config --disable BLK_MQ_RUNTIME_PM
 fi
 if [[ "$TEST_ADIOS" == 1 ]]; then
-    scripts/config --file out/.config --enable MQ_IOSCHED_ADIOS
+    scripts/config --file out/.config --enable MQ_IOSCHED_ADIOS --enable MQ_IOSCHED_DEFAULT_ADIOS
 else
-    scripts/config --file out/.config --disable MQ_IOSCHED_ADIOS
+    scripts/config --file out/.config --disable MQ_IOSCHED_ADIOS --disable MQ_IOSCHED_DEFAULT_ADIOS
 fi
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
 if [[ "$TEST_ADIOS" == 1 ]]; then
@@ -149,7 +156,11 @@ if [[ "$TEST_ADIOS" == 1 ]]; then
         echo "ADIOS prototype lost CONFIG_MQ_IOSCHED_ADIOS=y" >&2
         exit 1
     fi
-elif grep -qx 'CONFIG_MQ_IOSCHED_ADIOS=y' out/.config; then
+    if ! grep -qx 'CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y' out/.config; then
+        echo "ADIOS default selection lost CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y" >&2
+        exit 1
+    fi
+elif grep -Eq '^CONFIG_MQ_IOSCHED_(ADIOS|DEFAULT_ADIOS)=y$' out/.config; then
     echo "ADIOS must remain disabled without explicit selection" >&2
     exit 1
 fi

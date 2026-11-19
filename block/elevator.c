@@ -192,6 +192,7 @@ static void elevator_release(struct kobject *kobj)
 int elevator_init(struct request_queue *q, char *name)
 {
 	struct elevator_type *e = NULL;
+	bool default_adios = false;
 	int err;
 
 	/*
@@ -229,13 +230,19 @@ int elevator_init(struct request_queue *q, char *name)
 
 	if (!e) {
 		/*
-		 * For blk-mq devices, we default to using mq-deadline,
+		 * For blk-mq devices, prefer configured ADIOS on supported queues,
+		 * otherwise use mq-deadline,
 		 * if available, for single queue devices. If deadline
 		 * isn't available OR we have multiple queues, default
 		 * to "none".
 		 */
 		if (q->mq_ops) {
-			if (q->nr_hw_queues == 1)
+			if (IS_ENABLED(CONFIG_MQ_IOSCHED_DEFAULT_ADIOS) &&
+			    q->nr_hw_queues == 1 && blk_queue_nonrot(q)) {
+				e = elevator_get(q, "adios", false);
+				default_adios = !!e;
+			}
+			if (!e && q->nr_hw_queues == 1)
 				e = elevator_get(q, "mq-deadline", false);
 			if (!e)
 				return 0;
@@ -254,11 +261,48 @@ int elevator_init(struct request_queue *q, char *name)
 		err = blk_mq_init_sched(q, e);
 	else
 		err = e->ops.sq.elevator_init_fn(q, e);
-	if (err)
+	if (err) {
 		elevator_put(e);
+		/*
+		 * Only automatic selection falls back. Explicit requests retain
+		 * their error, rather than silently selecting another scheduler.
+		 */
+		if (default_adios) {
+			pr_warn("ADIOS init failed (%d); trying mq-deadline\n", err);
+			e = elevator_get(q, "mq-deadline", false);
+			if (!e)
+				return err;
+			err = blk_mq_init_sched(q, e);
+			if (err)
+				elevator_put(e);
+		}
+	}
 	return err;
 }
 EXPORT_SYMBOL(elevator_init);
+
+/* SCSI learns rotational characteristics after initial queue allocation.
+ * Revisit only the provisional mq-deadline choice, before sysfs registration.
+ */
+int elevator_apply_mq_default(struct request_queue *q)
+{
+	int ret;
+
+	lockdep_assert_held(&q->sysfs_lock);
+	if (!IS_ENABLED(CONFIG_MQ_IOSCHED_DEFAULT_ADIOS) || !q->mq_ops ||
+	    q->nr_hw_queues != 1 || !blk_queue_nonrot(q) || !q->elevator ||
+	    q->elevator->registered ||
+	    strcmp(q->elevator->type->elevator_name, "mq-deadline"))
+		return 0;
+
+	blk_mq_freeze_queue(q);
+	ioc_clear_queue(q);
+	elevator_exit(q, q->elevator);
+	ret = elevator_init(q, NULL);
+	blk_mq_unfreeze_queue(q);
+	return ret;
+}
+
 
 void elevator_exit(struct request_queue *q, struct elevator_queue *e)
 {

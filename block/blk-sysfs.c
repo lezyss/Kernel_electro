@@ -888,6 +888,13 @@ int blk_register_queue(struct gendisk *disk)
 	/* Prevent changes through sysfs until registration is completed. */
 	mutex_lock(&q->sysfs_lock);
 
+	/* Disk characteristics are now known, unlike early SCSI queue setup. */
+	ret = elevator_apply_mq_default(q);
+	if (ret) {
+		blk_trace_remove_sysfs(dev);
+		goto unlock;
+	}
+
 	ret = kobject_add(&q->kobj, kobject_get(&dev->kobj), "%s", "queue");
 	if (ret < 0) {
 		blk_trace_remove_sysfs(dev);
