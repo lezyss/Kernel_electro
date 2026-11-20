@@ -11549,6 +11549,7 @@ no_move:
 			 * only after active load balance is finished.
 			 */
 			if (!busiest->active_balance &&
+			    busiest->curr->on_rq &&
 			    !cpu_isolated(cpu_of(busiest))) {
 				busiest->active_balance = 1;
 				busiest->push_cpu = this_cpu;
