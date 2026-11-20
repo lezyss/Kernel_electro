@@ -4576,7 +4576,7 @@ static unsigned long lru_gen_shrink_lruvec(struct lruvec *lruvec, struct scan_co
 		if (!delta)
 			goto done;
 
-		if (sc->memcgs_avoid_swapping && swappiness < 200 && swapped)
+		if (sc->memcgs_avoid_swapping && swappiness < 100 && swapped)
 			break;
 
 		scanned += delta;
