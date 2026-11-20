@@ -19,6 +19,7 @@
 };
 
 &dsi_ft8756_huaxing_video {
+	qcom,suspend-ulps-enabled;
 	qcom,esd-err-int-gpio = <&tlmm 4 0>;
 	qcom,mdss-dsi-t-clk-post = <0x02>;
 	qcom,mdss-dsi-t-clk-pre = <0x2f>;
@@ -35,6 +36,7 @@
 };
 
 &dsi_nt36675_tianma_video {
+	qcom,suspend-ulps-enabled;
 	qcom,esd-err-int-gpio = <&tlmm 4 0>;
 	qcom,mdss-dsi-t-clk-post = <0x02>;
 	qcom,mdss-dsi-t-clk-pre = <0x2f>;
