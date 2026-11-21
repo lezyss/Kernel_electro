@@ -29,6 +29,11 @@ on:
         type: string
         default: latest
         required: false
+      nomount_ref:
+        description: NoMount ref (pinned, latest, tag, branch, or SHA)
+        type: string
+        default: pinned
+        required: false
 
 permissions:
   contents: read
@@ -56,6 +61,7 @@ jobs:
       HOST_LLVM_BIN: /usr/bin
       DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
       KSU_REF: ${{ inputs.ksu_ref || 'latest' }}
+      NOMOUNT_REF: ${{ inputs.nomount_ref || 'pinned' }}
       KBUILD_BUILD_USER: github-actions
       KBUILD_BUILD_HOST: kernel-ci
     steps:
@@ -75,6 +81,9 @@ jobs:
 
       - name: Set up pinned KernelSU source
         run: bash scripts/kernelsu/setup.sh
+
+      - name: Set up external NoMount source
+        run: bash scripts/nomount/setup.sh
 
       - name: Test Neutron installer and build-script contracts (synthetic)
         env:

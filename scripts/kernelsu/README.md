@@ -13,10 +13,13 @@ kernel commit.
 
 ## Build
 
-Run the setup once per checkout (CI does this before the build):
+Run the setup once per checkout (CI does this before the build).
+NoMount is a separate external source: also run `scripts/nomount/setup.sh`
+(see `scripts/nomount/README.md`).
 
 ```sh
 scripts/kernelsu/setup.sh
+scripts/nomount/setup.sh
 ```
 
 By default `KSU_REF=latest`, which resolves the latest non-prerelease

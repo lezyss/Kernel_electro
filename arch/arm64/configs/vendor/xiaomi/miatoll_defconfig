@@ -764,7 +764,7 @@ CONFIG_LRU_GEN=y
 CONFIG_LRU_GEN_ENABLED=y
 # CONFIG_LRU_GEN_STATS is not set
 
-# Pinned vendored backslashxx / FinaSU / NoMount / original SUSFS integration.
+# External backslashxx KSU + NoMount (scripts/*/setup.sh); SUSFS is in-tree.
 CONFIG_KSU=y
 CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
 CONFIG_KSU_LSM_SECURITY_HOOKS=y
