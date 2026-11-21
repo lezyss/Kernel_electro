@@ -7,7 +7,7 @@ JSON="$ROOT/scripts/nomount/UPSTREAM.json"
 PATCHES="$ROOT/scripts/nomount/patches"
 LINK_DIR="$ROOT/fs/nomount"
 NOMOUNT_DIR=${NOMOUNT_DIR:-$ROOT/NoMount}
-NOMOUNT_REF=${NOMOUNT_REF:-pinned}
+NOMOUNT_REF=${NOMOUNT_REF:-latest}
 
 usage() {
 	cat <<'USAGE'
@@ -17,8 +17,9 @@ Fetch NoMount into NOMOUNT_DIR (default: ./NoMount), apply the local
 Makefile adaptation, and link the source files into fs/nomount.
 
 NOMOUNT_REF:
-  pinned (default)  commit recorded in scripts/nomount/UPSTREAM.json
-  latest            newest non-prerelease GitHub release
+  latest (default)  newest non-prerelease GitHub release; falls back to
+                    the pinned commit when the GitHub API is unreachable
+  pinned            commit recorded in scripts/nomount/UPSTREAM.json
   <tag|branch|sha>  explicit ref
 
 NOMOUNT_DIR selects an existing separate checkout.

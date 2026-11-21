@@ -8,7 +8,9 @@ TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/neutron-06092026"}
 DEFCONFIG=${DEFCONFIG:-vendor/xiaomi/miatoll_defconfig}
 JOBS=${JOBS:-$(nproc)}
 ENABLE_POLLY=${ENABLE_POLLY:-1}
-# The user-qualified miatoll prototype is now the requested default.
+# Polly and the miatoll storage stack (SCSI blk-mq, mq runtime PM, ADIOS
+# boot default) are fixed defaults; the workflow no longer exposes them as
+# inputs.  The variables remain for local comparison builds.
 storage_default=0
 if [[ "$DEFCONFIG" == vendor/xiaomi/miatoll_defconfig ]]; then
     storage_default=1
@@ -90,9 +92,9 @@ rm -f out/polly-probe.ll out/polly-probe.log
     echo "Kernel commit: $(git rev-parse HEAD)"
     echo "Tracked worktree changes: $(git status --porcelain --untracked-files=no | wc -l)"
     echo "Defconfig: $DEFCONFIG"
-    echo "Experimental SCSI blk-mq: $TEST_SCSI_MQ (runtime activation must be verified)"
-    echo "Experimental SCSI mq runtime PM: $TEST_SCSI_MQ_PM"
-    echo "ADIOS prototype enabled as boot default: $TEST_ADIOS"
+    echo "SCSI blk-mq: $TEST_SCSI_MQ (runtime activation must be verified)"
+    echo "SCSI mq runtime PM: $TEST_SCSI_MQ_PM"
+    echo "ADIOS enabled as boot default: $TEST_ADIOS"
     echo "LLVM Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
     echo "Neutron lock:"

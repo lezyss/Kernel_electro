@@ -138,7 +138,7 @@ if 'Image.gz-dtb' in sys.argv:
     resolved = (root / 'out/.config').read_text().splitlines()
     assert 'CONFIG_SCSI_MQ_DEFAULT=y' in resolved and 'CONFIG_MQ_IOSCHED_DEADLINE=y' in resolved
     assert 'CONFIG_LLVM_POLLY=y' in resolved
-    assert 'Experimental SCSI blk-mq: 1' in (root / 'out/build-info.txt').read_text()
+    assert 'SCSI blk-mq: 1' in (root / 'out/build-info.txt').read_text()
     for option in ('SCSI_MQ_DEFAULT', 'MQ_IOSCHED_DEADLINE', 'SCSI_UFSHCD', 'SCSI_UFS_QCOM',
                    'SCSI_UFS_CRYPTO', 'SCSI_UFS_CRYPTO_QTI', 'BLK_INLINE_ENCRYPTION',
                    'BLK_INLINE_ENCRYPTION_FALLBACK', 'IOSCHED_CFQ', 'DEFAULT_CFQ'):

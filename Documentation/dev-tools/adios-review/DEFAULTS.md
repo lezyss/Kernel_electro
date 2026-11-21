@@ -48,18 +48,22 @@ Keep the known-working boot image and off-device backup.
 
 ## Comparison and recovery switches
 
-The workflow stays manual-only. `polly`, `scsi_mq`, `scsi_mq_pm` and `adios` now
-default true; the storage choices must remain consistent.
+The workflow stays manual-only. Polly, SCSI blk-mq, mq runtime PM and the ADIOS
+boot default are no longer workflow inputs: `scripts/ci/build-kernel.sh` enables
+all of them for `miatoll_defconfig`. Comparison builds are local only, through
+the `ENABLE_POLLY` / `TEST_*` environment variables; the storage choices must
+remain consistent.
 
 * mq-deadline comparison: keep mq/PM true and set **adios=false**. The build
   explicitly disables both ADIOS options even though the source defconfig
   enables them.
-* Legacy CFQ comparison: set **scsi_mq=false, scsi_mq_pm=false, adios=false**.
+* Legacy CFQ comparison: run the build script locally with
+  **TEST_SCSI_MQ=0 TEST_SCSI_MQ_PM=0 TEST_ADIOS=0**.
 * Local miatoll build: the three TEST_* storage variables default to 1. Use
   `TEST_ADIOS=0` for mq-deadline, or all three variables =0 for legacy CFQ.
-* Other defconfigs do not gain implicit local storage defaults. With the
-  workflow's miatoll-oriented true inputs, select appropriate explicit opt-outs
-  before requesting another defconfig; the miatoll-only mq guard remains.
+* Other defconfigs do not gain implicit storage defaults: the build script
+  leaves the three TEST_* variables at 0 for them, so another `defconfig`
+  workflow input builds without the mq stack; the miatoll-only mq guard remains.
 
 The Kconfig symbols still default n globally; only the miatoll defconfig and
 its build/workflow defaults opt into this behavior. Native raw defconfig builds

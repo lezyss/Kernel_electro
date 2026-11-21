@@ -19,17 +19,20 @@ scripts/kernelsu/setup.sh
 scripts/nomount/setup.sh
 ```
 
-The default `NOMOUNT_REF=pinned` uses the verified commit in
-`UPSTREAM.json`.  Other modes:
+The default `NOMOUNT_REF=latest` resolves the newest non-prerelease
+GitHub release (CI uses this too).  If the GitHub API cannot be reached
+the script falls back to the commit in `UPSTREAM.json`.  Other modes:
 
 ```sh
-NOMOUNT_REF=latest scripts/nomount/setup.sh      # newest GitHub release
+NOMOUNT_REF=pinned scripts/nomount/setup.sh      # verified UPSTREAM.json commit
 NOMOUNT_REF=v2.3.1 scripts/nomount/setup.sh      # explicit release
 NOMOUNT_REF=dev scripts/nomount/setup.sh         # upstream branch
 ```
 
-`NOMOUNT_REF=latest` is not build-verified on this 4.14 tree; the pinned
-commit is the safe default.  Set `NOMOUNT_DIR` to use another checkout.
+A new upstream release can change the kernel source without a tree
+change; if a `latest` build breaks, use `NOMOUNT_REF=pinned` (or set the
+`nomount_ref` workflow input) until the pin and patch are refreshed.  Set
+`NOMOUNT_DIR` to use another checkout.
 
 The script removes old links before updating, so a failed fetch or patch
 leaves `fs/nomount` without source and the kernel build stops at the guard

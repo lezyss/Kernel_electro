@@ -140,9 +140,9 @@ that this Polly build boots and explicitly requested making it the default.
 That is user-reported boot evidence, not an independently observed device test
 or proof of performance, battery benefit or long-term stability.
 
-The manual workflow's `polly` boolean now defaults to **true**. Local builds also
-default to `ENABLE_POLLY=1`, enabling `CONFIG_LLVM_POLLY=y`. For comparison or
-troubleshooting, uncheck `polly` in the workflow or run:
+Polly is a fixed default: the workflow no longer exposes a `polly` input, and
+`scripts/ci/build-kernel.sh` defaults to `ENABLE_POLLY=1`, enabling
+`CONFIG_LLVM_POLLY=y`. For a local comparison or troubleshooting build run:
 
 ```sh
 # Run in the compatible isolated environment described above.

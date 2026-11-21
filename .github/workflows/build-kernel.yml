@@ -8,31 +8,15 @@ on:
         type: string
         default: vendor/xiaomi/miatoll_defconfig
         required: true
-      polly:
-        description: Enable LLVM Polly (disable for a no-Polly comparison build)
-        type: boolean
-        default: true
-      scsi_mq:
-        description: Experimental UFS/SCSI blk-mq with mq-deadline available (backup required)
-        type: boolean
-        default: true
-      scsi_mq_pm:
-        description: Experimental mq runtime-PM backport (requires scsi_mq)
-        type: boolean
-        default: true
-      adios:
-        description: Enable ADIOS boot default (disable for mq-deadline comparison)
-        type: boolean
-        default: true
       ksu_ref:
         description: KernelSU ref (latest, pinned, tag, branch, or SHA)
         type: string
         default: latest
         required: false
       nomount_ref:
-        description: NoMount ref (pinned, latest, tag, branch, or SHA)
+        description: NoMount ref (latest, pinned, tag, branch, or SHA)
         type: string
-        default: pinned
+        default: latest
         required: false
 
 permissions:
@@ -53,15 +37,14 @@ jobs:
     defaults:
       run:
         shell: bash
+    # Polly, SCSI blk-mq, mq runtime PM and the ADIOS boot default are no
+    # longer workflow inputs; scripts/ci/build-kernel.sh enables them for the
+    # miatoll defconfig.
     env:
-      ENABLE_POLLY: ${{ inputs.polly && '1' || '0' }}
-      TEST_SCSI_MQ: ${{ inputs.scsi_mq && '1' || '0' }}
-      TEST_SCSI_MQ_PM: ${{ inputs.scsi_mq_pm && '1' || '0' }}
-      TEST_ADIOS: ${{ inputs.adios && '1' || '0' }}
       HOST_LLVM_BIN: /usr/bin
       DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
       KSU_REF: ${{ inputs.ksu_ref || 'latest' }}
-      NOMOUNT_REF: ${{ inputs.nomount_ref || 'pinned' }}
+      NOMOUNT_REF: ${{ inputs.nomount_ref || 'latest' }}
       KBUILD_BUILD_USER: github-actions
       KBUILD_BUILD_HOST: kernel-ci
     steps:
@@ -79,7 +62,7 @@ jobs:
       - name: Check out kernel
         uses: actions/checkout@v4
 
-      - name: Set up pinned KernelSU source
+      - name: Set up external KernelSU source
         run: bash scripts/kernelsu/setup.sh
 
       - name: Set up external NoMount source

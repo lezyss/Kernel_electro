@@ -14,7 +14,8 @@ CONFIG_MQ_IOSCHED_DEADLINE=y
 The source miatoll defconfig remains unchanged. Legacy CFQ support/default
 selection remains compiled in; CFQ is not used on an mq queue. Neutron, the
 boot-tested Polly flags, ThinLTO/SCS, crypto settings and Electro release naming
-are unchanged. Normal workflow/local builds do not request this experiment.
+are unchanged. Normal workflow/local miatoll builds now enable this stack by
+default (see adios-review/DEFAULTS.md); other defconfigs do not.
 
 User-provided runtime evidence from the existing legacy build:
 
@@ -69,14 +70,16 @@ scheduler selection or rewrite Android init rules. Verify the active scheduler.
 
 ## Build selection, guards and labels
 
-Manual workflow: select **scsi_mq=true**, using miatoll_defconfig. Locally, in the
-pinned compatible Neutron container:
+Manual workflow: build with miatoll_defconfig; the mq stack is the fixed default
+and there is no `scsi_mq` input any more. Locally, in the pinned compatible
+Neutron container:
 
 ```sh
 TEST_SCSI_MQ=1 bash scripts/ci/build-kernel.sh
 ```
 
-`TEST_SCSI_MQ` defaults to `0`, accepts only `0` or `1`, and selection `1` is
+`TEST_SCSI_MQ` defaults to `1` for miatoll_defconfig and `0` for any other
+defconfig, accepts only `0` or `1`, and selection `1` is
 restricted to the reviewed miatoll defconfig. Polly retains its established
 separate default-on setting. The normal mode leaves storage settings as the
 source defconfig requests; it does not silently rewrite other defconfigs.

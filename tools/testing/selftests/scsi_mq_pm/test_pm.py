@@ -65,8 +65,10 @@ def integration_checks():
     kconfig = (ROOT / 'block/Kconfig').read_text().split('config BLK_MQ_RUNTIME_PM\n', 1)[1].split('\nconfig ', 1)[0]
     assert 'depends on PM && SCSI_MQ_DEFAULT' in kconfig and 'default n' in kconfig
     workflow = (ROOT / '.github/workflows/build-kernel.yml').read_text()
-    assert 'TEST_SCSI_MQ_PM:' in workflow and '      scsi_mq_pm:' in workflow
-    assert '        default: true' in workflow.split('      scsi_mq_pm:', 1)[1].split('\npermissions:', 1)[0]
+    # mq runtime PM is a fixed default of scripts/ci/build-kernel.sh, not a workflow input.
+    assert 'TEST_SCSI_MQ_PM:' not in workflow and '      scsi_mq_pm:' not in workflow
+    build = (ROOT / 'scripts/ci/build-kernel.sh').read_text()
+    assert 'TEST_SCSI_MQ_PM=${TEST_SCSI_MQ_PM:-$storage_default}' in build and 'storage_default=1' in build
     assert "name: kernel-electro-miatoll-4.14.357" in workflow
     print('PASS: Kconfig default-off, allocation-time SCSI bypass, completion and workflow wiring')
 

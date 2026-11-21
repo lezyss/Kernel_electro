@@ -137,19 +137,25 @@ class Toolchain(unittest.TestCase):
         self.assertIn('--cc "$HOST_TEST_CC" --upstream', script)
         self.assertIn('--asan --ubsan', script)
         self.assertIn('--cc "$TOOLCHAIN_DIR/bin/clang" --output out/lz4-tests/arm64', script)
-        self.assertIn('      polly:', text)
-        polly_input = text.split('      polly:', 1)[1].split('\npermissions:', 1)[0]
-        self.assertIn('        default: true', polly_input)
+        # Polly and the storage stack are fixed build defaults, not inputs.
+        inputs = text.split('    inputs:', 1)[1].split('\npermissions:', 1)[0]
+        for removed in ('      polly:', '      scsi_mq:', '      scsi_mq_pm:', '      adios:'):
+            self.assertNotIn(removed, inputs)
+        for removed in ('ENABLE_POLLY:', 'TEST_SCSI_MQ:', 'TEST_SCSI_MQ_PM:', 'TEST_ADIOS:'):
+            self.assertNotIn(removed, text)
+        self.assertIn('      nomount_ref:', inputs)
+        nomount_input = inputs.split('      nomount_ref:', 1)[1]
+        self.assertIn('        default: latest', nomount_input)
+        self.assertIn("NOMOUNT_REF: ${{ inputs.nomount_ref || 'latest' }}", text)
+        self.assertIn("KSU_REF: ${{ inputs.ksu_ref || 'latest' }}", text)
         build = (ROOT / 'scripts/ci/build-kernel.sh').read_text()
         self.assertIn('ENABLE_POLLY=${ENABLE_POLLY:-1}', build)
-        mq_input = text.split('      scsi_mq:', 1)[1].split('\npermissions:', 1)[0]
-        self.assertIn('        default: true', mq_input)
-        self.assertIn("TEST_SCSI_MQ: ${{ inputs.scsi_mq && '1' || '0' }}", text)
-        self.assertIn("name: kernel-electro-miatoll-4.14.357", text)
+        self.assertIn('storage_default=1', build)
         self.assertIn('TEST_SCSI_MQ=${TEST_SCSI_MQ:-$storage_default}', build)
+        self.assertIn('TEST_SCSI_MQ_PM=${TEST_SCSI_MQ_PM:-$storage_default}', build)
+        self.assertIn('TEST_ADIOS=${TEST_ADIOS:-$storage_default}', build)
         self.assertIn('--enable SCSI_MQ_DEFAULT --enable MQ_IOSCHED_DEADLINE', build)
-
-        self.assertIn("ENABLE_POLLY: ${{ inputs.polly && '1' || '0' }}", text)
+        self.assertIn("name: kernel-electro-miatoll-4.14.357", text)
         self.assertIn("name: kernel-electro-miatoll-4.14.357-images", text)
         makefile = (ROOT / 'Makefile').read_text()
         block = makefile.split('ifdef CONFIG_LLVM_POLLY\n', 1)[1].split('endif # CONFIG_LLVM_POLLY', 1)[0]

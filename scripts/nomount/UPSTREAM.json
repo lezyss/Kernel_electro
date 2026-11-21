@@ -1,5 +1,5 @@
 {
-  "strategy": "pinned",
+  "strategy": "latest-release",
   "repository": "https://github.com/maxsteeel/nomount",
   "branch": "dev",
   "commit": "5e9feb6f3fce42423f56b37e344052c59ec16b66",
