@@ -24,6 +24,11 @@ on:
         description: Enable ADIOS boot default (disable for mq-deadline comparison)
         type: boolean
         default: true
+      ksu_ref:
+        description: KernelSU ref (latest, pinned, tag, branch, or SHA)
+        type: string
+        default: latest
+        required: false
 
 permissions:
   contents: read
@@ -50,6 +55,7 @@ jobs:
       TEST_ADIOS: ${{ inputs.adios && '1' || '0' }}
       HOST_LLVM_BIN: /usr/bin
       DEFCONFIG: ${{ inputs.defconfig || 'vendor/xiaomi/miatoll_defconfig' }}
+      KSU_REF: ${{ inputs.ksu_ref || 'latest' }}
       KBUILD_BUILD_USER: github-actions
       KBUILD_BUILD_HOST: kernel-ci
     steps:
