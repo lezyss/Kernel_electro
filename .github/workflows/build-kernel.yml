@@ -67,6 +67,9 @@ jobs:
       - name: Check out kernel
         uses: actions/checkout@v4
 
+      - name: Set up pinned KernelSU source
+        run: bash scripts/kernelsu/setup.sh
+
       - name: Test Neutron installer and build-script contracts (synthetic)
         env:
           PYTHONDONTWRITEBYTECODE: "1"

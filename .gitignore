@@ -127,6 +127,10 @@ all.config
 /out/
 /.toolchains/
 
+# KernelSU is fetched at build time; see scripts/kernelsu/README.md.
+/KernelSU/
+/drivers/kernelsu
+
 # Kdevelop4
 *.kdev4
 
