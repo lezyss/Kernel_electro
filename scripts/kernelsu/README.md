@@ -24,11 +24,15 @@ GitHub release for `backslashxx/KernelSU` and checks out that tag.  If the
 release cannot be resolved, the script falls back to the commit in
 `UPSTREAM.json` with a warning.
 
+Release tags are not parsed or pattern-matched: the GitHub releases API
+returns the tag name, which is checked out as-is.  Upstream has used both
+`-NN` and `+NN` suffixes, so do not infer the tag format.
+
 Overrides:
 
 ```sh
 KSU_REF=pinned scripts/kernelsu/setup.sh      # verified UPSTREAM.json commit
-KSU_REF=v3.3.1+54 scripts/kernelsu/setup.sh   # exact release
+KSU_REF=v3.3.1-54 scripts/kernelsu/setup.sh   # exact release
 KSU_REF=master scripts/kernelsu/setup.sh      # upstream development head
 ```
 
