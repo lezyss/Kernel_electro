@@ -20,7 +20,7 @@ on:
         required: false
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: kernel-${{ github.workflow }}-${{ github.ref }}
@@ -141,6 +141,31 @@ jobs:
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         shell: bash
         run: bash scripts/ci/package-anykernel.sh 2>&1 | tee out/package.log
+
+      - name: Publish GitHub Release
+        if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="miatoll-4.14.357-${{ github.run_number }}"
+          KSU_TAG=$(git -C KernelSU describe --tags --exact-match 2>/dev/null || git -C KernelSU rev-parse --short HEAD)
+          KSU_VER=$(sed -n 's/.*-DKSU_VERSION=\([0-9]\+\).*/\1/p' KernelSU/kernel/Makefile | head -n1)
+          NOMOUNT_TAG=$(git -C NoMount describe --tags --exact-match 2>/dev/null || git -C NoMount rev-parse --short HEAD)
+          KSU_LABEL="${KSU_TAG}${KSU_VER:+_${KSU_VER}}"
+
+          for old in $(gh release list --limit 100 --json tagName --jq '.[] | select(.tagName | startswith("miatoll-4.14.357-")) | .tagName'); do
+            gh release delete "$old" --yes --cleanup-tag || true
+          done
+
+          gh release create "$TAG" \
+            out/flashable/kernel-electro-miatoll-4.14.357.zip \
+            out/flashable/kernel-electro-miatoll-4.14.357.zip.sha256 \
+            --target "${{ github.sha }}" \
+            --title "$TAG" \
+            --notes "KernelSU: ${KSU_LABEL}
+NoMount: ${NOMOUNT_TAG}"
 
       - name: Upload flashable AnyKernel3 ZIP
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
