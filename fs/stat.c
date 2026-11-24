@@ -24,6 +24,13 @@
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
+#include "internal.h"
+
+#ifdef CONFIG_KSU_SUSFS
+extern struct static_key_true ksu_su_compat_enabled;
+extern bool __ksu_is_allow_uid_for_current(uid_t uid);
+extern int ksu_handle_stat(int *dfd, struct filename **filename, int *flags);
+#endif
 
 /**
  * generic_fillattr - Fill in the basic attributes from the inode struct
@@ -241,7 +248,26 @@ int vfs_statx(int dfd, const char __user *filename, int flags,
 		lookup_flags |= LOOKUP_EMPTY;
 
 retry:
+#ifdef CONFIG_KSU_SUSFS
+	if (static_branch_unlikely(&ksu_su_compat_enabled)) {
+		if (__ksu_is_allow_uid_for_current(current_uid().val)) {
+			struct filename *fname = getname(filename);
+			if (!IS_ERR(fname)) {
+				ksu_handle_stat(&dfd, &fname, &flags);
+				error = filename_lookup(dfd, fname, lookup_flags, &path, NULL);
+				putname(fname);
+			} else {
+				error = PTR_ERR(fname);
+			}
+		} else {
+			error = user_path_at(dfd, filename, lookup_flags, &path);
+		}
+	} else {
+		error = user_path_at(dfd, filename, lookup_flags, &path);
+	}
+#else
 	error = user_path_at(dfd, filename, lookup_flags, &path);
+#endif
 	if (error)
 		goto out;
 

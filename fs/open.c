@@ -416,6 +416,12 @@ static const struct cred *access_override_creds(void)
 	return old_cred;
 }
 
+#ifdef CONFIG_KSU_SUSFS
+extern struct static_key_true ksu_su_compat_enabled;
+extern bool __ksu_is_allow_uid_for_current(uid_t uid);
+extern int ksu_handle_faccessat(int *dfd, struct filename **filename, int *mode, int *__unused_flags);
+#endif
+
 long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
 {
 	struct path path;
@@ -443,7 +449,26 @@ long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
 	}
 
 retry:
+#ifdef CONFIG_KSU_SUSFS
+	if (static_branch_unlikely(&ksu_su_compat_enabled)) {
+		if (__ksu_is_allow_uid_for_current(current_uid().val)) {
+			struct filename *fname = getname(filename);
+			if (!IS_ERR(fname)) {
+				ksu_handle_faccessat(&dfd, &fname, &mode, NULL);
+				res = filename_lookup(dfd, fname, lookup_flags, &path, NULL);
+				putname(fname);
+			} else {
+				res = PTR_ERR(fname);
+			}
+		} else {
+			res = user_path_at(dfd, filename, lookup_flags, &path);
+		}
+	} else {
+		res = user_path_at(dfd, filename, lookup_flags, &path);
+	}
+#else
 	res = user_path_at(dfd, filename, lookup_flags, &path);
+#endif
 	if (res)
 		goto out;
 
