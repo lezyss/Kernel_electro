@@ -104,10 +104,6 @@ COMMIT=$(git -C "$KSU_DIR" rev-parse --short HEAD)
 
 shopt -s nullglob
 patches=("$PATCH_DIR"/*.patch)
-if [[ ${#patches[@]} -eq 0 ]]; then
-	echo "no local patches found in $PATCH_DIR" >&2
-	exit 1
-fi
 for patch in "${patches[@]}"; do
 	echo "Applying $(basename "$patch") to $REF"
 	if ! git -C "$KSU_DIR" apply --whitespace=nowarn "$patch"; then
