@@ -30,6 +30,8 @@
 extern struct static_key_true ksu_su_compat_enabled;
 extern bool __ksu_is_allow_uid_for_current(uid_t uid);
 extern int ksu_handle_stat(int *dfd, struct filename **filename, int *flags);
+extern void ksu_handle_vfs_fstat(int fd, loff_t *kstat_size_ptr);
+extern struct static_key_true ksu_is_init_rc_hook_enabled;
 #endif
 
 /**
@@ -457,6 +459,10 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
 	struct kstat stat;
 	int error = vfs_fstat(fd, &stat);
 
+#ifdef CONFIG_KSU_SUSFS
+	if (!error && static_branch_unlikely(&ksu_is_init_rc_hook_enabled))
+		ksu_handle_vfs_fstat(fd, &stat.size);
+#endif
 	if (!error)
 		error = cp_new_stat(&stat, statbuf);
 
