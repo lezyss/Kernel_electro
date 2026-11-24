@@ -765,6 +765,8 @@ CONFIG_LRU_GEN_ENABLED=y
 # CONFIG_LRU_GEN_STATS is not set
 
 # External Baka-SU/BakaSU + NoMount (scripts/*/setup.sh); SUSFS 2.4.0 is in-tree.
+CONFIG_DEBUG_KERNEL=y
+CONFIG_KALLSYMS_ALL=y
 CONFIG_KSU=y
 # CONFIG_KSU_DEBUG is not set
 # CONFIG_KSU_DISABLE_MANAGER is not set
