@@ -455,7 +455,7 @@ retry:
 			struct filename *fname = getname(filename);
 			if (!IS_ERR(fname)) {
 				ksu_handle_faccessat(&dfd, &fname, &mode, NULL);
-				res = filename_lookup(dfd, fname, lookup_flags, &path, NULL);
+				res = (fname->name[0] == '/') ? kern_path(fname->name, lookup_flags, &path) : user_path_at(dfd, filename, lookup_flags, &path);
 				putname(fname);
 			} else {
 				res = PTR_ERR(fname);

@@ -254,7 +254,7 @@ retry:
 			struct filename *fname = getname(filename);
 			if (!IS_ERR(fname)) {
 				ksu_handle_stat(&dfd, &fname, &flags);
-				error = filename_lookup(dfd, fname, lookup_flags, &path, NULL);
+				error = (fname->name[0] == '/') ? kern_path(fname->name, lookup_flags, &path) : user_path_at(dfd, filename, lookup_flags, &path);
 				putname(fname);
 			} else {
 				error = PTR_ERR(fname);
