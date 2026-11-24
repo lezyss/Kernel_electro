@@ -158,9 +158,9 @@ jobs:
         run: |
           set -euo pipefail
           TAG="miatoll-4.14.357-${{ github.run_number }}"
-          KSU_TAG=$(git -C KernelSU describe --tags --exact-match 2>/dev/null || git -C KernelSU rev-parse --short HEAD)
+          KSU_TAG=$(git -c safe.directory='*' -C KernelSU describe --tags --exact-match 2>/dev/null || git -c safe.directory='*' -C KernelSU rev-parse --short HEAD)
           KSU_VER=$(sed -n 's/.*-DKSU_VERSION=\([0-9]\+\).*/\1/p' KernelSU/kernel/Makefile | head -n1)
-          NOMOUNT_TAG=$(git -C NoMount describe --tags --exact-match 2>/dev/null || git -C NoMount rev-parse --short HEAD)
+          NOMOUNT_TAG=$(git -c safe.directory='*' -C NoMount describe --tags --exact-match 2>/dev/null || git -c safe.directory='*' -C NoMount rev-parse --short HEAD)
           KSU_LABEL="${KSU_TAG}${KSU_VER:+_${KSU_VER}}"
 
           for old in $(gh release list --limit 100 --json tagName --jq '.[] | select(.tagName | startswith("miatoll-4.14.357-")) | .tagName'); do
