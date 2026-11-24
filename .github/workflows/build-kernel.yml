@@ -165,7 +165,7 @@ jobs:
             --target "${{ github.sha }}" \
             --title "$TAG" \
             --notes "KernelSU: ${KSU_LABEL}
-NoMount: ${NOMOUNT_TAG}"
+            NoMount: ${NOMOUNT_TAG}"
 
       - name: Upload flashable AnyKernel3 ZIP
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
