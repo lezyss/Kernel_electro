@@ -451,7 +451,7 @@ long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
 retry:
 #ifdef CONFIG_KSU_SUSFS
 	if (static_branch_unlikely(&ksu_su_compat_enabled)) {
-		if (__ksu_is_allow_uid_for_current(current_uid().val)) {
+		if (dfd == AT_FDCWD && filename && __ksu_is_allow_uid_for_current(current_uid().val)) {
 			struct filename *fname = getname(filename);
 			if (!IS_ERR(fname)) {
 				ksu_handle_faccessat(&dfd, &fname, &mode, NULL);
