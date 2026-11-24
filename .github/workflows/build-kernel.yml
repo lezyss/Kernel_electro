@@ -150,7 +150,8 @@ jobs:
         shell: bash
         run: bash scripts/ci/package-anykernel.sh 2>&1 | tee out/package.log
 
-      - name: Publish GitHub Release
+      - name: Prepare release metadata and prune old releases
+        id: relmeta
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -159,21 +160,33 @@ jobs:
           set -euo pipefail
           TAG="miatoll-4.14.357-${{ github.run_number }}"
           KSU_TAG=$(git -c safe.directory='*' -C KernelSU describe --tags --exact-match 2>/dev/null || git -c safe.directory='*' -C KernelSU rev-parse --short HEAD)
-          KSU_VER=$(sed -n 's/.*-DKSU_VERSION=\([0-9]\+\).*/\1/p' KernelSU/kernel/Makefile | head -n1)
+          KSU_VER=$(sed -n 's/.*-DKSU_VERSION=\([0-9]\+\).*/\1/p' KernelSU/kernel/Makefile 2>/dev/null | head -n1 || true)
           NOMOUNT_TAG=$(git -c safe.directory='*' -C NoMount describe --tags --exact-match 2>/dev/null || git -c safe.directory='*' -C NoMount rev-parse --short HEAD)
           KSU_LABEL="${KSU_TAG}${KSU_VER:+_${KSU_VER}}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "ksu_label=$KSU_LABEL" >> "$GITHUB_OUTPUT"
+          echo "nomount_tag=$NOMOUNT_TAG" >> "$GITHUB_OUTPUT"
 
-          for old in $(gh release list --limit 100 --json tagName --jq '.[] | select(.tagName | startswith("miatoll-4.14.357-")) | .tagName'); do
-            gh release delete "$old" --yes --cleanup-tag || true
+          for id in $(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100" | python3 -c "import sys,json; print('\n'.join(str(r['id']) for r in json.load(sys.stdin) if r['tag_name'].startswith('miatoll-4.14.357-')))"); do
+            curl -fsSL -X DELETE -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/$id" || true
+          done
+          for ref in $(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/git/matching-refs/tags/miatoll-4.14.357-" | python3 -c "import sys,json; print('\n'.join(r['ref'].replace('refs/','') for r in json.load(sys.stdin)))"); do
+            curl -fsSL -X DELETE -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/git/refs/$ref" || true
           done
 
-          gh release create "$TAG" \
-            out/flashable/kernel-electro-miatoll-4.14.357.zip \
-            out/flashable/kernel-electro-miatoll-4.14.357.zip.sha256 \
-            --target "${{ github.sha }}" \
-            --title "$TAG" \
-            --notes "KernelSU: ${KSU_LABEL}
-            NoMount: ${NOMOUNT_TAG}"
+      - name: Publish GitHub Release
+        if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.relmeta.outputs.tag }}
+          name: ${{ steps.relmeta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          body: |
+            KernelSU: ${{ steps.relmeta.outputs.ksu_label }}
+            NoMount: ${{ steps.relmeta.outputs.nomount_tag }}
+          files: |
+            out/flashable/kernel-electro-miatoll-4.14.357.zip
+            out/flashable/kernel-electro-miatoll-4.14.357.zip.sha256
 
       - name: Upload flashable AnyKernel3 ZIP
         if: env.DEFCONFIG == 'vendor/xiaomi/miatoll_defconfig'
