@@ -1739,8 +1739,8 @@ static int do_execveat_common(int fd, struct filename *filename,
 		return PTR_ERR(filename);
 
 #ifdef CONFIG_KSU_SUSFS
-	if (static_branch_unlikely(&ksu_su_compat_enabled))
-		ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
+	if (static_branch_likely(&ksu_su_compat_enabled))
+		ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
 #endif
 
 	/*
