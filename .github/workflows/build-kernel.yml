@@ -129,9 +129,7 @@ jobs:
         shell: bash
         run: |
           if [ -f out/build.log ]; then
-            ERR=$(grep -n -E 'error:|undefined reference|\*\*\*' out/build.log | tail -n 25 || tail -n 25 out/build.log)
-            echo "::error::${ERR//$'
-'/%0A}"
+            (grep -n -E 'error:|undefined reference|\*\*\*' out/build.log || tail -n 25 out/build.log) | tail -n 25 | while IFS= read -r line; do echo "::error::$line"; done
           fi
 
       - name: Check out pinned AnyKernel3 installer
