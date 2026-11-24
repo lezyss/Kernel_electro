@@ -57,8 +57,15 @@ latest_release() {
 	tag=$(curl -fsSL --max-time 20 \
 		-H 'Accept: application/vnd.github+json' \
 		-H 'User-Agent: kernel-electro' \
-		https://api.github.com/repos/backslashxx/KernelSU/releases/latest 2>/dev/null |
+		https://api.github.com/repos/Baka-SU/BakaSU/releases/latest 2>/dev/null |
 		sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1) || true
+	if [[ -z "$tag" ]]; then
+		tag=$(curl -fsSL --max-time 20 \
+			-H 'Accept: application/vnd.github+json' \
+			-H 'User-Agent: kernel-electro' \
+			'https://api.github.com/repos/Baka-SU/BakaSU/releases?per_page=1' 2>/dev/null |
+			sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1) || true
+	fi
 	printf '%s\n' "$tag"
 }
 
@@ -84,7 +91,7 @@ if [[ -e "$KSU_DIR" && ! -d "$KSU_DIR/.git" ]]; then
 fi
 
 if [[ ! -d "$KSU_DIR/.git" ]]; then
-	git clone --quiet https://github.com/backslashxx/KernelSU.git "$KSU_DIR"
+	git clone --quiet https://github.com/Baka-SU/BakaSU.git "$KSU_DIR"
 fi
 
 if ! git -C "$KSU_DIR" fetch --quiet --depth=1 origin "$REF"; then
