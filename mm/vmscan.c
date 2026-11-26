@@ -3290,7 +3290,7 @@ static void reset_batch_size(struct lruvec *lruvec, struct lru_gen_mm_walk *walk
 		WRITE_ONCE(lrugen->nr_pages[gen][type][zone],
 			   lrugen->nr_pages[gen][type][zone] + delta);
 
-		if (lru_gen_is_active(lruvec, gen))
+		if (lru_gen_is_active(lruvec, gen, type))
 			lru += LRU_ACTIVE;
 		update_lru_size(lruvec, lru, zone, delta);
 	}
