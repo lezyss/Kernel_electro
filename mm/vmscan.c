@@ -3092,9 +3092,9 @@ static bool iterate_mm_list_nowalk(struct lruvec *lruvec, unsigned long max_seq)
 
 	spin_lock(&mm_list->lock);
 
-	VM_BUG_ON(mm_state->seq + 1 < max_seq[0]);
+	VM_BUG_ON(mm_state->seq + 1 < max_seq);
 
-	if (max_seq[0] > mm_state->seq && !mm_state->nr_walkers) {
+	if (max_seq > mm_state->seq && !mm_state->nr_walkers) {
 		VM_BUG_ON(mm_state->head[0] && mm_state->head[0] != &mm_list->fifo);
 
 		WRITE_ONCE(mm_state->seq, mm_state->seq + 1);
@@ -3794,7 +3794,7 @@ next:
 	return success;
 }
 
-static void inc_max_seq(struct lruvec *lruvec)
+static void inc_max_seq(struct lruvec *lruvec, int type)
 {
 	int prev, next;
 	int type, zone;
@@ -3838,12 +3838,12 @@ static void inc_max_seq(struct lruvec *lruvec)
 
 	WRITE_ONCE(lrugen->timestamps[next], jiffies);
 	/* make sure preceding modifications appear */
-	smp_store_release(&lrugen->max_seq, lrugen->max_seq[type] + 1);
+	smp_store_release(&lrugen->max_seq[type], lrugen->max_seq[type] + 1);
 
 	spin_unlock_irq(&pgdat->lru_lock);
 }
 
-static bool try_to_inc_max_seq(struct lruvec *lruvec, unsigned long max_seq,
+static bool try_to_inc_max_seq(struct lruvec *lruvec, unsigned long max_seq, int type,
 			       struct scan_control *sc, bool can_swap, bool full_scan)
 {
 	bool success;
@@ -3851,7 +3851,7 @@ static bool try_to_inc_max_seq(struct lruvec *lruvec, unsigned long max_seq,
 	struct mm_struct *mm = NULL;
 	struct lru_gen_struct *lrugen = &lruvec->lrugen;
 
-	VM_BUG_ON(max_seq > READ_ONCE(lrugen->max_seq));
+	VM_BUG_ON(max_seq > READ_ONCE(lrugen->max_seq[type]));
 
 	/*
 	 * If the hardware doesn't automatically set the accessed bit, fallback
@@ -3888,14 +3888,14 @@ done:
 	if (!success) {
 		if (!current_is_kswapd() && !sc->priority)
 			wait_event_killable(lruvec->mm_state.wait,
-					    max_seq < READ_ONCE(lrugen->max_seq));
+					    max_seq < READ_ONCE(lrugen->max_seq[type]));
 
-		return max_seq < READ_ONCE(lrugen->max_seq);
+		return max_seq < READ_ONCE(lrugen->max_seq[type]);
 	}
 
-	VM_BUG_ON(max_seq != READ_ONCE(lrugen->max_seq));
+	VM_BUG_ON(max_seq != READ_ONCE(lrugen->max_seq[type]));
 
-	inc_max_seq(lruvec);
+	inc_max_seq(lruvec, type);
 	/* either this sees any waiters or they will see updated max_seq */
 	if (wq_has_sleeper(&lruvec->mm_state.wait))
 		wake_up_all(&lruvec->mm_state.wait);
@@ -3903,7 +3903,7 @@ done:
 	return true;
 }
 
-static long get_nr_evictable(struct lruvec *lruvec, unsigned long max_seq,
+static long get_nr_evictable(struct lruvec *lruvec, unsigned long *max_seq,
 			     unsigned long *min_seq, bool can_swap, bool *need_aging)
 {
 	int gen, type, zone;
