@@ -2805,12 +2805,16 @@ void lru_gen_del_mm(struct mm_struct *mm)
 		if (lruvec->mm_state.tail == &mm->lru_gen.list)
 			lruvec->mm_state.tail = lruvec->mm_state.tail->next;
 
-		if (lruvec->mm_state.head != &mm->lru_gen.list)
-			continue;
-
-		lruvec->mm_state.head = lruvec->mm_state.head->next;
-		if (lruvec->mm_state.head == &mm_list->fifo)
-			WRITE_ONCE(lruvec->mm_state.seq, lruvec->mm_state.seq + 1);
+		{
+			int t;
+			for (t = 0; t < ANON_AND_FILE; t++) {
+				if (lruvec->mm_state.head[t] != &mm->lru_gen.list)
+					continue;
+				lruvec->mm_state.head[t] = lruvec->mm_state.head[t]->next;
+				if (lruvec->mm_state.head[t] == &mm_list->fifo)
+					WRITE_ONCE(lruvec->mm_state.seq, lruvec->mm_state.seq + 1);
+			}
+		}
 	}
 
 	list_del_init(&mm->lru_gen.list);
@@ -3031,7 +3035,7 @@ static bool iterate_mm_list(struct lruvec *lruvec, struct lru_gen_mm_walk *walk,
 	}
 
 	if (!mm_state->nr_walkers) {
-		VM_BUG_ON(mm_state->head && mm_state->head[walk->aging_type] != &mm_list->fifo);
+		VM_BUG_ON(mm_state->head[0] && mm_state->head[0] != &mm_list->fifo);
 
 		mm_state->head[walk->aging_type] = mm_list->fifo.next;
 		first = true;
@@ -3088,10 +3092,10 @@ static bool iterate_mm_list_nowalk(struct lruvec *lruvec, unsigned long max_seq)
 
 	spin_lock(&mm_list->lock);
 
-	VM_BUG_ON(mm_state->seq + 1 < max_seq);
+	VM_BUG_ON(mm_state->seq + 1 < max_seq[0]);
 
-	if (max_seq > mm_state->seq && !mm_state->nr_walkers) {
-		VM_BUG_ON(mm_state->head && mm_state->head[walk->aging_type] != &mm_list->fifo);
+	if (max_seq[0] > mm_state->seq && !mm_state->nr_walkers) {
+		VM_BUG_ON(mm_state->head[0] && mm_state->head[0] != &mm_list->fifo);
 
 		WRITE_ONCE(mm_state->seq, mm_state->seq + 1);
 		reset_mm_stats(lruvec, NULL, true);
@@ -3152,7 +3156,7 @@ static void reset_ctrl_pos(struct lruvec *lruvec, int type, bool carryover)
 	int hist, tier;
 	struct lru_gen_struct *lrugen = &lruvec->lrugen;
 	bool clear = carryover ? NR_HIST_GENS == 1 : NR_HIST_GENS > 1;
-	unsigned long seq = carryover ? lrugen->min_seq[type] : lrugen->max_seq + 1;
+	unsigned long seq = carryover ? lrugen->min_seq[type] : lrugen->max_seq[type] + 1;
 
 	lockdep_assert_held(&lruvec_pgdat(lruvec)->lru_lock);
 
@@ -3810,8 +3814,8 @@ static void inc_max_seq(struct lruvec *lruvec)
 	 * overlap, cold/hot inversion happens. This can be solved by moving
 	 * pages from min_seq to min_seq+1 but is omitted for simplicity.
 	 */
-	prev = lru_gen_from_seq(lrugen->max_seq - 1);
-	next = lru_gen_from_seq(lrugen->max_seq + 1);
+	prev = lru_gen_from_seq(lrugen->max_seq[type] - 1);
+	next = lru_gen_from_seq(lrugen->max_seq[type] + 1);
 
 	for (type = 0; type < ANON_AND_FILE; type++) {
 		for (zone = 0; zone < MAX_NR_ZONES; zone++) {
@@ -3834,7 +3838,7 @@ static void inc_max_seq(struct lruvec *lruvec)
 
 	WRITE_ONCE(lrugen->timestamps[next], jiffies);
 	/* make sure preceding modifications appear */
-	smp_store_release(&lrugen->max_seq, lrugen->max_seq + 1);
+	smp_store_release(&lrugen->max_seq, lrugen->max_seq[type] + 1);
 
 	spin_unlock_irq(&pgdat->lru_lock);
 }
