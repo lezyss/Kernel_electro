@@ -18,7 +18,6 @@
 #include <linux/pageblock-flags.h>
 #include <linux/page-flags-layout.h>
 #include <linux/atomic.h>
-#include <linux/kfifo.h>
 #include <asm/page.h>
 
 /* Free memory management - zoned buddy allocator.  */
@@ -889,7 +888,7 @@ typedef struct pglist_data {
 	struct task_struct *kswapd;
 	struct task_struct *kcompressd;
 	wait_queue_head_t kcompressd_wait;
-	struct kfifo kcompress_fifo;	/* Protected by
+	struct kfifo *kcompress_fifo;	/* Protected by
 					   mem_hotplug_begin/end() */
 	int kswapd_order;
 	enum zone_type kswapd_classzone_idx;

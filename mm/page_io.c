@@ -24,6 +24,7 @@
 #include <linux/blkdev.h>
 #include <linux/kthread.h>
 #include <linux/freezer.h>
+#include <linux/kfifo.h>
 #include <linux/psi.h>
 #include <linux/uio.h>
 #include <linux/sched/task.h>
@@ -214,10 +215,10 @@ static int kcompressd(void *p)
 	set_freezable();
 	while (!kthread_should_stop()) {
 		wait_event_freezable(pgdat->kcompressd_wait,
-			!kfifo_is_empty(&pgdat->kcompress_fifo) ||
+			!kfifo_is_empty(pgdat->kcompress_fifo) ||
 			kthread_should_stop());
 
-		while (kfifo_out(&pgdat->kcompress_fifo, &page, sizeof(page)) == sizeof(page)) {
+		while (kfifo_out(pgdat->kcompress_fifo, &page, sizeof(page)) == sizeof(page)) {
 			__swap_writepage(page, &wbc, end_swap_bio_write);
 			cond_resched();
 		}
@@ -234,7 +235,10 @@ int kcompressd_run(int nid)
 		return 0;
 
 	init_waitqueue_head(&pgdat->kcompressd_wait);
-	ret = kfifo_alloc(&pgdat->kcompress_fifo,
+	pgdat->kcompress_fifo = kzalloc(sizeof(*pgdat->kcompress_fifo), GFP_KERNEL);
+	if (!pgdat->kcompress_fifo)
+		return -ENOMEM;
+	ret = kfifo_alloc(pgdat->kcompress_fifo,
 			  KCOMPRESS_FIFO_SIZE * sizeof(struct page *),
 			  GFP_KERNEL);
 	if (ret)
@@ -244,7 +248,9 @@ int kcompressd_run(int nid)
 	if (IS_ERR(pgdat->kcompressd)) {
 		ret = PTR_ERR(pgdat->kcompressd);
 		pgdat->kcompressd = NULL;
-		kfifo_free(&pgdat->kcompress_fifo);
+		kfifo_free(pgdat->kcompress_fifo);
+		kfree(pgdat->kcompress_fifo);
+		pgdat->kcompress_fifo = NULL;
 		return ret;
 	}
 	return 0;
@@ -257,7 +263,9 @@ void kcompressd_stop(int nid)
 	if (pgdat->kcompressd) {
 		kthread_stop(pgdat->kcompressd);
 		pgdat->kcompressd = NULL;
-		kfifo_free(&pgdat->kcompress_fifo);
+		kfifo_free(pgdat->kcompress_fifo);
+		kfree(pgdat->kcompress_fifo);
+		pgdat->kcompress_fifo = NULL;
 	}
 }
 
@@ -268,10 +276,10 @@ static bool schedule_kcompressd(struct page *page)
 	if (!current_is_kswapd() || !pgdat->kcompressd)
 		return false;
 
-	if (kfifo_avail(&pgdat->kcompress_fifo) < sizeof(page))
+	if (kfifo_avail(pgdat->kcompress_fifo) < sizeof(page))
 		return false;
 
-	kfifo_in(&pgdat->kcompress_fifo, &page, sizeof(page));
+	kfifo_in(pgdat->kcompress_fifo, &page, sizeof(page));
 	wake_up_interruptible(&pgdat->kcompressd_wait);
 	return true;
 }
