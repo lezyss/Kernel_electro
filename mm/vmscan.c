@@ -6669,6 +6669,7 @@ void kswapd_stop(int nid)
 	if (kswapd) {
 		kthread_stop(kswapd);
 		NODE_DATA(nid)->kswapd = NULL;
+		kcompressd_stop(nid);
 	}
 }
 

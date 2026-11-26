@@ -387,6 +387,8 @@ extern int page_evictable(struct page *page);
 extern void check_move_unevictable_pages(struct page **, int nr_pages);
 
 extern int kswapd_run(int nid);
+extern int kcompressd_run(int nid);
+extern void kcompressd_stop(int nid);
 extern void kswapd_stop(int nid);
 
 #ifdef CONFIG_SWAP

@@ -22,6 +22,8 @@
 #include <linux/writeback.h>
 #include <linux/frontswap.h>
 #include <linux/blkdev.h>
+#include <linux/kthread.h>
+#include <linux/freezer.h>
 #include <linux/psi.h>
 #include <linux/uio.h>
 #include <linux/sched/task.h>
@@ -194,6 +196,86 @@ bad_bmap:
  * We may have stale swap cache pages in memory: notice
  * them here and get rid of the unnecessary final write.
  */
+
+#define KCOMPRESS_FIFO_SIZE 4096
+
+static int kcompressd(void *p)
+{
+	pg_data_t *pgdat = (pg_data_t *)p;
+	struct page *page;
+	struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_NONE,
+		.nr_to_write = SWAP_CLUSTER_MAX,
+		.range_start = 0,
+		.range_end = LLONG_MAX,
+		.for_reclaim = 1,
+	};
+
+	set_freezable();
+	while (!kthread_should_stop()) {
+		wait_event_freezable(pgdat->kcompressd_wait,
+			!kfifo_is_empty(&pgdat->kcompress_fifo) ||
+			kthread_should_stop());
+
+		while (kfifo_out(&pgdat->kcompress_fifo, &page, sizeof(page)) == sizeof(page)) {
+			__swap_writepage(page, &wbc, end_swap_bio_write);
+			cond_resched();
+		}
+	}
+	return 0;
+}
+
+int kcompressd_run(int nid)
+{
+	pg_data_t *pgdat = NODE_DATA(nid);
+	int ret;
+
+	if (pgdat->kcompressd)
+		return 0;
+
+	init_waitqueue_head(&pgdat->kcompressd_wait);
+	ret = kfifo_alloc(&pgdat->kcompress_fifo,
+			  KCOMPRESS_FIFO_SIZE * sizeof(struct page *),
+			  GFP_KERNEL);
+	if (ret)
+		return ret;
+
+	pgdat->kcompressd = kthread_run(kcompressd, pgdat, "kcompressd%d", nid);
+	if (IS_ERR(pgdat->kcompressd)) {
+		ret = PTR_ERR(pgdat->kcompressd);
+		pgdat->kcompressd = NULL;
+		kfifo_free(&pgdat->kcompress_fifo);
+		return ret;
+	}
+	return 0;
+}
+
+void kcompressd_stop(int nid)
+{
+	pg_data_t *pgdat = NODE_DATA(nid);
+
+	if (pgdat->kcompressd) {
+		kthread_stop(pgdat->kcompressd);
+		pgdat->kcompressd = NULL;
+		kfifo_free(&pgdat->kcompress_fifo);
+	}
+}
+
+static bool schedule_kcompressd(struct page *page)
+{
+	pg_data_t *pgdat = NODE_DATA(page_to_nid(page));
+
+	if (!current_is_kswapd() || !pgdat->kcompressd)
+		return false;
+
+	if (kfifo_avail(&pgdat->kcompress_fifo) < sizeof(page))
+		return false;
+
+	kfifo_in(&pgdat->kcompress_fifo, &page, sizeof(page));
+	wake_up_interruptible(&pgdat->kcompressd_wait);
+	return true;
+}
+
 int swap_writepage(struct page *page, struct writeback_control *wbc)
 {
 	int ret = 0;
@@ -208,6 +290,8 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 		end_page_writeback(page);
 		goto out;
 	}
+	if (schedule_kcompressd(page))
+		return 0;
 	ret = __swap_writepage(page, wbc, end_swap_bio_write);
 out:
 	return ret;
