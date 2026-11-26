@@ -129,7 +129,7 @@ static inline int lru_tier_from_refs(int refs)
 
 static inline bool lru_gen_is_active(struct lruvec *lruvec, int gen)
 {
-	unsigned long max_seq = lruvec->lrugen.max_seq;
+	unsigned long max_seq = lruvec->lrugen.max_seq[type];
 
 	VM_BUG_ON(gen >= MAX_NR_GENS);
 
@@ -203,7 +203,7 @@ static inline bool lru_gen_add_page(struct lruvec *lruvec, struct page *page, bo
 	 * 3. Everything else (clean, cold) is added to the oldest generation.
 	 */
 	if (PageActive(page))
-		gen = lru_gen_from_seq(lrugen->max_seq);
+		gen = lru_gen_from_seq(lrugen->max_seq[type]);
 	else if ((type == LRU_GEN_ANON && !PageSwapCache(page)) ||
 		 (PageReclaim(page) && (PageDirty(page) || PageWriteback(page))))
 		gen = lru_gen_from_seq(lrugen->min_seq[type] + 1);
