@@ -87,6 +87,18 @@ SCHED_FEAT(LB_ROTATE_BLOCK, true)
 /* Fit the actual remaining load budget, with one bounded progress concession. */
 SCHED_FEAT(LB_STRICT_BUDGET, true)
 
+/*
+ * Rotate the scanned block of cfs_tasks in one list_bulk_move_tail()-style
+ * step at the end of detach_tasks() instead of per-reject list_move().
+ */
+SCHED_FEAT(LB_ROTATE_BLOCK, true)
+
+/*
+ * Concede to the cheapest overshoot that still shrinks the imbalance when
+ * pulling into an idle CPU, instead of relying on nr_balance_failed.
+ */
+SCHED_FEAT(LB_CONCEDE_CHEAPEST, true)
+
 SCHED_FEAT(WA_IDLE, true)
 SCHED_FEAT(WA_WEIGHT, true)
 SCHED_FEAT(WA_BIAS, true)

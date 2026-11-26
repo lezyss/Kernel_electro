@@ -9289,6 +9289,8 @@ enum group_type {
 #define LBF_NEED_BREAK	0x02
 #define LBF_DST_PINNED  0x04
 #define LBF_SOME_PINNED	0x08
+#define LBF_MOVED	0x20
+#define LBF_DST_REDIRECTED	0x40
 /* Sticky across more_balance retries; never stores a task pointer. */
 #define LBF_MOVED		0x40
 #define LBF_IGNORE_BIG_TASKS 0x100
@@ -9617,6 +9619,50 @@ static bool lb_cost_fits(struct lb_env *env, struct lb_concession *concession,
  *
  * Returns number of detached tasks if successful and 0 otherwise.
  */
+#define SCHED_CAMBYSES_AUTHOR	"Masahito Suzuki"
+#define SCHED_CAMBYSES_PROGNAME	"Cambyses CFS Load Balancer modification"
+#define SCHED_CAMBYSES_VERSION	"0.7.2"
+
+static int __init sched_cambyses_init(void)
+{
+	printk(KERN_INFO "%s %s by %s\n",
+		SCHED_CAMBYSES_PROGNAME, SCHED_CAMBYSES_VERSION,
+		SCHED_CAMBYSES_AUTHOR);
+	return 0;
+}
+late_initcall(sched_cambyses_init);
+
+struct lb_concession {
+	struct task_struct	*p;
+	unsigned long		cost;
+};
+
+static inline bool lb_can_concede(struct lb_env *env)
+{
+	return sched_feat(LB_CONCEDE_CHEAPEST) &&
+	       env->idle != CPU_NOT_IDLE &&
+	       !(env->flags & (LBF_MOVED | LBF_DST_REDIRECTED));
+}
+
+static inline bool lb_cost_fits(struct lb_env *env, unsigned long cost,
+				unsigned long imbalance)
+{
+	if (lb_can_concede(env))
+		return cost <= imbalance;
+	return (cost >> env->sd->nr_balance_failed) <= imbalance;
+}
+
+static inline void lb_concession_record(struct lb_concession *c,
+					struct task_struct *p,
+					unsigned long cost,
+					unsigned long imbalance)
+{
+	if (cost < 2 * imbalance && (!c->p || cost < c->cost)) {
+		c->p = p;
+		c->cost = cost;
+	}
+}
+
 static int detach_tasks(struct lb_env *env)
 {
 	struct list_head *tasks = &env->src_rq->cfs_tasks;
@@ -9796,6 +9842,9 @@ next:
 	 * than inside detach_one_task().
 	 */
 	schedstat_add(env->sd->lb_gained[env->idle], detached);
+
+	if (detached)
+		env->flags |= LBF_MOVED;
 
 	return detached;
 }
@@ -11476,6 +11525,7 @@ more_balance:
 			env.dst_rq	 = cpu_rq(env.new_dst_cpu);
 			env.dst_cpu	 = env.new_dst_cpu;
 			env.flags	&= ~LBF_DST_PINNED;
+			env.flags	|= LBF_DST_REDIRECTED;
 			env.loop	 = 0;
 			env.loop_break	 = sched_nr_migrate_break;
 
