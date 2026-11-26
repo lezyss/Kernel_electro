@@ -6,6 +6,7 @@
 #include "zdata.h"
 #include "compress.h"
 #include <linux/prefetch.h>
+#include <linux/sched/mm.h>
 #include <linux/overflow.h>
 #include <linux/cpuhotplug.h>
 #include <trace/events/erofs.h>
@@ -940,7 +941,14 @@ static void z_erofs_decompress_kickoff(struct z_erofs_decompressqueue *io,
 		sbi->readahead_sync_decompress = true;
 		return;
 	}
-	z_erofs_decompressqueue_work(&io->u.work);
+	if (!in_atomic() && !irqs_disabled()) {
+		unsigned int noio_flag = memalloc_noio_save();
+
+		z_erofs_decompressqueue_work(&io->u.work);
+		memalloc_noio_restore(noio_flag);
+	} else {
+		z_erofs_decompressqueue_work(&io->u.work);
+	}
 }
 
 static bool z_erofs_page_is_invalidated(struct page *page)
