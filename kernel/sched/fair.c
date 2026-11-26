@@ -9619,50 +9619,6 @@ static bool lb_cost_fits(struct lb_env *env, struct lb_concession *concession,
  *
  * Returns number of detached tasks if successful and 0 otherwise.
  */
-#define SCHED_CAMBYSES_AUTHOR	"Masahito Suzuki"
-#define SCHED_CAMBYSES_PROGNAME	"Cambyses CFS Load Balancer modification"
-#define SCHED_CAMBYSES_VERSION	"0.7.2"
-
-static int __init sched_cambyses_init(void)
-{
-	printk(KERN_INFO "%s %s by %s\n",
-		SCHED_CAMBYSES_PROGNAME, SCHED_CAMBYSES_VERSION,
-		SCHED_CAMBYSES_AUTHOR);
-	return 0;
-}
-late_initcall(sched_cambyses_init);
-
-struct lb_concession {
-	struct task_struct	*p;
-	unsigned long		cost;
-};
-
-static inline bool lb_can_concede(struct lb_env *env)
-{
-	return sched_feat(LB_CONCEDE_CHEAPEST) &&
-	       env->idle != CPU_NOT_IDLE &&
-	       !(env->flags & (LBF_MOVED | LBF_DST_REDIRECTED));
-}
-
-static inline bool lb_cost_fits(struct lb_env *env, unsigned long cost,
-				unsigned long imbalance)
-{
-	if (lb_can_concede(env))
-		return cost <= imbalance;
-	return (cost >> env->sd->nr_balance_failed) <= imbalance;
-}
-
-static inline void lb_concession_record(struct lb_concession *c,
-					struct task_struct *p,
-					unsigned long cost,
-					unsigned long imbalance)
-{
-	if (cost < 2 * imbalance && (!c->p || cost < c->cost)) {
-		c->p = p;
-		c->cost = cost;
-	}
-}
-
 static int detach_tasks(struct lb_env *env)
 {
 	struct list_head *tasks = &env->src_rq->cfs_tasks;
