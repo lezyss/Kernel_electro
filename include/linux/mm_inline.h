@@ -250,7 +250,7 @@ static inline bool lru_gen_del_page(struct lruvec *lruvec, struct page *page, bo
 		/* for shrink_page_list() */
 		if (reclaiming)
 			new_flags &= ~(BIT(PG_referenced) | BIT(PG_reclaim));
-		else if (lru_gen_is_active(lruvec, gen, page_is_file_lru(page)))
+		else if (lru_gen_is_active(lruvec, gen, page_is_file_cache(page)))
 			new_flags |= BIT(PG_active);
 	} while (cmpxchg(&page->flags, old_flags, new_flags) != old_flags);
 
