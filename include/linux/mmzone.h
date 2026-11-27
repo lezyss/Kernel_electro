@@ -337,7 +337,7 @@ enum {
  */
 struct lru_gen_struct {
 	/* the aging increments the youngest generation number */
-	unsigned long max_seq[ANON_AND_FILE];
+	unsigned long max_seq;
 	/* the eviction increments the oldest generation numbers */
 	unsigned long min_seq[ANON_AND_FILE];
 	/* the birth time of each generation in jiffies */
@@ -379,7 +379,7 @@ struct lru_gen_mm_state {
 	/* set to max_seq after each iteration */
 	unsigned long seq;
 	/* where the current iteration starts (inclusive) */
-	struct list_head *head[ANON_AND_FILE];
+	struct list_head *head;
 	/* where the last iteration ends (exclusive) */
 	struct list_head *tail;
 	/* to wait for the last page table walker to finish */
@@ -397,7 +397,6 @@ struct lru_gen_mm_walk {
 	struct lruvec *lruvec;
 	/* unstable max_seq from lru_gen_struct */
 	unsigned long max_seq;
-	int aging_type;
 	/* the next address within an mm to scan */
 	unsigned long next_addr;
 	/* to batch page table entries */
