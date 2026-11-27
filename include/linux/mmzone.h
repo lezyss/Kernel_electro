@@ -337,11 +337,11 @@ enum {
  */
 struct lru_gen_struct {
 	/* the aging increments the youngest generation number */
-	unsigned long max_seq;
+	unsigned long max_seq[ANON_AND_FILE];
 	/* the eviction increments the oldest generation numbers */
 	unsigned long min_seq[ANON_AND_FILE];
 	/* the birth time of each generation in jiffies */
-	unsigned long timestamps[MAX_NR_GENS];
+	unsigned long timestamps[ANON_AND_FILE][MAX_NR_GENS];
 	/* the multi-gen LRU lists */
 	struct list_head lists[MAX_NR_GENS][ANON_AND_FILE][MAX_NR_ZONES];
 	/* the sizes of the above lists */
@@ -376,12 +376,12 @@ enum {
 #define NR_BLOOM_FILTERS	2
 
 struct lru_gen_mm_state {
-	/* set to max_seq after each iteration */
-	unsigned long seq;
+	/* synced with max_seq[] after each iteration */
+	unsigned long seq[ANON_AND_FILE];
 	/* where the current iteration starts (inclusive) */
-	struct list_head *head;
+	struct list_head *head[ANON_AND_FILE];
 	/* where the last iteration ends (exclusive) */
-	struct list_head *tail;
+	struct list_head *tail[ANON_AND_FILE];
 	/* to wait for the last page table walker to finish */
 	struct wait_queue_head wait;
 	/* Bloom filters flip after each iteration */
@@ -395,8 +395,9 @@ struct lru_gen_mm_state {
 struct lru_gen_mm_walk {
 	/* the lruvec under reclaim */
 	struct lruvec *lruvec;
-	/* unstable max_seq from lru_gen_struct */
-	unsigned long max_seq;
+	/* unstable max_seq[] from lru_gen_struct */
+	unsigned long max_seq[ANON_AND_FILE];
+	int aging_type;
 	/* the next address within an mm to scan */
 	unsigned long next_addr;
 	/* to batch page table entries */
