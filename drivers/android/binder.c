@@ -1174,7 +1174,7 @@ static void binder_do_set_priority(struct task_struct *task,
 	bool has_cap_nice;
 	unsigned int policy = desired.sched_policy;
 
-	if (task->policy == policy && task->normal_prio == desired.prio)
+	if (task->policy == policy && task->prio == desired.prio)
 		return;
 
 	has_cap_nice = has_capability_noaudit(task, CAP_SYS_NICE);
@@ -1211,7 +1211,7 @@ static void binder_do_set_priority(struct task_struct *task,
 			      task->pid, desired.prio,
 			      to_kernel_prio(policy, priority));
 
-	trace_binder_set_priority(task->tgid, task->pid, task->normal_prio,
+	trace_binder_set_priority(task->tgid, task->pid, task->prio,
 				  to_kernel_prio(policy, priority),
 				  desired.prio);
 
@@ -1253,7 +1253,7 @@ static void binder_transaction_priority(struct task_struct *task,
 
 	t->set_priority_called = true;
 	t->saved_priority.sched_policy = task->policy;
-	t->saved_priority.prio = task->normal_prio;
+	t->saved_priority.prio = task->prio;
 
 	if (!inherit_rt && is_rt_policy(desired_prio.sched_policy)) {
 		desired_prio.prio = NICE_TO_PRIO(0);
