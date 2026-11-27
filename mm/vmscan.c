@@ -2775,8 +2775,10 @@ void lru_gen_add_mm(struct mm_struct *mm)
 		if (!lruvec)
 			continue;
 
-		if (lruvec->mm_state.tail == &mm_list->fifo)
-			lruvec->mm_state.tail = &mm->lru_gen.list;
+		for (int t = 0; t < ANON_AND_FILE; t++) {
+			if (lruvec->mm_state.tail[t] == &mm_list->fifo)
+				lruvec->mm_state.tail[t] = &mm->lru_gen.list;
+		}
 	}
 
 	list_add_tail(&mm->lru_gen.list, &mm_list->fifo);
@@ -2950,6 +2952,7 @@ static bool test_bloom_filter(struct lruvec *lruvec, unsigned long seq, void *it
 
 static void reset_mm_stats(struct lruvec *lruvec, struct lru_gen_mm_walk *walk, bool last)
 {
+	int type = walk ? walk->aging_type : 0;
 	int i;
 	int hist;
 
@@ -3003,6 +3006,7 @@ static bool should_skip_mm(struct mm_struct *mm, struct lru_gen_mm_walk *walk)
 static bool iterate_mm_list(struct lruvec *lruvec, struct lru_gen_mm_walk *walk,
 			    struct mm_struct **iter)
 {
+	int type = walk->aging_type;
 	bool first = false;
 	bool last = true;
 	struct mm_struct *mm = NULL;
