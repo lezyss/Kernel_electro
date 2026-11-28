@@ -18,6 +18,8 @@
 #define NSLOTS 64
 #define NSPACES 8
 
+typedef unsigned long pgoff_t;
+
 struct slot {
 	unsigned long index;
 	void *value;
@@ -92,6 +94,36 @@ static void radix_tree_iter_delete(struct radix_tree_root *root,
 	assert(iter->index >= lower && iter->index <= upper);
 	*slot = NULL;
 }
+static unsigned long swp_offset(swp_entry_t entry)
+{
+	return entry.offset;
+}
+static void *radix_tree_lookup(const struct radix_tree_root *root,
+			       unsigned long index)
+{
+	unsigned int i;
+
+	for (i = 0; i < root->nr; i++) {
+		if (root->slots[i].value && root->slots[i].index == index)
+			return root->slots[i].value;
+	}
+	return NULL;
+}
+static void *radix_tree_delete_item(struct radix_tree_root *root,
+				    unsigned long index, void *item)
+{
+	unsigned int i;
+
+	assert(lock_depth == 1);
+	for (i = 0; i < root->nr; i++) {
+		if (root->slots[i].index == index &&
+		    root->slots[i].value == item) {
+			root->slots[i].value = NULL;
+			return item;
+		}
+	}
+	return NULL;
+}
 
 /* PRODUCTION_CLEANUP */
 
@@ -154,6 +186,23 @@ int main(void)
 	check(ULONG_MAX - 2, ULONG_MAX, highest, 4);
 	check(127, 63, dense, 8);
 	check(0, 0, NULL, 0);
+	memset(spaces, 0, sizeof(spaces));
+	{
+		struct radix_tree_root *root =
+			&swap_address_space(swp_entry(0, 42))->page_tree;
+
+		root->slots[0].index = 42;
+		root->slots[0].value = (void *)(uintptr_t)0x15;
+		root->slots[1].index = 43;
+		root->slots[1].value = (void *)(uintptr_t)0x20;
+		root->nr = 2;
+		assert(get_shadow_from_swap_cache(swp_entry(0, 42)) ==
+		       (void *)(uintptr_t)0x15);
+		assert(get_shadow_from_swap_cache(swp_entry(0, 42)) == NULL);
+		assert(get_shadow_from_swap_cache(swp_entry(0, 43)) == NULL);
+		assert(root->slots[1].value == (void *)(uintptr_t)0x20);
+		assert(!lock_depth);
+	}
 	for (n = 0; n < 2000; n++) {
 		unsigned long a = random32() % (4 * SWAP_ADDRESS_SPACE_PAGES);
 		unsigned long b = random32() % (4 * SWAP_ADDRESS_SPACE_PAGES);

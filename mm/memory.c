@@ -2809,6 +2809,14 @@ int do_swap_page(struct vm_fault *vmf)
 				__SetPageLocked(page);
 				__SetPageSwapBacked(page);
 				set_page_private(page, entry.val);
+				if (!lru_gen_enabled()) {
+					SetPageWorkingset(page);
+				} else {
+					void *shadow = get_shadow_from_swap_cache(entry);
+
+					if (shadow)
+						lru_gen_refault(page, shadow);
+				}
 				lru_cache_add_anon(page);
 				swap_readpage(page, true);
 			}

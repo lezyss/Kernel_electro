@@ -4625,8 +4625,10 @@ static int evict_pages(struct lruvec *lruvec, struct scan_control *sc, int swapp
 		ClearPageReferenced(page);
 		ClearPageWorkingset(page);
 
-		if (PageReclaim(page) &&
-		    (PageDirty(page) || PageWriteback(page) || PageSwapCache(page)))
+		if ((PageReclaim(page) &&
+		     (PageDirty(page) || PageWriteback(page) || PageSwapCache(page))) ||
+		    (PageSwapCache(page) && !PageDirty(page) &&
+		     !PageWriteback(page) && !page_mapped(page)))
 			ClearPageActive(page);
 		else
 			SetPageActive(page);

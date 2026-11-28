@@ -350,6 +350,23 @@ void clear_shadow_from_swap_cache(int type, unsigned long begin,
 	}
 }
 
+void *get_shadow_from_swap_cache(swp_entry_t entry)
+{
+	struct address_space *address_space = swap_address_space(entry);
+	pgoff_t idx = swp_offset(entry);
+	void *shadow;
+
+	spin_lock_irq(&address_space->tree_lock);
+	shadow = radix_tree_lookup(&address_space->page_tree, idx);
+	if (shadow && radix_tree_exceptional_entry(shadow))
+		radix_tree_delete_item(&address_space->page_tree, idx, shadow);
+	else
+		shadow = NULL;
+	spin_unlock_irq(&address_space->tree_lock);
+
+	return shadow;
+}
+
 /* 
  * If we are the only user, then try to free up the swap cache. 
  * 

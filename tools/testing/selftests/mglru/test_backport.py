@@ -13,13 +13,8 @@ ROOT = Path(__file__).resolve().parents[4]
 
 def cleanup_function(source):
     start = source.index('void clear_shadow_from_swap_cache(')
-    opening = source.index('{', start)
-    depth = 1
-    end = opening + 1
-    while depth:
-        depth += (source[end] == '{') - (source[end] == '}')
-        end += 1
-    return source[start:end]
+    end = source.index('/* \n * If we are the only user', start)
+    return source[start:end].rstrip()
 
 
 def function_body(source, signature):
@@ -160,7 +155,12 @@ def main():
     workingset = (ROOT / 'mm/workingset.c').read_text()
     refault = function_body(workingset, 'void lru_gen_refault(')
     assert '((min_seq - token) & (EVICTION_MASK >> LRU_REFS_WIDTH)) >= MAX_NR_GENS' in refault
-    assert '__handle_speculative_fault' not in (ROOT / 'mm/memory.c').read_text()
+    memory = (ROOT / 'mm/memory.c').read_text()
+    assert '__handle_speculative_fault' not in memory
+    swap_fault = function_body(memory, 'int do_swap_page(')
+    assert 'get_shadow_from_swap_cache(entry)' in swap_fault
+    assert 'lru_gen_refault(page, shadow)' in swap_fault
+    assert 'SetPageWorkingset(page)' in swap_fault
     print('Backport source guards: PASS')
 
 
