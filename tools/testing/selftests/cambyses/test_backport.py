@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import resource
 import shlex
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -15,8 +16,10 @@ ROOT = Path(__file__).resolve().parents[4]
 HERE = Path(__file__).resolve().parent
 NEGATIVES = ('single-node-rotation', 'no-concession', 'stale-cursor',
              'no-pre-detach-flush', 'no-sticky-progress', 'bypass-filters',
-             'post-timeout-concession', 'lose-two-task-exception', 'overflow-concession',
-             'no-timeout', 'no-lb-min', 'zero-load-cost')
+             'post-timeout-concession', 'lose-two-task-exception', 'no-2x-bound',
+             'allow-busy-concession', 'allow-redirect-concession',
+             'allow-moved-concession', 'ignore-feature-switch', 'no-timeout',
+             'no-lb-min', 'zero-load-cost')
 SHIMS = {
     'types.h': '''#include <stdbool.h>
 struct list_head { struct list_head *next, *prev; };
@@ -47,16 +50,23 @@ def function(text, signature):
     return block(text, text.index(signature))
 
 
+def replace_once(text, old, new):
+    if old not in text:
+        raise AssertionError('mutation target not found: ' + old)
+    return text.replace(old, new, 1)
+
+
 def source(root, negative=None):
     fair = (root / 'kernel/sched/fair.c').read_text()
     features = (root / 'kernel/sched/features.h').read_text()
     header = (root / 'include/linux/list.h').read_text()
-    for name in ('LB_ROTATE_BLOCK', 'LB_STRICT_BUDGET'):
+    for name in ('LB_ROTATE_BLOCK', 'LB_CONCEDE_CHEAPEST'):
         assert 'SCHED_FEAT(' + name + ', true)' in features
     detach = function(fair, 'static int detach_tasks(')
     definitions = block(fair, fair.index('struct lb_concession {')) + ';'
-    helper = function(fair, 'static bool lb_cost_fits(')
-    funcs = definitions + '\n' + helper + '\n' + detach
+    can_concede = function(fair, 'static inline bool lb_can_concede(')
+    cost_fits = function(fair, 'static bool lb_cost_fits(')
+    funcs = definitions + '\n' + can_concede + '\n' + cost_fits + '\n' + detach
     flags = '\n'.join(re.findall(r'^#define LBF_.*$', fair, re.M))
     flags += '\nstatic const unsigned int sched_nr_migrate_break = 32;\n'
     model = (HERE / 'model.c').read_text()
@@ -64,33 +74,51 @@ def source(root, negative=None):
         assert header.count('list_move_tail(head, list);') == 1
         header = header.replace('list_move_tail(head, list);', 'list_move(list, head);')
     elif negative == 'no-concession':
-        funcs = funcs.replace('if (strict && concession.p', 'if (false && strict && concession.p')
+        funcs = replace_once(funcs,
+                             'if (concession.p && !(env->flags & LBF_MOVED) && !scan_timed_out)',
+                             'if (false && concession.p && !(env->flags & LBF_MOVED) && !scan_timed_out)')
     elif negative == 'stale-cursor':
-        funcs = funcs.replace('cursor = NULL;', '/* retain stale cursor */')
-        # Keep initial cursor assignment, remove only the refresh after detach.
-        funcs = funcs.replace('list_add(&p->se.group_node, &env->tasks);\n\t\tcursor = tasks->prev;',
-                              'list_add(&p->se.group_node, &env->tasks);')
+        funcs = replace_once(funcs, 'cursor = NULL;', '/* retain stale cursor */')
+        funcs = replace_once(funcs,
+                             'list_add(&p->se.group_node, &env->tasks);\n'
+                             '\t\tenv->flags |= LBF_MOVED;\n'
+                             '\t\tcursor = tasks->prev;',
+                             'list_add(&p->se.group_node, &env->tasks);\n'
+                             '\t\tenv->flags |= LBF_MOVED;')
     elif negative == 'no-pre-detach-flush':
-        funcs = funcs.replace('if (rotate && p->se.group_node.next != tasks)',
-                              'if (false && rotate && p->se.group_node.next != tasks)')
+        funcs = replace_once(funcs, 'if (rotate && p->se.group_node.next != tasks)',
+                             'if (false && rotate && p->se.group_node.next != tasks)')
     elif negative == 'no-sticky-progress':
-        funcs = funcs.replace('env->flags |= LBF_MOVED;', '/* progress bit missing */')
+        funcs = replace_once(funcs, 'env->flags |= LBF_MOVED;', '/* progress bit missing */')
     elif negative == 'bypass-filters':
-        funcs = funcs.replace('if (!can_migrate_task(p, env))', 'if (false && !can_migrate_task(p, env))')
+        funcs = replace_once(funcs, 'if (!can_migrate_task(p, env))',
+                             'if (false && !can_migrate_task(p, env))')
     elif negative == 'post-timeout-concession':
-        funcs = funcs.replace('!scan_timed_out)', '(scan_timed_out || !scan_timed_out))')
+        funcs = replace_once(funcs, '&& !scan_timed_out)',
+                             '&& (scan_timed_out || !scan_timed_out))')
     elif negative == 'lose-two-task-exception':
-        funcs = funcs.replace('cpu_rq(env->src_cpu)->nr_running > 2',
-                              'cpu_rq(env->src_cpu)->nr_running > 0')
+        funcs = replace_once(funcs, 'cpu_rq(env->src_cpu)->nr_running > 2',
+                             'cpu_rq(env->src_cpu)->nr_running > 0')
+    elif negative == 'no-2x-bound':
+        funcs = replace_once(funcs, 'if (cost - imbalance >= imbalance)',
+                             'if (false && cost - imbalance >= imbalance)')
+    elif negative == 'allow-busy-concession':
+        funcs = replace_once(funcs, 'env->idle != CPU_NOT_IDLE', 'true')
+    elif negative == 'allow-redirect-concession':
+        funcs = replace_once(funcs, '!(env->flags & (LBF_MOVED | LBF_DST_REDIRECTED))',
+                             '!(env->flags & LBF_MOVED)')
+    elif negative == 'allow-moved-concession':
+        funcs = replace_once(funcs, '!(env->flags & (LBF_MOVED | LBF_DST_REDIRECTED))',
+                             '!(env->flags & LBF_DST_REDIRECTED)')
+    elif negative == 'ignore-feature-switch':
+        funcs = replace_once(funcs, 'sched_feat(LB_CONCEDE_CHEAPEST) &&', 'true &&')
     elif negative == 'no-timeout':
-        funcs = funcs.replace('if (rq_clock(env->src_rq) - start_t > 5000000)',
-                              'if (false && rq_clock(env->src_rq) - start_t > 5000000)')
+        funcs = replace_once(funcs, 'if (rq_clock(env->src_rq) - start_t > 5000000)',
+                             'if (false && rq_clock(env->src_rq) - start_t > 5000000)')
     elif negative == 'no-lb-min':
-        funcs = funcs.replace('if (sched_feat(LB_MIN)', 'if (false && sched_feat(LB_MIN)')
+        funcs = replace_once(funcs, 'if (sched_feat(LB_MIN)', 'if (false && sched_feat(LB_MIN)')
     elif negative == 'zero-load-cost':
-        funcs = funcs.replace('max_t(unsigned long, task_h_load(p), 1)', 'task_h_load(p)')
-    elif negative == 'overflow-concession':
-        funcs = funcs.replace('min_t(unsigned long, concession.cost, LONG_MAX)', 'concession.cost')
+        funcs = replace_once(funcs, 'max_t(unsigned long, task_h_load(p), 1)', 'task_h_load(p)')
     code = model.replace('/* FLAGS */', flags).replace('/* FUNCTIONS */', funcs)
     code = code.replace('/* LEGACY */',
                         '#pragma GCC diagnostic push\n'
@@ -112,10 +140,15 @@ def run(cc, root, out, asan, negative=None, variants=None):
         (shim / name).write_text(content)
     src = out / 'model.c'
     src.write_text(code)
-    flags = [*cc, '-O2', '-g', '-std=gnu11', '-UNDEBUG', '-Wall', '-Wextra', '-Werror', '-Wno-tautological-negation-compare',
-             '-DCONFIG_DEBUG_LIST', '-I' + str(shim.parent),
+    version = subprocess.run([*cc, '--version'], stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True, check=False).stdout
+    clang = 'clang' in version.lower()
+    trap = ['-fsanitize-trap=undefined'] if clang else ['-fsanitize-undefined-trap-on-error']
+    warnings = ['-Wno-tautological-negation-compare'] if clang else []
+    flags = [*cc, '-O2', '-g', '-std=gnu11', '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
+             *warnings, '-DCONFIG_DEBUG_LIST', '-I' + str(shim.parent),
              '-fsanitize=' + ('address,undefined' if asan else 'undefined'),
-             '-fsanitize-trap=undefined', '-fno-sanitize-recover=all']
+             *trap, '-fno-sanitize-recover=all']
     # Make sure the compiler is really enforcing undefined-behaviour traps.
     probe = out / 'probe.c'
     probe.write_text('int main(void) { volatile int n = 2147483647; '
@@ -129,10 +162,12 @@ def run(cc, root, out, asan, negative=None, variants=None):
         exe = out / ('model-' + str(preempt) + str(walt))
         subprocess.run([*flags, *extra, str(src), '-o', str(exe)], check=True)
         if asan:
-            from elftools.elf.elffile import ELFFile
-            with exe.open('rb') as f:
-                syms = ELFFile(f).get_section_by_name('.symtab').iter_symbols()
-                assert any(s.name.startswith('__asan_') for s in syms), 'compiler ignored ASan'
+            nm = shutil.which('nm')
+            if not nm:
+                raise RuntimeError('nm is required to verify the ASan build')
+            syms = subprocess.run([nm, '-u', str(exe)], check=True,
+                                  stdout=subprocess.PIPE, text=True).stdout
+            assert '__asan_' in syms, 'compiler ignored ASan'
         p = subprocess.run([str(exe)], cwd=out, preexec_fn=no_core,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         (out / ('run-' + str(preempt) + str(walt) + '.log')).write_text(p.stdout)

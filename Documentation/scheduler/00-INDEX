@@ -1,5 +1,7 @@
 00-INDEX
 	- this file.
+cambyses-backport.rst
+	- Cambyses v0.7.2 CFS load-balancer adaptation and validation.
 sched-arch.txt
 	- CPU Scheduler implementation hints for architecture specific code.
 sched-bwc.txt

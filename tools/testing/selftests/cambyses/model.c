@@ -12,7 +12,7 @@
 
 typedef uint64_t u64;
 enum { CPU_IDLE, CPU_NOT_IDLE, CPU_NEWLY_IDLE };
-enum { LB_ROTATE_BLOCK, LB_STRICT_BUDGET, LB_MIN };
+enum { LB_ROTATE_BLOCK, LB_CONCEDE_CHEAPEST, LB_MIN };
 static bool features[3];
 #define sched_feat(x) features[x]
 #define max_t(t,a,b) ((t)(a) > (t)(b) ? (t)(a) : (t)(b))
@@ -145,7 +145,7 @@ static void setup(int n)
         p->id = i; p->load = 10; w.allocated[i] = p;
         list_add_tail(&p->se.group_node, &w.rq[0].cfs_tasks);
     }
-    features[LB_ROTATE_BLOCK] = features[LB_STRICT_BUDGET] = true;
+    features[LB_ROTATE_BLOCK] = features[LB_CONCEDE_CHEAPEST] = true;
     features[LB_MIN] = false;
     list_ops = 0;
 }
@@ -202,34 +202,82 @@ static void rotation_tests(void)
 static void budget_tests(void)
 {
     int i;
+
+    /* An idle scan concedes to the cheapest candidate below 2 * imbalance. */
     setup(3);
-    w.allocated[1]->load = 500; w.allocated[2]->load = 250; w.allocated[3]->load = 200;
-    assert(detach_tasks(&w.env) == 1 && w.migrations == 1 && w.env.imbalance == -100);
-    assert_order(&w.env.tasks, (int[]){3}, 1);
+    w.env.idle = CPU_IDLE; w.env.imbalance = 100;
+    w.allocated[1]->load = 180; w.allocated[2]->load = 150; w.allocated[3]->load = 160;
+    assert(detach_tasks(&w.env) == 1 && w.migrations == 1 && w.env.imbalance == -50);
+    assert_order(&w.env.tasks, (int[]){2}, 1);
+
+    /* A later in-budget task cancels the saved overshoot. */
     setup(3);
-    w.allocated[1]->load = 70; w.allocated[2]->load = 300; w.allocated[3]->load = 200;
+    w.env.idle = CPU_IDLE; w.env.imbalance = 100;
+    w.allocated[1]->load = 70; w.allocated[2]->load = 300; w.allocated[3]->load = 150;
     assert(detach_tasks(&w.env) == 1 && w.env.imbalance == 30);
     assert_order(&w.env.tasks, (int[]){1}, 1);
+
+    /* A cheaper ordinary migration makes the concession sticky across retries. */
     setup(40);
+    w.env.idle = CPU_IDLE;
     for (i = 1; i < 40; i++) w.allocated[i]->load = 1000;
     w.allocated[40]->load = 1; w.env.loop_break = 2;
     assert(detach_tasks(&w.env) == 1 && (w.env.flags & LBF_MOVED));
     assert(w.env.flags & LBF_NEED_BREAK);
     w.env.flags &= ~LBF_NEED_BREAK;
     assert(detach_tasks(&w.env) == 0 && w.migrations == 1);
+
+    /* Exactly 2 * imbalance and ULONG_MAX are not progress concessions. */
     setup(3);
-    for (i = 1; i <= 3; i++) w.allocated[i]->load = 1000;
-    w.env.imbalance = 1;
+    w.env.idle = CPU_IDLE; w.env.imbalance = 100;
+    w.allocated[3]->load = 200;
+    w.allocated[2]->pinned = w.allocated[1]->pinned = true;
+    assert(detach_tasks(&w.env) == 0 && w.env.imbalance == 100);
+    setup(3);
+    w.env.idle = CPU_IDLE; w.env.imbalance = 1;
     w.allocated[3]->load = ULONG_MAX;
     w.allocated[2]->pinned = w.allocated[1]->pinned = true;
-    assert(detach_tasks(&w.env) == 1 && w.env.imbalance <= 0);
-    setup(1); /* Preserve this tree's nr_running == 2 oversized-task exception. */
-    w.allocated[1]->load = 1000; w.env.imbalance = 1;
-    assert(detach_tasks(&w.env) == 1);
+    assert(detach_tasks(&w.env) == 0 && w.env.imbalance == 1);
+
+    /* Preserve this tree's nr_running == 2 oversized-task exception. */
     setup(1);
-    features[LB_STRICT_BUDGET] = false;
-    w.allocated[1]->load = 1000; w.env.imbalance = 1;
+    w.env.idle = CPU_IDLE; w.allocated[1]->load = 1000; w.env.imbalance = 1;
     assert(detach_tasks(&w.env) == 1);
+
+    /* Feature-off behavior retains the local half-imbalance admission rule. */
+    setup(3);
+    w.env.idle = CPU_IDLE; w.env.imbalance = 100;
+    features[LB_CONCEDE_CHEAPEST] = false;
+    w.allocated[1]->pinned = w.allocated[2]->pinned = true;
+    w.allocated[3]->load = 200;
+    assert(detach_tasks(&w.env) == 1 && w.env.imbalance == -100);
+
+    /* Busy destinations keep the local fallback; do not defer a fitting task. */
+    setup(3);
+    w.env.imbalance = 100;
+    w.allocated[1]->pinned = true; w.allocated[2]->load = 70;
+    w.allocated[3]->load = 150;
+    assert(detach_tasks(&w.env) == 1 && w.env.imbalance == -50);
+    assert_order(&w.env.tasks, (int[]){3}, 1);
+
+    /* A redirected idle balance is also ineligible for the concession. */
+    setup(3);
+    w.env.idle = CPU_IDLE; w.env.imbalance = 100;
+    w.env.flags |= LBF_DST_REDIRECTED;
+    w.allocated[1]->pinned = true; w.allocated[2]->load = 70;
+    w.allocated[3]->load = 150;
+    assert(detach_tasks(&w.env) == 1 && w.env.imbalance == -50);
+    assert_order(&w.env.tasks, (int[]){3}, 1);
+
+    /* LBF_MOVED is sticky: after progress, use the fallback rather than save. */
+    setup(3);
+    w.env.idle = CPU_IDLE; w.env.imbalance = 100;
+    w.env.flags |= LBF_MOVED;
+    w.allocated[1]->pinned = true; w.allocated[2]->load = 70;
+    w.allocated[3]->load = 150;
+    assert(detach_tasks(&w.env) == 1 && w.env.imbalance == -50);
+    assert_order(&w.env.tasks, (int[]){3}, 1);
+
     setup(4);
     for (i = 1; i <= 4; i++) w.allocated[i]->load = 0;
     w.env.imbalance = 1;
@@ -241,10 +289,14 @@ static void budget_tests(void)
     w.allocated[1]->pinned = w.allocated[2]->running = true;
     w.allocated[3]->hot = w.allocated[4]->throttled = true;
     assert(detach_tasks(&w.env) == 0 && w.migrations == 0);
+
+    /* A saved candidate is not used after the native 5 ms scan guard fires. */
     setup(3);
-    for (i = 1; i <= 3; i++) w.allocated[i]->load = 1000;
+    w.env.idle = CPU_IDLE; w.env.imbalance = 100;
+    for (i = 1; i <= 3; i++) w.allocated[i]->load = 150;
     w.step = 3000000;
-    assert(detach_tasks(&w.env) == 0 && w.migrations == 0); /* No post-timeout concession. */
+    assert(detach_tasks(&w.env) == 0 && w.migrations == 0);
+
     setup(3);
     w.env.idle = CPU_NEWLY_IDLE;
 #ifdef CONFIG_PREEMPT
@@ -302,6 +354,8 @@ static void random_setup(uint32_t seed)
     w.env.loop_max = rand32(&seed) % 81;
     w.env.loop_break = rand32(&seed) % 40 + 1;
     w.sd.nr_balance_failed = rand32(&seed) % 3;
+    if (rand32(&seed) & 1) w.env.flags |= LBF_MOVED;
+    if (rand32(&seed) & 1) w.env.flags |= LBF_DST_REDIRECTED;
     features[LB_MIN] = rand32(&seed) % 2;
     for (i = 1; i <= n; i++) {
         unsigned v = rand32(&seed);
@@ -318,16 +372,16 @@ int main(void)
     for (i = 1; i <= 3000; i++) {
         struct result old, current;
         uint32_t seed = i * 2654435761U;
-        random_setup(seed); features[LB_ROTATE_BLOCK] = features[LB_STRICT_BUDGET] = false;
+        random_setup(seed); features[LB_ROTATE_BLOCK] = features[LB_CONCEDE_CHEAPEST] = false;
         old = capture(legacy_detach_tasks(&w.env));
-        random_setup(seed); features[LB_ROTATE_BLOCK] = features[LB_STRICT_BUDGET] = false;
+        random_setup(seed); features[LB_ROTATE_BLOCK] = features[LB_CONCEDE_CHEAPEST] = false;
         current = capture(detach_tasks(&w.env));
         assert(!memcmp(&old, &current, sizeof(old)));
         for (combo = 0; combo < 4; combo++) {
             int moved;
             random_setup(seed);
             features[LB_ROTATE_BLOCK] = combo & 1;
-            features[LB_STRICT_BUDGET] = combo & 2;
+            features[LB_CONCEDE_CHEAPEST] = combo & 2;
             moved = detach_tasks(&w.env);
             assert(moved == w.migrations && moved <= 80);
             assert(w.sd.lb_gained[w.env.idle] == moved);

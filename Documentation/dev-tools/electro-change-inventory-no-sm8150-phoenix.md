@@ -62,7 +62,7 @@ Evidence: `Documentation/scheduler/sched-correctness-backport.rst; Documentation
 
 Evidence: `Documentation/scheduler/bore-backport.rst; Documentation/scheduler/cambyses-backport.rst`.
 
-BORE enabled for miatoll with PELT/CASS retained. Cambyses keeps tail-first scanning, the existing rq-clock guard and native migration safeguards. WALT is not activated.
+BORE enabled for miatoll with PELT/CASS retained. Cambyses is upgraded to v0.7.2's idle-only, cheapest-candidate concession with a strict less-than-2x imbalance bound, adapted to retain tail-first scanning, the existing rq-clock guard and native migration safeguards. WALT is not activated.
 
 | ID | Donor/reference commit | Individual change | Application |
 |---|---|---|---|
@@ -72,7 +72,7 @@ BORE enabled for miatoll with PELT/CASS retained. Cambyses keeps tail-first scan
 | E031 | [`3001d4566a00`](https://github.com/manipvlator/los_kernel_xiaomi_sm6150/commit/3001d4566a0021858005a91d51a6193c1b40ce30) | final granularity/bandwidth tuning. | Adapted/applied |
 | E032 | [`e2c4678c8b53`](https://github.com/manipvlator/los_kernel_xiaomi_sm6150/commit/e2c4678c8b532f58a22010e756e04d6da4ecf283) | always-inline task reweighting. | Adapted/applied |
 | E033 | [`12cc0428dcbb`](https://github.com/manipvlator/los_kernel_xiaomi_sm6150/commit/12cc0428dcbbe5085132cb02d30db92445935920) | WALT-only migration guards. | Adapted/applied |
-| E034 | [`b53dda13d958`](https://github.com/manipvlator/los_kernel_xiaomi_sm6150/commit/b53dda13d958ee8bf47e7ad9a9eda3bae51e7f47) | Cambyses v0.6.0: block rotation, scan-budget handling and safe migration progress fallback | Corrected native tail-first adaptation, not donor head-first scan |
+| E034 | [`b53dda13d958`](https://github.com/manipvlator/los_kernel_xiaomi_sm6150/commit/b53dda13d958ee8bf47e7ad9a9eda3bae51e7f47); [`330c39118a43`](https://github.com/firelzrd/cambyses/commit/330c39118a433047b0690d55826a8c04a38530a8) | Cambyses v0.7.2: retain tail-first block rotation and add the cheapest idle-destination concession bounded by `cost < 2 * imbalance` | Adapted for 4.14; preserves the half-imbalance fallback, 5 ms guard, two-task exception and WALT lock-drop safeguards |
 
 ## D. MGLRU source series: 30 included donor references
 
@@ -280,7 +280,7 @@ These are individual integration/configuration scopes, not additional donor comm
 5. **MGLRU boot activation** — Select LRU_GEN and LRU_GEN_ENABLED on miatoll; keep stats off and min_ttl0. Evidence: `Documentation/vm/mglru-backport.rst`.
 6. **MGLRU native safety corrections** — Retain shadow cleanup, cgroup-migration integration and legacy4.14 fallback/control behavior from the adapted series. Evidence: `Documentation/vm/mglru-backport.rst; tools/testing/selftests/mglru`.
 7. **BORE miatoll activation** — Enable adapted BORE5.1.0 with its recorded constant granularity/smoothing settings; retain PELT/CASS and WALT-off policy. Evidence: `Documentation/scheduler/bore-backport.rst`.
-8. **Cambyses native corrections** — Tail-first cyclic block rotation, flush rejected blocks before detach, capped overshoot fallback and no live cursor across lock-dropping detach paths. Evidence: `Documentation/scheduler/cambyses-backport.rst`.
+8. **Cambyses native corrections** — Tail-first cyclic block rotation, flush rejected blocks before detach, cheapest idle-destination concession strictly below twice the remaining imbalance, and no live cursor/candidate across WALT lock-dropping detach paths; retain the 4.14 half-imbalance fallback and two-task exception. Evidence: `Documentation/scheduler/cambyses-backport.rst; tools/testing/selftests/cambyses`.
 9. **Scheduler newly-idle correction** — Use READ_ONCE(nr_running) and the real pending wake-list check; do not use donor undefined preprocessor guards. Evidence: `Documentation/dev-tools/azyr-sm6250-selected.md`.
 10. **Shared block timestamp correction** — Move CFQ/shared request timestamp setters AND BFQ completion reader to matching monotonic ktime_get_ns semantics. Evidence: `Documentation/dev-tools/azyr-sm6250-selected.md`.
 11. **Native SCM accounting** — Migration-safe accounting outside untouched raw SMC workers; balanced nested/error lifecycle. Evidence: `Documentation/dev-tools/azyr-sm6250-memlat-native-validation.json`.
