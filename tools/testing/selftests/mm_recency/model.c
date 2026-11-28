@@ -60,6 +60,7 @@ struct vm_area_struct {
 	unsigned long vm_flags;
 	struct file *vm_file;
 	struct mm_struct *vm_mm;
+	void *anon_vma;
 	bool huge, anonymous, use_pmd;
 	pte_t entry;
 };
@@ -81,7 +82,10 @@ struct rmap_walk_control {
 	void *(*anon_lock)(struct page *);
 	bool (*invalid_vma)(struct vm_area_struct *, void *);
 };
-struct lru_gen_mm_walk { bool can_swap; };
+
+#define LRU_GEN_ANON 0
+#define LRU_GEN_FILE 1
+struct lru_gen_mm_walk { bool can_swap; int aging_type; };
 struct mm_walk { struct vm_area_struct *vma; void *private; };
 struct task { bool in_lru_fault; };
 static struct task task;
@@ -312,9 +316,21 @@ static void test_aging(void)
 	struct address_space map = { .a_ops = &ops };
 	struct file file = { .f_mapping = &map };
 	struct vm_area_struct vma = { .vm_flags = VM_READ, .vm_file = &file };
-	struct lru_gen_mm_walk priv = { .can_swap = true };
+	struct lru_gen_mm_walk priv = {
+		.can_swap = true,
+		.aging_type = LRU_GEN_FILE,
+	};
 	struct mm_walk walk = { .vma = &vma, .private = &priv };
 	assert(!should_skip_vma(0, 4096, &walk));
+	priv.aging_type = LRU_GEN_ANON;
+	assert(should_skip_vma(0, 4096, &walk));
+	vma.anon_vma = &vma;
+	assert(!should_skip_vma(0, 4096, &walk));
+	priv.can_swap = false;
+	assert(should_skip_vma(0, 4096, &walk));
+	priv.can_swap = true;
+	vma.anon_vma = NULL;
+	priv.aging_type = LRU_GEN_FILE;
 	file.f_mode = FMODE_NOREUSE; assert(should_skip_vma(0, 4096, &walk));
 	file.f_mode = 0;
 	vma.vm_flags |= VM_RAND_READ; assert(should_skip_vma(0, 4096, &walk));
@@ -327,10 +343,15 @@ static void test_aging(void)
 	map.unevictable = false; ops.readpage = false; assert(should_skip_vma(0, 4096, &walk));
 	ops.readpage = true; map.shmem = true; priv.can_swap = false;
 	assert(should_skip_vma(0, 4096, &walk));
+	priv.can_swap = true; assert(should_skip_vma(0, 4096, &walk));
+	priv.aging_type = LRU_GEN_ANON;
+	priv.can_swap = false; assert(should_skip_vma(0, 4096, &walk));
 	priv.can_swap = true; assert(!should_skip_vma(0, 4096, &walk));
 	vma.anonymous = true; vma.vm_file = NULL; priv.can_swap = false;
 	assert(should_skip_vma(0, 4096, &walk));
 	priv.can_swap = true; assert(!should_skip_vma(0, 4096, &walk));
+	priv.aging_type = LRU_GEN_FILE;
+	assert(should_skip_vma(0, 4096, &walk));
 }
 #endif
 

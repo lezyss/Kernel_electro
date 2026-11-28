@@ -245,12 +245,12 @@ struct zone_reclaim_stat {
 #endif /* !__GENERATING_BOUNDS_H */
 
 /*
- * Evictable pages are divided into multiple generations. The youngest and the
- * oldest generation numbers, max_seq and min_seq, are monotonically increasing.
- * They form a sliding window of a variable size [MIN_NR_GENS, MAX_NR_GENS]. An
- * offset within MAX_NR_GENS, gen, indexes the LRU list of the corresponding
- * generation. The gen counter in page->flags stores gen+1 while a page is on
- * one of lrugen->lists[]. Otherwise it stores 0.
+ * Evictable pages are divided into multiple generations. For each page type,
+ * the youngest and oldest generation numbers, max_seq[type] and min_seq[type],
+ * increase monotonically and form a sliding window of a variable size
+ * [MIN_NR_GENS, MAX_NR_GENS]. An offset within MAX_NR_GENS, gen, indexes the
+ * LRU list of the corresponding generation. The gen counter in page->flags
+ * stores gen+1 while a page is on one of lrugen->lists[]. Otherwise it stores 0.
  *
  * A page is added to the youngest generation on faulting. The aging needs to
  * check the accessed bit at least twice before handing this page over to the
@@ -258,12 +258,12 @@ struct zone_reclaim_stat {
  * fault; the second check makes sure this page hasn't been used since then.
  * This process, AKA second chance, requires a minimum of two generations,
  * hence MIN_NR_GENS. And to maintain ABI compatibility with the active/inactive
- * LRU, these two generations are considered active; the rest of generations, if
- * they exist, are considered inactive. See lru_gen_is_active(). PG_active is
- * always cleared while a page is on one of lrugen->lists[] so that the aging
- * needs not to worry about it. And it's set again when a page considered active
- * is isolated for non-reclaiming purposes, e.g., migration. See
- * lru_gen_add_page() and lru_gen_del_page().
+ * LRU, the two youngest generations of each page type are considered active;
+ * the rest, if they exist, are considered inactive. See lru_gen_is_active().
+ * PG_active is always cleared while a page is on one of lrugen->lists[] so that
+ * the aging needs not to worry about it. And it's set again when a page
+ * considered active is isolated for non-reclaiming purposes, e.g., migration.
+ * See lru_gen_add_page() and lru_gen_del_page().
  *
  * MAX_NR_GENS is set to 4 so that the multi-gen LRU can support twice of the
  * categories of the active/inactive LRU when keeping track of accesses through
@@ -328,22 +328,17 @@ enum {
 #endif
 
 /*
- * The youngest generation number is stored in max_seq for both anon and file
- * types as they are aged on an equal footing. The oldest generation numbers are
- * stored in min_seq[] separately for anon and file types as clean file pages
- * can be evicted regardless of swap constraints.
- *
- * Normally anon and file min_seq are in sync. But if swapping is constrained,
- * e.g., out of swap space, file min_seq is allowed to advance and leave anon
- * min_seq behind.
+ * The youngest and oldest generation numbers are tracked independently for
+ * anon and file pages. A type can be aged or evicted without forcing the other
+ * type's generation window to advance.
  */
 struct lru_gen_struct {
-	/* the aging increments the youngest generation number */
-	unsigned long max_seq;
-	/* the eviction increments the oldest generation numbers */
+	/* the aging increments each type's youngest generation number */
+	unsigned long max_seq[ANON_AND_FILE];
+	/* the eviction increments each type's oldest generation number */
 	unsigned long min_seq[ANON_AND_FILE];
-	/* the birth time of each generation in jiffies */
-	unsigned long timestamps[MAX_NR_GENS];
+	/* the birth time of each type's generations in jiffies */
+	unsigned long timestamps[ANON_AND_FILE][MAX_NR_GENS];
 	/* the multi-gen LRU lists */
 	struct list_head lists[MAX_NR_GENS][ANON_AND_FILE][MAX_NR_ZONES];
 	/* the sizes of the above lists */
@@ -378,27 +373,29 @@ enum {
 #define NR_BLOOM_FILTERS	2
 
 struct lru_gen_mm_state {
-	/* set to max_seq after each iteration */
-	unsigned long seq;
-	/* where the current iteration starts (inclusive) */
-	struct list_head *head;
-	/* where the last iteration ends (exclusive) */
-	struct list_head *tail;
+	/* synced with each type's max_seq after an iteration */
+	unsigned long seq[ANON_AND_FILE];
+	/* where each type's current iteration starts (inclusive) */
+	struct list_head *head[ANON_AND_FILE];
+	/* where each type's last iteration ends (exclusive) */
+	struct list_head *tail[ANON_AND_FILE];
 	/* to wait for the last page table walker to finish */
 	struct wait_queue_head wait;
-	/* Bloom filters flip after each iteration */
-	unsigned long *filters[NR_BLOOM_FILTERS];
-	/* the mm stats for debugging */
-	unsigned long stats[NR_HIST_GENS][NR_MM_STATS];
-	/* the number of concurrent page table walkers */
-	int nr_walkers;
+	/* per-type Bloom filters flip after each iteration */
+	unsigned long *filters[ANON_AND_FILE][NR_BLOOM_FILTERS];
+	/* per-type mm stats for debugging */
+	unsigned long stats[ANON_AND_FILE][NR_HIST_GENS][NR_MM_STATS];
+	/* concurrent page table walkers, one set per aging type */
+	int nr_walkers[ANON_AND_FILE];
 };
 
 struct lru_gen_mm_walk {
 	/* the lruvec under reclaim */
 	struct lruvec *lruvec;
-	/* unstable max_seq from lru_gen_struct */
+	/* unstable max_seq for the single type being aged */
 	unsigned long max_seq;
+	/* the type whose page tables are being aged */
+	int aging_type;
 	/* the next address within an mm to scan */
 	unsigned long next_addr;
 	/* to batch page table entries */

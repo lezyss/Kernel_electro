@@ -52,6 +52,9 @@ def generate(root):
                       ('static int should_skip_vma(', scan),
                       ('static void lru_gen_enter_fault(', memory)]:
         assert 'vma_has_recency(vma)' in function(text, sig), sig
+    for sig in ('static bool walk_pte_range(', 'static void walk_pmd_range_locked('):
+        body = function(scan, sig)
+        assert 'page_is_file_cache(page) != priv->aging_type' in body, sig
     assert 'pte_dirty(ptent)' in memory and 'set_page_dirty(page)' in memory
     zap = re.search(r'if \(pte_young\(ptent\) &&\s+likely\(vma_has_recency\(vma\)\)\)\s+mark_page_accessed\(page\);', memory)
     assert zap, 'zap_pte_range recency wiring'
