@@ -98,7 +98,10 @@ static pagemap_entry_t make_pme(uint64_t frame, uint64_t flags) { return (pagema
 static int add_to_pagemap(unsigned long addr, pagemap_entry_t *pme, struct pagemapread *pm)
 { pm->buffer[pm->pos++] = *pme; return pm->pos == pm->len ? PM_END_OF_BUFFER : 0; }
 struct mount { int mnt_id; struct { unsigned mnt_flags; } mnt; };
-static int mnt_id_ida;
+static int mnt_id_ida, mnt_id_lock, mnt_id_start;
+#define spin_lock(p) ((void)(p))
+#define spin_unlock(p) ((void)(p))
+static void ida_remove(int *ida, int id) { freed_ids++; }
 static void ida_free(int *ida, int id) { freed_ids++; }
 /* FUNCTIONS */
 

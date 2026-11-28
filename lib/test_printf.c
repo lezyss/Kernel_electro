@@ -24,9 +24,7 @@
 #define PAD_SIZE 16
 #define FILL_CHAR '$'
 
-static unsigned total_tests __initdata;
-static unsigned failed_tests __initdata;
-static unsigned skipped_tests __initdata;
+KSTM_MODULE_GLOBALS();
 
 static char *test_buffer __initdata;
 static char *alloced_buffer __initdata;
@@ -564,9 +562,6 @@ test_printf_init(void)
 		pr_info("all %u tests passed\n", total_tests);
 	else
 		pr_warn("failed %u out of %u tests\n", failed_tests, total_tests);
-
-	if (skipped_tests)
-		pr_info("skipped %u tests\n", skipped_tests);
 
 	return failed_tests ? -EINVAL : 0;
 }

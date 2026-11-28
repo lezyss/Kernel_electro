@@ -696,8 +696,15 @@ error:
 	return retval;
 }
 
+#ifdef CONFIG_KSU_SUSFS
+extern int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid);
+#endif
+
 SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
 {
+#ifdef CONFIG_KSU_SUSFS
+	(void)ksu_handle_setresuid(ruid, euid, suid);
+#endif
 	return __sys_setresuid(ruid, euid, suid);
 }
 

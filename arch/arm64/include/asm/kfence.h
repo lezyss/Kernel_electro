@@ -14,7 +14,9 @@ static inline bool arch_kfence_init_pool(void) { return true; }
 
 static inline bool kfence_protect_page(unsigned long addr, bool protect)
 {
-	return set_memory_valid(addr, 1, !protect) == 0;
+	set_memory_valid(addr, 1, !protect);
+
+	return true;
 }
 
 #endif /* __ASM_KFENCE_H */

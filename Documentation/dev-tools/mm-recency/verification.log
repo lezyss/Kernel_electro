@@ -1,0 +1,11 @@
+PASS: 73628 published predecessor paths/modes; only six declared MM source changes
+Checking UNCHANGED historical receipts against explicit published MM preimages;
+CURRENT MM source bytes were independently verified by overlay replay above.
+PASS: LZ4 1.11.1 ARM64 restoration replay, current sources/modes and evidence; 13 explicit historical preimages; 7 additions.
+PASS: 73279 base paths/modes checked; 412 carried source paths reproduced by ordered patch replay; historical foundation receipts unchanged; explicit LZ4 overlay checked above.
+PASS: 140 inventory references covered; 0 pending; E143 native equivalent (reference unresolved); LZ4 codec superseded by 1.11.1, ARM64 accelerator restored separately; BBRplus excluded.
+PASS: historical receipts, batch evidence, new test hashes and no-unreviewed-old-carry-over checks.
+LIMITS: source/provenance only; no whole-image, device, concurrency or performance qualification.
+PASS: four overlay negative controls (current source, preimage, patch, evidence)
+PASS: current MM recency overlay, donor dependency order, evidence, modes and predecessor receipt chain
+LIMITS: source/provenance only; not image, device, concurrency or performance qualification.

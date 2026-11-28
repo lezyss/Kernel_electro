@@ -1,0 +1,841 @@
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 0aaebcd..577c158 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -153,6 +153,9 @@ typedef int (dio_iodone_t)(struct kiocb *iocb, loff_t offset,
+ /* File is stream-like */
+ #define FMODE_STREAM		((__force fmode_t)0x200000)
+ 
++/* File accesses need not contribute to page-cache recency. */
++#define FMODE_NOREUSE		((__force fmode_t)0x800000)
++
+ /* File was opened by fanotify and shouldn't generate fanotify events */
+ #define FMODE_NONOTIFY		((__force fmode_t)0x4000000)
+ 
+diff --git a/include/linux/mm_inline.h b/include/linux/mm_inline.h
+index 0739dea..5ff5909 100644
+--- a/include/linux/mm_inline.h
++++ b/include/linux/mm_inline.h
+@@ -318,4 +318,16 @@ static __always_inline void del_page_from_lru_list(struct page *page,
+ 	update_lru_size(lruvec, page_lru(page), page_zonenum(page),
+ 			-hpage_nr_pages(page));
+ }
++
++/* Whether accesses through this mapping should influence LRU recency. */
++static inline bool vma_has_recency(struct vm_area_struct *vma)
++{
++	if (vma->vm_flags & (VM_SEQ_READ | VM_RAND_READ))
++		return false;
++
++	if (vma->vm_file && (READ_ONCE(vma->vm_file->f_mode) & FMODE_NOREUSE))
++		return false;
++
++	return true;
++}
+ #endif
+diff --git a/mm/fadvise.c b/mm/fadvise.c
+index 2d8376e..337ebee 100644
+--- a/mm/fadvise.c
++++ b/mm/fadvise.c
+@@ -87,7 +87,7 @@ int ksys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice)
+ 	case POSIX_FADV_NORMAL:
+ 		f.file->f_ra.ra_pages = bdi->ra_pages;
+ 		spin_lock(&f.file->f_lock);
+-		f.file->f_mode &= ~FMODE_RANDOM;
++		f.file->f_mode &= ~(FMODE_RANDOM | FMODE_NOREUSE);
+ 		spin_unlock(&f.file->f_lock);
+ 		break;
+ 	case POSIX_FADV_RANDOM:
+@@ -119,6 +119,9 @@ int ksys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice)
+ 					   nrpages);
+ 		break;
+ 	case POSIX_FADV_NOREUSE:
++		spin_lock(&f.file->f_lock);
++		f.file->f_mode |= FMODE_NOREUSE;
++		spin_unlock(&f.file->f_lock);
+ 		break;
+ 	case POSIX_FADV_DONTNEED:
+ 		if (!inode_write_congested(mapping->host))
+diff --git a/mm/memory.c b/mm/memory.c
+index dc976e9..2d81f2f 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -1116,7 +1116,7 @@ again:
+ 					set_page_dirty(page);
+ 				}
+ 				if (pte_young(ptent) &&
+-				    likely(!(vma->vm_flags & VM_SEQ_READ)))
++				    likely(vma_has_recency(vma)))
+ 					mark_page_accessed(page);
+ 			}
+ 			rss[mm_counter(page)]--;
+@@ -2719,8 +2719,8 @@ EXPORT_SYMBOL(unmap_mapping_range);
+ #ifdef CONFIG_LRU_GEN
+ static void lru_gen_enter_fault(struct vm_area_struct *vma)
+ {
+-	/* the LRU algorithm doesn't apply to sequential or random reads */
+-	current->in_lru_fault = !(vma->vm_flags & (VM_SEQ_READ | VM_RAND_READ));
++	/* Keep fault placement consistent with reclaim's recency policy. */
++	current->in_lru_fault = vma_has_recency(vma);
+ }
+ 
+ static void lru_gen_exit_fault(void)
+diff --git a/mm/rmap.c b/mm/rmap.c
+index cf6cfc2..3d74b93 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -777,24 +777,14 @@ static bool page_referenced_one(struct page *page, struct vm_area_struct *vma,
+ 
+ 		if (pvmw.pte) {
+ 			if (lru_gen_enabled() && pte_young(*pvmw.pte) &&
+-			    !(vma->vm_flags & (VM_SEQ_READ | VM_RAND_READ))) {
++			    vma_has_recency(vma)) {
+ 				lru_gen_look_around(&pvmw);
+ 				referenced++;
+ 			}
+ 
+ 			if (ptep_clear_flush_young_notify(vma, address,
+-						pvmw.pte)) {
+-				/*
+-				 * Don't treat a reference through
+-				 * a sequentially read mapping as such.
+-				 * If the page has been used in another mapping,
+-				 * we will catch it; if this other mapping is
+-				 * already gone, the unmap path will have set
+-				 * PG_referenced or activated the page.
+-				 */
+-				if (likely(!(vma->vm_flags & VM_SEQ_READ)))
+-					referenced++;
+-			}
++						pvmw.pte))
++				referenced++;
+ 		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
+ 			if (pmdp_clear_flush_young_notify(vma, address,
+ 						pvmw.pmd))
+@@ -828,7 +818,15 @@ static bool invalid_page_referenced_vma(struct vm_area_struct *vma, void *arg)
+ 	struct page_referenced_arg *pra = arg;
+ 	struct mem_cgroup *memcg = pra->memcg;
+ 
+-	if (!mm_match_cgroup(vma->vm_mm, memcg))
++	/*
++	 * Ignore this mapping, not other mappings of the same page. The
++	 * unmap path accounts for eligible mappings that have already gone.
++	 */
++	if (!vma_has_recency(vma))
++		return true;
++
++	/* A NULL memcg means global reclaim, not a cgroup filter. */
++	if (memcg && !mm_match_cgroup(vma->vm_mm, memcg))
+ 		return true;
+ 
+ 	return false;
+@@ -858,6 +856,7 @@ int page_referenced(struct page *page,
+ 		.rmap_one = page_referenced_one,
+ 		.arg = (void *)&pra,
+ 		.anon_lock = page_lock_anon_vma_read,
++		.invalid_vma = invalid_page_referenced_vma,
+ 	};
+ 
+ 	*vm_flags = 0;
+@@ -873,15 +872,6 @@ int page_referenced(struct page *page,
+ 			return 1;
+ 	}
+ 
+-	/*
+-	 * If we are reclaiming on behalf of a cgroup, skip
+-	 * counting on behalf of references from different
+-	 * cgroups
+-	 */
+-	if (memcg) {
+-		rwc.invalid_vma = invalid_page_referenced_vma;
+-	}
+-
+ 	rmap_walk(page, &rwc);
+ 	*vm_flags = pra.vm_flags;
+ 
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 51de7a2..ab10d29 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -3299,8 +3299,9 @@ static int should_skip_vma(unsigned long start, unsigned long end, struct mm_wal
+ 	struct vm_area_struct *vma = walk->vma;
+ 	struct lru_gen_mm_walk *priv = walk->private;
+ 
+-	if (!(vma->vm_flags & (VM_READ | VM_EXEC | VM_WRITE)) || is_vm_hugetlb_page(vma) ||
+-	    (vma->vm_flags & (VM_LOCKED | VM_SPECIAL | VM_SEQ_READ | VM_RAND_READ)) ||
++	if (!vma_has_recency(vma) ||
++	    !(vma->vm_flags & (VM_READ | VM_EXEC | VM_WRITE)) || is_vm_hugetlb_page(vma) ||
++	    (vma->vm_flags & (VM_LOCKED | VM_SPECIAL)) ||
+ 	    vma == get_gate_vma(vma->vm_mm))
+ 		return true;
+ 
+diff --git b/tools/testing/selftests/mm_recency/model.c b/tools/testing/selftests/mm_recency/model.c
+new file mode 100644
+index 0000000..289e927
+--- /dev/null
++++ b/tools/testing/selftests/mm_recency/model.c
+@@ -0,0 +1,346 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Extracted production code is compiled here against deliberately small stubs.
++ * This model does not execute the running kernel's VM or claim real locking.
++ */
++#include <assert.h>
++#include <stdbool.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <errno.h>
++#include <fcntl.h>
++
++#define __force
++#define READ_ONCE(x) (x)
++#define likely(x) (x)
++#define unlikely(x) (x)
++#define IS_ENABLED(x) (x)
++#define VM_READ (1UL << 0)
++#define VM_WRITE (1UL << 1)
++#define VM_EXEC (1UL << 2)
++#define VM_SEQ_READ (1UL << 3)
++#define VM_RAND_READ (1UL << 4)
++#define VM_LOCKED (1UL << 5)
++#define VM_SPECIAL (1UL << 6)
++#define PAGE_SHIFT 12
++#define PAGE_SIZE (1UL << PAGE_SHIFT)
++#define PAGE_MASK (~(PAGE_SIZE - 1))
++#define WB_SYNC_NONE 0
++static bool warn_on_once(bool x) { assert(!x); return x; }
++#define WARN_ON_ONCE(x) warn_on_once(x)
++typedef unsigned int fmode_t;
++typedef uint64_t u64;
++typedef unsigned long pgoff_t;
++typedef unsigned long pte_t;
++struct backing_dev_info { unsigned long ra_pages; };
++struct inode {
++	unsigned int i_mode;
++	loff_t i_size;
++	bool dax;
++	struct backing_dev_info *bdi;
++};
++struct address_space_operations { bool readpage; };
++struct address_space {
++	struct inode *host;
++	struct address_space_operations *a_ops;
++	bool unevictable, shmem;
++};
++struct file {
++	fmode_t f_mode;
++	int f_lock;
++	struct { unsigned long ra_pages; } f_ra;
++	struct inode *inode;
++	struct address_space *f_mapping;
++};
++struct fd { struct file *file; };
++struct mem_cgroup { int id; };
++struct mm_struct { int cgroup; };
++struct vm_area_struct {
++	unsigned long vm_flags;
++	struct file *vm_file;
++	struct mm_struct *vm_mm;
++	bool huge, anonymous, use_pmd;
++	pte_t entry;
++};
++struct page {
++	struct vm_area_struct *vmas[4];
++	int count, access_count;
++	bool anon, ksm, lock_fail, locked, young, idle;
++};
++struct page_vma_mapped_walk {
++	struct page *page;
++	struct vm_area_struct *vma;
++	unsigned long address;
++	pte_t *pte, *pmd;
++	bool walked;
++};
++struct rmap_walk_control {
++	bool (*rmap_one)(struct page *, struct vm_area_struct *, unsigned long, void *);
++	void *arg;
++	void *(*anon_lock)(struct page *);
++	bool (*invalid_vma)(struct vm_area_struct *, void *);
++};
++struct lru_gen_mm_walk { bool can_swap; };
++struct mm_walk { struct vm_area_struct *vma; void *private; };
++struct task { bool in_lru_fault; };
++static struct task task;
++#define current (&task)
++static struct backing_dev_info normal_bdi = { 32 }, noop_backing_dev_info;
++static struct file *fds[4];
++static int gets, fdputs, locks, readaheads, writebacks, drains, invalidations;
++static int memcg_checks, look_arounds, cleared;
++static bool gen_runtime __attribute__((unused)); /* unused when MGLRU is compiled out */
++static bool pte_young(pte_t p) { return p & 1; }
++static struct fd fdget(int n)
++{
++	struct fd fd = { n >= 0 && n < 4 ? fds[n] : NULL };
++	gets++;
++	return fd;
++}
++static void fdput(struct fd f) { assert(f.file && !f.file->f_lock); fdputs++; }
++static struct inode *file_inode(struct file *f) { return f->inode; }
++#define IS_DAX(i) ((i)->dax)
++static struct backing_dev_info *inode_to_bdi(struct inode *i) { return i->bdi; }
++static void spin_lock(int *p) { assert(!*p); *p = 1; locks++; }
++static void spin_unlock(int *p) { assert(*p); *p = 0; }
++static void force_page_cache_readahead(struct address_space *m, struct file *f,
++				     pgoff_t start, unsigned long count)
++{ (void)m; (void)f; (void)start; (void)count; readaheads++; }
++static bool inode_write_congested(struct inode *i) { (void)i; return false; }
++static void __filemap_fdatawrite_range(struct address_space *m, loff_t a,
++				     loff_t b, int mode)
++{ (void)m; (void)a; (void)b; (void)mode; writebacks++; }
++static void lru_add_drain(void) { drains++; }
++static void lru_add_drain_all(void) { drains++; }
++static unsigned long invalidate_mapping_pages(struct address_space *m,
++					      pgoff_t a, pgoff_t b)
++{ (void)m; invalidations++; return b - a + 1; }
++static bool page_vma_mapped_walk(struct page_vma_mapped_walk *w)
++{
++	if (w->walked) return false;
++	w->walked = true;
++	if (w->vma->use_pmd) w->pmd = &w->vma->entry;
++	else w->pte = &w->vma->entry;
++	return true;
++}
++static void page_vma_mapped_walk_done(struct page_vma_mapped_walk *w) { (void)w; }
++static bool lru_gen_enabled(void)
++{
++#ifdef CONFIG_LRU_GEN
++	return gen_runtime;
++#else
++	return false;
++#endif
++}
++static void lru_gen_look_around(struct page_vma_mapped_walk *w)
++{ assert(w->pte && pte_young(*w->pte)); *w->pte &= ~1UL; look_arounds++; }
++static bool ptep_clear_flush_young_notify(struct vm_area_struct *vma,
++					unsigned long addr, pte_t *pte)
++{
++	bool young = pte_young(*pte);
++	(void)vma; (void)addr;
++	*pte &= ~1UL; cleared++;
++	return young;
++}
++#define pmdp_clear_flush_young_notify ptep_clear_flush_young_notify
++static void clear_page_idle(struct page *p) { p->idle = false; }
++static bool test_and_clear_page_young(struct page *p)
++{ bool young = p->young; p->young = false; return young; }
++static bool mm_match_cgroup(struct mm_struct *mm, struct mem_cgroup *memcg)
++{
++	assert(memcg); memcg_checks++;
++	return !CONFIG_MEMCG || mm->cgroup == memcg->id;
++}
++static int total_mapcount(struct page *p) { return p->count; }
++static bool page_mapped(struct page *p) { return p->count > 0; }
++static bool page_rmapping(struct page *p) { (void)p; return true; }
++static bool PageAnon(struct page *p) { return p->anon; }
++static bool PageKsm(struct page *p) { return p->ksm; }
++static bool trylock_page(struct page *p)
++{ if (p->lock_fail) return false; assert(!p->locked); p->locked = true; return true; }
++static void unlock_page(struct page *p) { assert(p->locked); p->locked = false; }
++static void *page_lock_anon_vma_read(struct page *p) { return p; }
++static void rmap_walk(struct page *p, struct rmap_walk_control *rwc)
++{
++	int i;
++	assert(rwc->invalid_vma);
++	for (i = 0; i < p->count; i++) {
++		struct vm_area_struct *vma = p->vmas[i];
++		if (rwc->invalid_vma(vma, rwc->arg)) continue;
++		if (!rwc->rmap_one(p, vma, 0, rwc->arg)) break;
++	}
++}
++#ifdef CONFIG_LRU_GEN
++static bool is_vm_hugetlb_page(struct vm_area_struct *v) { return v->huge; }
++static struct vm_area_struct *get_gate_vma(struct mm_struct *mm) { (void)mm; return NULL; }
++static bool vma_is_anonymous(struct vm_area_struct *v) { return v->anonymous; }
++static bool mapping_unevictable(struct address_space *m) { return m->unevictable; }
++static bool shmem_mapping(struct address_space *m) { return m->shmem; }
++#endif
++static void mark_page_accessed(struct page *p) { p->access_count++; }
++
++/* PRODUCTION */
++
++static void test_advice(void)
++{
++	struct inode inode = { .i_mode = S_IFREG, .i_size = 65536, .bdi = &normal_bdi };
++	struct address_space map = { .host = &inode };
++	struct file file = { .inode = &inode, .f_mapping = &map,
++		.f_mode = FMODE_READ | FMODE_NOWAIT, .f_ra = { 7 } };
++	struct file separate = file;
++	int before, i;
++	fds[0] = &file; fds[1] = &file; fds[2] = &separate;
++	assert(ksys_fadvise64_64(0, 123, 1, POSIX_FADV_NOREUSE) == 0);
++	assert(file.f_mode == (FMODE_READ | FMODE_NOWAIT | FMODE_NOREUSE));
++	assert(fds[1]->f_mode == file.f_mode && !(separate.f_mode & FMODE_NOREUSE));
++	assert(file.f_ra.ra_pages == 7 && locks == 1);
++	assert(!readaheads && !invalidations && !writebacks && !drains);
++	assert(ksys_fadvise64_64(1, 0, 0, POSIX_FADV_NOREUSE) == 0);
++	assert(locks == 2); /* idempotent but still serialized */
++	assert(ksys_fadvise64_64(0, 0, 0, POSIX_FADV_RANDOM) == 0);
++	assert((file.f_mode & (FMODE_RANDOM | FMODE_NOREUSE)) == (FMODE_RANDOM | FMODE_NOREUSE));
++	assert(ksys_fadvise64_64(0, 0, 0, POSIX_FADV_SEQUENTIAL) == 0);
++	assert((file.f_mode & FMODE_NOREUSE) && !(file.f_mode & FMODE_RANDOM));
++	assert(file.f_ra.ra_pages == normal_bdi.ra_pages * 2);
++	assert(ksys_fadvise64_64(0, 4096, 4096, POSIX_FADV_WILLNEED) == 0);
++	assert((file.f_mode & FMODE_NOREUSE) && readaheads == 1);
++	assert(ksys_fadvise64_64(0, 0, 0, POSIX_FADV_NORMAL) == 0);
++	assert(file.f_mode == (FMODE_READ | FMODE_NOWAIT));
++	assert(file.f_ra.ra_pages == normal_bdi.ra_pages);
++	before = locks;
++	assert(ksys_fadvise64_64(0, 0, -1, POSIX_FADV_NOREUSE) == -EINVAL);
++	assert(ksys_fadvise64_64(0, 0, 0, 999) == -EINVAL);
++	assert(ksys_fadvise64_64(3, 0, 0, POSIX_FADV_NOREUSE) == -EBADF);
++	inode.i_mode = S_IFIFO;
++	assert(ksys_fadvise64_64(0, 0, 0, POSIX_FADV_NOREUSE) == -ESPIPE);
++	inode.i_mode = S_IFREG;
++	for (i = 0; i < 2; i++) {
++		inode.dax = !i;
++		inode.bdi = i ? &noop_backing_dev_info : &normal_bdi;
++		assert(ksys_fadvise64_64(0, 0, 0, POSIX_FADV_NOREUSE) == 0);
++		assert(!(file.f_mode & FMODE_NOREUSE));
++	}
++	assert(locks == before && !file.f_lock);
++	assert(gets == fdputs + 1); /* the invalid fd was never acquired */
++}
++
++static void test_recency(void)
++{
++	struct mm_struct mm = { .cgroup = 1 }, other = { .cgroup = 2 };
++	struct file file = { 0 };
++	struct mem_cgroup memcg = { .id = 1 };
++	struct vm_area_struct vma = { .vm_flags = VM_READ, .vm_file = &file, .vm_mm = &mm };
++	struct page_referenced_arg pra = { .memcg = NULL };
++	struct page page = { .vmas = { &vma }, .count = 1 };
++	unsigned long flags;
++	unsigned long vm_flags[] = { VM_READ, VM_READ | VM_SEQ_READ,
++		VM_READ | VM_RAND_READ, VM_READ | VM_SEQ_READ | VM_RAND_READ };
++	unsigned int fmode[] = { FMODE_READ, FMODE_READ | FMODE_NOREUSE };
++	unsigned int i, j, runtime;
++	for (i = 0; i < 4; i++) for (j = 0; j < 2; j++) {
++		bool expected = !i && !j;
++		vma.vm_flags = vm_flags[i]; file.f_mode = fmode[j];
++		assert(vma_has_recency(&vma) == expected);
++		memcg_checks = 0;
++		assert(invalid_page_referenced_vma(&vma, &pra) == !expected);
++		assert(memcg_checks == 0); /* NULL never passed to mm_match_cgroup */
++		for (runtime = 0; runtime < 2; runtime++) {
++			gen_runtime = runtime;
++			vma.entry = 1; page.idle = true;
++			cleared = look_arounds = 0;
++			assert(page_referenced(&page, 0, NULL, &flags) == expected);
++			assert(!page.locked);
++			assert(cleared == (int)expected);
++			assert(!!vma.entry == !expected);
++			assert((look_arounds > 0) == (expected && lru_gen_enabled()));
++			assert(page.idle == !expected);
++			page.access_count = 0;
++			unmap_reference(&vma, 1, &page);
++			unmap_reference(&vma, 0, &page);
++			assert(page.access_count == expected);
++		}
++		lru_gen_enter_fault(&vma);
++#ifdef CONFIG_LRU_GEN
++		assert(current->in_lru_fault == expected);
++#else
++		assert(!current->in_lru_fault);
++#endif
++		lru_gen_exit_fault(); assert(!current->in_lru_fault);
++	}
++	vma.vm_flags = VM_READ; file.f_mode = 0;
++	pra.memcg = &memcg;
++	assert(!invalid_page_referenced_vma(&vma, &pra));
++	vma.vm_mm = &other;
++	assert(invalid_page_referenced_vma(&vma, &pra) == !!CONFIG_MEMCG);
++	vma.entry = 1;
++	assert(page_referenced(&page, 0, &memcg, &flags) == !CONFIG_MEMCG);
++	vma.vm_mm = &mm;
++	/* No vm_file: anonymous mappings still honor VMA hints, never dereference NULL. */
++	vma.vm_file = NULL; assert(vma_has_recency(&vma));
++	vma.vm_flags |= VM_RAND_READ; assert(!vma_has_recency(&vma));
++	vma.vm_file = &file; vma.vm_flags = VM_READ;
++	/* One non-recent mapping must not suppress another mapping's reference. */
++	{
++		struct file noreuse = { .f_mode = FMODE_NOREUSE };
++		struct vm_area_struct first = vma;
++		first.vm_file = &noreuse; first.entry = 1; vma.entry = 1;
++		page.vmas[0] = &first; page.vmas[1] = &vma; page.count = 2;
++		assert(page_referenced(&page, 0, NULL, &flags) == 1);
++		assert(first.entry == 1 && vma.entry == 0);
++	}
++	page.vmas[0] = &vma; page.count = 1;
++	/* Preserve VM_LOCKED handling and failed trylock fallback. */
++	vma.vm_flags = VM_READ | VM_LOCKED; vma.entry = 1;
++	assert(page_referenced(&page, 0, NULL, &flags) == 0 && (flags & VM_LOCKED));
++	assert(vma.entry == 1 && !page.locked);
++	vma.vm_flags = VM_READ; page.lock_fail = true;
++	assert(page_referenced(&page, 0, NULL, &flags) == 1 && !page.locked);
++	page.lock_fail = false;
++#if CONFIG_TRANSPARENT_HUGEPAGE
++	vma.use_pmd = true; vma.entry = 1;
++	assert(page_referenced(&page, 0, NULL, &flags) == 1);
++	file.f_mode = FMODE_NOREUSE; vma.entry = 1;
++	assert(page_referenced(&page, 0, NULL, &flags) == 0 && vma.entry == 1);
++#endif
++}
++
++#ifdef CONFIG_LRU_GEN
++static void test_aging(void)
++{
++	struct address_space_operations ops = { .readpage = true };
++	struct address_space map = { .a_ops = &ops };
++	struct file file = { .f_mapping = &map };
++	struct vm_area_struct vma = { .vm_flags = VM_READ, .vm_file = &file };
++	struct lru_gen_mm_walk priv = { .can_swap = true };
++	struct mm_walk walk = { .vma = &vma, .private = &priv };
++	assert(!should_skip_vma(0, 4096, &walk));
++	file.f_mode = FMODE_NOREUSE; assert(should_skip_vma(0, 4096, &walk));
++	file.f_mode = 0;
++	vma.vm_flags |= VM_RAND_READ; assert(should_skip_vma(0, 4096, &walk));
++	vma.vm_flags = VM_READ | VM_SEQ_READ; assert(should_skip_vma(0, 4096, &walk));
++	vma.vm_flags = VM_READ | VM_LOCKED; assert(should_skip_vma(0, 4096, &walk));
++	vma.vm_flags = VM_READ | VM_SPECIAL; assert(should_skip_vma(0, 4096, &walk));
++	vma.vm_flags = 0; assert(should_skip_vma(0, 4096, &walk));
++	vma.vm_flags = VM_READ; vma.huge = true; assert(should_skip_vma(0, 4096, &walk));
++	vma.huge = false; map.unevictable = true; assert(should_skip_vma(0, 4096, &walk));
++	map.unevictable = false; ops.readpage = false; assert(should_skip_vma(0, 4096, &walk));
++	ops.readpage = true; map.shmem = true; priv.can_swap = false;
++	assert(should_skip_vma(0, 4096, &walk));
++	priv.can_swap = true; assert(!should_skip_vma(0, 4096, &walk));
++	vma.anonymous = true; vma.vm_file = NULL; priv.can_swap = false;
++	assert(should_skip_vma(0, 4096, &walk));
++	priv.can_swap = true; assert(!should_skip_vma(0, 4096, &walk));
++}
++#endif
++
++int main(void)
++{
++	test_advice();
++	test_recency();
++#ifdef CONFIG_LRU_GEN
++	test_aging();
++#endif
++	puts("PASS: fadvise transitions/errors, recency, shared mappings, memcg, unmap/fault/aging and native rmap safeguards");
++	return 0;
++}
+diff --git b/tools/testing/selftests/mm_recency/test_backport.py b/tools/testing/selftests/mm_recency/test_backport.py
+new file mode 100644
+index 0000000..f77a921
+--- /dev/null
++++ b/tools/testing/selftests/mm_recency/test_backport.py
+@@ -0,0 +1,149 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: GPL-2.0
++"""Compile real recency/fadvise/rmap functions against host stubs, not a kernel.
++
++No system calls target the running host kernel. --negative-controls mutates
++throwaway source copies to check the regression assertions are effective.
++"""
++import argparse
++import itertools
++import os
++from pathlib import Path
++import re
++import resource
++import shlex
++import shutil
++import subprocess
++import tempfile
++
++ROOT = Path(__file__).resolve().parents[4]
++SOURCES = ('include/linux/fs.h', 'include/linux/mm_inline.h', 'mm/fadvise.c',
++           'mm/memory.c', 'mm/rmap.c', 'mm/vmscan.c')
++
++
++def function(text, signature):
++    start = text.index(signature)
++    opening = text.index('{', start)
++    depth, end = 1, opening + 1
++    while depth:
++        depth += (text[end] == '{') - (text[end] == '}')
++        end += 1
++    return text[start:end]
++
++
++def generate(root):
++    src = {n: (root / n).read_text() for n in SOURCES}
++    fs, header, advice, memory, rmap, scan = (src[n] for n in SOURCES)
++    fmode = '\n'.join(line for line in fs.splitlines() if line.startswith('#define FMODE_'))
++    # No bit collision with any other FMODE declaration in the real header.
++    values = re.findall(r'^#define\s+(FMODE_\w+)\s+\(\(__force fmode_t\)(0x[0-9a-fA-F]+)\)', fs, re.M)
++    assert len(values) >= 20 and len({int(v, 16) for _, v in values}) == len(values)
++    assert dict(values)['FMODE_NOREUSE'] == '0x800000'
++    ref = function(rmap, 'int page_referenced(struct page *page,')
++    # This callback must run during GLOBAL reclaim too, not just memcg reclaim.
++    assert '.invalid_vma = invalid_page_referenced_vma,' in ref
++    assert 'rwc.invalid_vma =' not in ref
++    assert '.anon_lock = page_lock_anon_vma_read,' in ref
++    assert 'trylock_page(page)' in ref and 'unlock_page(page)' in ref
++    for name in ('mm/memory.c', 'mm/rmap.c', 'mm/vmscan.c'):
++        assert '#include <linux/mm_inline.h>' in src[name], name
++    # Do not silently resurrect the old ad hoc policy in any of the wired sites.
++    for sig, text in [('static bool page_referenced_one(', rmap),
++                      ('static int should_skip_vma(', scan),
++                      ('static void lru_gen_enter_fault(', memory)]:
++        assert 'vma_has_recency(vma)' in function(text, sig), sig
++    assert 'pte_dirty(ptent)' in memory and 'set_page_dirty(page)' in memory
++    zap = re.search(r'if \(pte_young\(ptent\) &&\s+likely\(vma_has_recency\(vma\)\)\)\s+mark_page_accessed\(page\);', memory)
++    assert zap, 'zap_pte_range recency wiring'
++    arg = re.search(r'struct page_referenced_arg \{.*?\n\};', rmap, re.S).group()
++    start = memory.index('#ifdef CONFIG_LRU_GEN\nstatic void lru_gen_enter_fault(')
++    end = memory.index('#endif /* CONFIG_LRU_GEN */', start) + len('#endif /* CONFIG_LRU_GEN */')
++    production = '\n\n'.join([
++        fmode, function(header, 'static inline bool vma_has_recency('),
++        function(advice, 'int ksys_fadvise64_64('), arg,
++        function(rmap, 'static bool page_referenced_one('),
++        function(rmap, 'static bool invalid_page_referenced_vma('), ref,
++        memory[start:end],
++        '#ifdef CONFIG_LRU_GEN\n' + function(scan, 'static int should_skip_vma(') + '\n#endif',
++        'static void unmap_reference(struct vm_area_struct *vma, pte_t ptent, struct page *page)\n{\n' + zap.group() + '\n}',
++    ])
++    return Path(__file__).with_name('model.c').read_text().replace('/* PRODUCTION */', production)
++
++
++def no_core():
++    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
++
++
++def run(root, cc, profiles, quiet=False):
++    text = generate(root)
++    with tempfile.TemporaryDirectory(prefix='mm-recency-model-') as tmp:
++        tmp = Path(tmp)
++        source, binary = tmp / 'test.c', tmp / 'test'
++        source.write_text(text)
++        for gen, memcg, thp in profiles:
++            flags = ['-DCONFIG_MEMCG=' + str(memcg),
++                     '-DCONFIG_TRANSPARENT_HUGEPAGE=' + str(thp)]
++            if gen:
++                flags += ['-DCONFIG_LRU_GEN=1']
++            subprocess.run([*cc, '-std=gnu11', '-O2', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter',
++                            *flags, str(source), '-o', str(binary)], check=True,
++                           stdout=subprocess.PIPE if quiet else None,
++                           stderr=subprocess.PIPE if quiet else None)
++            subprocess.run([str(binary)], check=True, cwd=tmp, preexec_fn=no_core,
++                           stdout=subprocess.PIPE if quiet else None,
++                           stderr=subprocess.PIPE if quiet else None)
++            if not quiet:
++                print('PASS: extracted production functions; MGLRU/MEMCG/THP =',
++                      gen, memcg, thp, flush=True)
++
++
++def negatives(root, cc):
++    mutations = [
++        ('set hint', 'mm/fadvise.c', 'f.file->f_mode |= FMODE_NOREUSE;', 'f.file->f_mode |= 0;'),
++        ('reset hint', 'mm/fadvise.c', '~(FMODE_RANDOM | FMODE_NOREUSE)', '~FMODE_RANDOM'),
++        ('set locking', 'mm/fadvise.c', 'case POSIX_FADV_NOREUSE:\n\t\tspin_lock(&f.file->f_lock);', 'case POSIX_FADV_NOREUSE:'),
++        ('file predicate', 'include/linux/mm_inline.h', 'READ_ONCE(vma->vm_file->f_mode) & FMODE_NOREUSE', 'READ_ONCE(vma->vm_file->f_mode) & 0'),
++        ('random predicate', 'include/linux/mm_inline.h', '(VM_SEQ_READ | VM_RAND_READ)', '(VM_SEQ_READ)'),
++        ('memcg isolation', 'mm/rmap.c', 'memcg && !mm_match_cgroup', 'memcg && mm_match_cgroup'),
++        ('global callback', 'mm/rmap.c', '.invalid_vma = invalid_page_referenced_vma,', '/* callback removed */'),
++        ('fault policy', 'mm/memory.c', 'current->in_lru_fault = vma_has_recency(vma);', 'current->in_lru_fault = true;'),
++        ('unmap policy', 'mm/memory.c', 'likely(vma_has_recency(vma))', 'likely(true)'),
++        ('aging policy', 'mm/vmscan.c', 'if (!vma_has_recency(vma) ||', 'if (false ||'),
++        ('look-around policy', 'mm/rmap.c', 'vma_has_recency(vma)) {', 'true) {'),
++    ]
++    with tempfile.TemporaryDirectory(prefix='mm-recency-negative-') as tmp:
++        tmp = Path(tmp)
++        for n in SOURCES:
++            p = tmp / n
++            p.parent.mkdir(parents=True, exist_ok=True)
++            shutil.copyfile(root / n, p)
++        for label, name, old, new in mutations:
++            p = tmp / name
++            before = p.read_text()
++            assert before.count(old) == 1, label
++            p.write_text(before.replace(old, new, 1))
++            try:
++                run(tmp, cc, [(1, 1, 1)], quiet=True)
++            except (AssertionError, subprocess.CalledProcessError):
++                print('PASS: negative control rejected:', label, flush=True)
++            else:
++                raise AssertionError('mutation accepted: ' + label)
++            finally:
++                p.write_text(before)
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--cc', default=os.environ.get('HOSTCC', 'cc'))
++    parser.add_argument('--root', type=Path, default=ROOT)
++    parser.add_argument('--negative-controls', action='store_true')
++    args = parser.parse_args()
++    cc = shlex.split(args.cc)
++    run(args.root, cc, itertools.product((0, 1), repeat=3))
++    if args.negative_controls:
++        negatives(args.root, cc)
++    print('LIMITS: host stubs and source wiring guards; not kernel reclaim/concurrency or performance proof.')
++
++
++if __name__ == '__main__':
++    main()
+diff --git b/tools/testing/selftests/mm_recency/verify_overlay.py b/tools/testing/selftests/mm_recency/verify_overlay.py
+new file mode 100644
+index 0000000..658b450
+--- /dev/null
++++ b/tools/testing/selftests/mm_recency/verify_overlay.py
+@@ -0,0 +1,157 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: GPL-2.0
++"""Verify current MM recency overlay, then unchanged predecessor receipts.
++
++Current postimages are checked independently before projecting explicit, Git-
++anchored preimages for the historical carry-over verifier. This is not a source
++exception or a reseal of earlier manifests. No build/runtime proof is implied.
++"""
++import argparse
++import hashlib
++import importlib.util
++import json
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import sys
++import tempfile
++
++ROOT = Path(__file__).resolve().parents[4]
++DOC = 'Documentation/dev-tools/mm-recency'
++BASE = 'a4f0c77b8d9d01e147aad1d1c9b3261f2ba04bce'
++DONORS = ['9933074572034a9353fbed9fd75761164b5d42e4',
++          '13b6149f8f0ccff490045990190655c1b284c24c']
++
++
++def sha(data):
++    return hashlib.sha256(data).hexdigest()
++
++
++def data_mode(p):
++    if p.is_symlink():
++        return os.readlink(p).encode(), '120000'
++    assert p.is_file(), 'missing source/evidence: ' + str(p)
++    return p.read_bytes(), '100755' if p.stat().st_mode & 0o111 else '100644'
++
++
++def check_overlay(root):
++    doc = root / DOC
++    receipt = json.loads((doc / 'manifest.json').read_text())
++    assert receipt['predecessor'] == BASE and receipt['ordered_donors'] == DONORS
++    paths, preimages = receipt['paths'], {}
++    patch = doc / 'adaptation.diff'
++    assert sha(patch.read_bytes()) == receipt['patch_sha256'], 'overlay patch hash'
++    with tempfile.TemporaryDirectory(prefix='mm-recency-replay-') as tmp:
++        tmp = Path(tmp)
++        for name, record in paths.items():
++            assert not Path(name).is_absolute() and '..' not in Path(name).parts, name
++            if record['preimage'] is None:
++                assert record['preimage_mode'] is None
++                continue
++            data = (doc / 'preimages' / (name + '.preimage')).read_bytes()
++            assert sha(data) == record['preimage'], 'overlay preimage hash: ' + name
++            preimages[name] = data, record['preimage_mode']
++            p = tmp / name
++            p.parent.mkdir(parents=True, exist_ok=True)
++            p.write_bytes(data)
++            p.chmod(0o755 if record['preimage_mode'] == '100755' else 0o644)
++        subprocess.run(['git', 'apply', '--whitespace=nowarn', str(patch.resolve())],
++                       cwd=tmp, check=True)
++        actual_paths = {p.relative_to(tmp).as_posix() for p in tmp.rglob('*') if p.is_file()}
++        assert actual_paths == set(paths), 'overlay patch path set'
++        for name, record in paths.items():
++            data, mode = data_mode(root / name)
++            assert data == (tmp / name).read_bytes(), 'not replayed current source: ' + name
++            assert sha(data) == record['postimage'] and mode == record['mode'], name
++        for name, digest in receipt['evidence_sha256'].items():
++            assert sha((root / name).read_bytes()) == digest, 'overlay evidence hash: ' + name
++    donors = [json.loads((doc / 'donors' / (s + '.json')).read_text()) for s in DONORS]
++    assert [d['sha'] for d in donors] == DONORS
++    assert donors[1]['parents'][0]['sha'] == DONORS[0], 'donor dependency order'
++    return receipt, preimages
++
++
++def check_predecessor(receipt, preimages):
++    def git(*args):
++        return subprocess.check_output(['git', *args], cwd=ROOT)
++    base = {}
++    for entry in git('ls-tree', '-rz', BASE).split(b'\0'):
++        if not entry:
++            continue
++        info, name = entry.split(b'\t', 1)
++        mode, kind, oid = info.decode().split()
++        assert kind == 'blob'
++        base[name.decode()] = mode, oid
++    assert set(preimages) <= set(base)
++    assert not (set(receipt['paths']) - set(preimages)) & set(base)
++    for name, (data, mode) in preimages.items():
++        assert mode == base[name][0] and data == git('show', BASE + ':' + name), 'not published preimage: ' + name
++    for name, (mode, oid) in base.items():
++        if name in preimages:
++            continue  # current postimage and anchored preimage were BOTH checked above
++        data, actual_mode = data_mode(ROOT / name)
++        actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
++        assert actual == oid and actual_mode == mode, 'unrelated predecessor drift: ' + name
++    print('PASS:', len(base), 'published predecessor paths/modes; only six declared MM source changes')
++
++
++def historical_receipts(preimages):
++    path = ROOT / 'tools/testing/selftests/carry_over/verify.py'
++    sys.path.insert(0, str(path.parent))
++    spec = importlib.util.spec_from_file_location('recency_predecessor_verifier', path)
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    original = module.file_data
++    module.file_data = lambda name: preimages[name] if name in preimages else original(name)
++    print('Checking UNCHANGED historical receipts against explicit published MM preimages;')
++    print('CURRENT MM source bytes were independently verified by overlay replay above.')
++    module.main()
++
++
++def negative_controls():
++    receipt, _ = check_overlay(ROOT)
++    with tempfile.TemporaryDirectory(prefix='mm-recency-provenance-negative-') as tmp:
++        tmp = Path(tmp)
++        shutil.copytree(ROOT / DOC, tmp / DOC)
++        for name in receipt['paths']:
++            p = tmp / name
++            p.parent.mkdir(parents=True, exist_ok=True)
++            shutil.copy2(ROOT / name, p)
++        cases = [
++            ('mm/fadvise.c', 'not replayed current source'),
++            (DOC + '/preimages/mm/rmap.c.preimage', 'overlay preimage hash'),
++            (DOC + '/adaptation.diff', 'overlay patch hash'),
++            (next(iter(receipt['evidence_sha256'])), 'overlay evidence hash'),
++        ]
++        for name, marker in cases:
++            p = tmp / name
++            original = p.read_bytes()
++            p.write_bytes(original + b'\n/* corruption */\n')
++            try:
++                check_overlay(tmp)
++            except AssertionError as error:
++                assert marker in str(error), str(error)
++            else:
++                raise AssertionError('accepted corrupted ' + name)
++            finally:
++                p.write_bytes(original)
++    print('PASS: four overlay negative controls (current source, preimage, patch, evidence)')
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--negative-controls', action='store_true')
++    args = parser.parse_args()
++    receipt, preimages = check_overlay(ROOT)
++    assert len(preimages) == 6
++    check_predecessor(receipt, preimages)
++    historical_receipts(preimages)
++    if args.negative_controls:
++        negative_controls()
++    print('PASS: current MM recency overlay, donor dependency order, evidence, modes and predecessor receipt chain')
++    print('LIMITS: source/provenance only; not image, device, concurrency or performance qualification.')
++
++
++if __name__ == '__main__':
++    main()

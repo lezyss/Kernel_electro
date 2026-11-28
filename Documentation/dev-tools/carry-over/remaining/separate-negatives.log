@@ -1,0 +1,32 @@
+PASS: compiled runtime negative rejected: bore/test_backport.py --donor-idle
+PASS: compiled runtime negative rejected: bore/test_backport.py --legacy-nice
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py donor-psi
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py old-trace
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py old-shrinker
+PASS: compiled runtime negative rejected: mm_backport/test_backport.py old-retry
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py donor-search
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py missing-unlock
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py boot-skip
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py wrong-gfp
+PASS: compiled runtime negative rejected: vmalloc_backport/test_backport.py early-reuse
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py no-file-pin
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py missing-fput
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py donor-freeing
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py late-freeing
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py no-cp-lock
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py gc-after-iput
+PASS: compiled runtime negative rejected: fs_backport/test_backport.py atomic-bypass
+PASS: compiled runtime negative rejected: procfs_backport/test_backport.py --donor-padding
+PASS: compiled runtime negative rejected: procfs_backport/test_backport.py --donor-locked-pss
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py null-selector
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py missing-accounting
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py bounce-accounting
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py no-ipu-drain
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py gc-freezer-window
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-late-counter
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-no-umount-protection
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-no-lifetime-gate
+PASS: compiled runtime negative rejected: fs_backport/test_f2fs_merge.py cp-drop-error
+
+PASS: separate runtime negative controls
+LIMITS: extracted functions/mocked platforms only; not an image link, device boot, concurrency or performance qualification

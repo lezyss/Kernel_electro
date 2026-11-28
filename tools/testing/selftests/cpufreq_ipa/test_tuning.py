@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[4]
+HIST = ROOT / "Documentation/dev-tools/carry-over/batch-01/historical"
 BASE = 'Documentation/dev-tools/azyr-sm6250-036-041'
 IPA = 'drivers/platform/msm/ipa/ipa_v3/ipa_uc_wdi.c'
 STATS = 'drivers/cpufreq/cpufreq_stats.c'
@@ -32,11 +33,11 @@ def extract(text, name):
 
 
 def provenance(directory):
-    manifest = json.loads((ROOT / (BASE + '-validation.json')).read_text())
+    manifest = json.loads((HIST / Path(BASE + '-validation.json').name).read_text())
     assert manifest['schema'] == 1 and manifest['review_items'] == [36, 41]
     assert set(manifest['preimage_sha256']) == set(manifest['postimage_sha256']) == {IPA, STATS}
     assert manifest['patch'] == BASE + '.diff'
-    patch = ROOT / manifest['patch']
+    patch = HIST / Path(manifest['patch']).name
     assert digest(patch.read_bytes()) == manifest['patch_sha256']
     before, after = {}, {}
     for path in [IPA, STATS]:
@@ -47,7 +48,7 @@ def provenance(directory):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
     subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=directory, check=True)
-    review = json.loads((ROOT / 'Documentation/dev-tools/azyr-sm6250-review-04-validation.json').read_text())
+    review = json.loads((HIST / 'azyr-sm6250-review-04-validation.json').read_text())
     for path in [IPA, STATS]:
         data = (Path(directory) / path).read_bytes()
         assert digest(data) == manifest['preimage_sha256'][path] == review['source_sha256'][path]

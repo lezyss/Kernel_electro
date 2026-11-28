@@ -236,7 +236,7 @@ int main(void) {
 
 
 def abi(root, negative=None):
-    old = reviewed_preimages(root)['include/linux/susfs.h'].decode()
+    old = (root / 'Documentation/dev-tools/carry-over/batch-04/historical/susfs-2.3-header.h').read_text()
     new = (root / 'include/linux/susfs.h').read_text()
     structs = dict(re.findall(r'struct (st_susfs_\w+) \{([^}]+)\};', old))
     definitions, checks = [], []
@@ -300,10 +300,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cc', default=os.environ.get('HOSTCC', 'cc'))
     parser.add_argument('--self-test-negatives', action='store_true')
+    parser.add_argument('--models-only', action='store_true', help='Current extracted-source tests only; carry_over verifier owns ordered provenance')
     args = parser.parse_args()
-    previous = reviewed_preimages(ROOT)
-    assert set(previous) == SCOPE
-    contracts(ROOT, previous)
+    if not args.models_only:
+        previous = reviewed_preimages(ROOT)
+        assert set(previous) == SCOPE
+        contracts(ROOT, previous)
+    else:
+        print('LIMIT: historical checkpoint seals not asserted; run carry_over/verify.py')
     with tempfile.TemporaryDirectory(prefix='susfs-240-model-') as directory:
         directory = Path(directory)
         def run(builder, negative=None):

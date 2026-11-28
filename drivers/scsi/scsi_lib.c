@@ -252,9 +252,22 @@ int scsi_execute(struct scsi_device *sdev, const unsigned char *cmd,
 	struct scsi_request *rq;
 	int ret = DRIVER_ERROR << 24;
 
-	req = blk_get_request(sdev->request_queue,
+	if (IS_ENABLED(CONFIG_BLK_MQ_RUNTIME_PM) &&
+	    sdev->request_queue->mq_ops) {
+		/*
+		 * Internal commands, including START STOP UNIT during PM, must
+		 * bypass the admission gate before rq_flags can be assigned.
+		 */
+		req = blk_mq_alloc_request(sdev->request_queue,
+			data_direction == DMA_TO_DEVICE ?
+			REQ_OP_SCSI_OUT : REQ_OP_SCSI_IN, BLK_MQ_REQ_PREEMPT);
+		if (!IS_ERR(req) && sdev->request_queue->mq_ops->initialize_rq_fn)
+			sdev->request_queue->mq_ops->initialize_rq_fn(req);
+	} else {
+		req = blk_get_request(sdev->request_queue,
 			data_direction == DMA_TO_DEVICE ?
 			REQ_OP_SCSI_OUT : REQ_OP_SCSI_IN, __GFP_RECLAIM);
+	}
 	if (IS_ERR(req))
 		return ret;
 	rq = scsi_req(req);

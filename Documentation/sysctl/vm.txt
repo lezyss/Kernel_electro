@@ -888,6 +888,15 @@ The default value is 60.
 
 ==============================================================
 
+kcompressd
+
+Controls the maximum number of anonymous swap pages queued for asynchronous
+writeback by the per-node kcompressd worker. The value can be set from 0 to
+256; 0 disables queueing and makes kswapd use the normal synchronous
+frontswap/swap write path. The default is 24.
+
+==============================================================
+
 unprivileged_userfaultfd
 
 This flag controls the mode in which unprivileged users can use the

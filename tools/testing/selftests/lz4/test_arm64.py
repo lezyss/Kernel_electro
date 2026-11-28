@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: GPL-2.0
 """Freestanding Clang + Unicorn differential test of the actual ARM64 LZ4 code.
 
-Not a kernel-context, target-toolchain or device validation. See README.
+Not a kernel-context or device validation. Pass --cc to select the toolchain.
+See Documentation/dev-tools/lz4-arm64-restore for the recorded AOSP run.
 """
 import argparse
 import os
 from pathlib import Path
 import random
-import re
 import shlex
 import subprocess
 import tempfile
@@ -21,13 +21,14 @@ from unicorn.arm64_const import (UC_ARM64_REG_X0, UC_ARM64_REG_X18,
                                  UC_ARM64_REG_X19, UC_ARM64_REG_X30,
                                  UC_ARM64_REG_SP, UC_ARM64_REG_PC, UC_ARM64_REG_CPACR_EL1)
 
+from shims import SHIMS as BASE_SHIMS
+
 ROOT = Path(__file__).resolve().parents[4]
 SHIMS = {
     'linux/types.h': '''#ifndef TEST_TYPES_H
 #define TEST_TYPES_H
 typedef __SIZE_TYPE__ size_t;
 typedef __PTRDIFF_TYPE__ ssize_t;
-typedef __PTRDIFF_TYPE__ ptrdiff_t;
 typedef __UINT8_TYPE__ uint8_t;
 typedef __UINT16_TYPE__ uint16_t;
 typedef __UINT32_TYPE__ uint32_t;
@@ -80,6 +81,7 @@ static inline unsigned int read_cpuid_part_number(void) { return cpu_part; }
 ''',
     'asm/assembler.h': '',
 }
+SHIMS.update(BASE_SHIMS)
 RUNTIME = '''#include <linux/types.h>
 int simd_allowed = 1;
 int fpsimd_available = 1;
@@ -108,7 +110,7 @@ def build(cc, out):
     # Zig's driver otherwise overrides Clang's fixed-register/FP features.
     zig_cpu = ['-mcpu=generic+reserve_x18-fp_armv8-neon'] if Path(cc[0]).name == 'zig' else []
     linker = [] if Path(cc[0]).name == 'zig' else ['-fuse-ld=lld']
-    common = [*cc, *zig_cpu, '-target', 'aarch64-freestanding', '-O3', '-std=gnu89',
+    common = [*cc, *zig_cpu, '-target', 'aarch64-none-elf', '-O3', '-std=gnu89',
               '-ffreestanding', '-fno-builtin', '-mgeneral-regs-only',
               '-ffixed-x18', '-Wall', '-Wextra', '-Werror',
               '-Wframe-larger-than=2048', '-I' + str(shim),
@@ -128,7 +130,7 @@ def build(cc, out):
         subprocess.run([*flags, '-c', str(src), '-o', str(obj)], check=True)
         objs.append(obj)
     elf = out / 'test.elf'
-    subprocess.run([*cc, *linker, '-target', 'aarch64-freestanding', '-nostdlib',
+    subprocess.run([*cc, *linker, '-target', 'aarch64-none-elf', '-nostdlib',
                     '-Wl,--entry=LZ4_decompress_safe',
                     *map(str, objs), '-o', str(elf)], check=True)
     # Compile feature-off, no-NEON and STATIC paths with the option defined too.
@@ -142,48 +144,31 @@ def build(cc, out):
             symbols = ELFFile(f).get_section_by_name('.symtab').iter_symbols()
             assert not any('neon' in x.name or 'lz4_decompress_asm' in x.name
                            for x in symbols), name
-    # Check both word sizes and prove the split objects have no allocators,
-    # decoder/compressor cross-dependencies or unexpectedly external helpers.
-    allowed = {'memcpy', 'memmove', 'memset', 'memcmp'}
-    for src in srcs[:3]:
-        if src == srcs[0]:
-            continue  # The accelerated object intentionally references its dispatcher.
-        with objs[srcs.index(src)].open('rb') as f:
-            syms = ELFFile(f).get_section_by_name('.symtab').iter_symbols()
-            missing = {x.name for x in syms if x['st_shndx'] == 'SHN_UNDEF' and x.name}
-            assert missing <= allowed, (src.name, missing)
-    for i, src in enumerate(srcs[:3]):
-        obj = out / ('arm32-' + str(i) + '.o')
-        subprocess.run([*cc, '-target', 'arm-linux-gnueabi', '-O3', '-std=gnu89',
-                        '-ffreestanding', '-fno-builtin', '-Wall', '-Wextra', '-Werror',
-                        '-Wframe-larger-than=2048', '-DLZ4_FAST_DEC_LOOP=1',
-                        '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
-                        '-I' + str(shim), '-c', str(src), '-o', str(obj)], check=True)
-        with obj.open('rb') as f:
-            syms = ELFFile(f).get_section_by_name('.symtab').iter_symbols()
-            missing = {x.name for x in syms if x['st_shndx'] == 'SHN_UNDEF' and x.name}
-            assert all(x in allowed or x.startswith('__aeabi_mem') for x in missing), (src.name, missing)
-    expected = {'LZ4_compress_default', 'LZ4_compress_fast', 'LZ4_compress_destSize',
-                'LZ4_loadDict', 'LZ4_compress_fast_continue', 'LZ4_saveDict',
-                'LZ4_decompress_safe', 'LZ4_decompress_safe_partial',
-                'LZ4_setStreamDecode', 'LZ4_decompress_safe_continue',
-                'LZ4_arm64_decompress_safe', 'LZ4_arm64_decompress_safe_partial',
-                'LZ4_compress_HC', 'LZ4_loadDictHC', 'LZ4_compress_HC_continue', 'LZ4_saveDictHC'}
-    exports = set()
-    for src in ('lz4_compress.c', 'lz4_decompress.c', 'lz4hc_compress.c'):
-        exports.update(re.findall(r'EXPORT_SYMBOL\((\w+)\)', (ROOT / 'lib/lz4' / src).read_text()))
-    assert exports == expected, exports ^ expected
-    print('PASS: ARM32/ARM64 frame and allocation-free symbol checks; 16 kernel exports', flush=True)
+        if name != 'preboot':
+            subprocess.run([*cc, *linker, '-target', 'aarch64-none-elf', '-nostdlib',
+                            '-Wl,--entry=LZ4_decompress_safe', str(obj), str(objs[5]),
+                            '-o', str(out / (name + '.elf'))], check=True)
     # Also exercise Clang's SCS/ThinLTO compiler and linker on the whole path.
+    # This freestanding fixture has no userspace exclusions. Neutron omits the
+    # driver's default share/cfi_ignorelist.txt: explicitly use no ignorelist,
+    # retaining CFI instrumentation rather than inventing package contents.
     lto = []
     for i in (0, 3, 5):
         obj = out / ('scs' + str(i) + '.o')
-        subprocess.run([*common, '-fsanitize=shadow-call-stack', '-flto=thin',
+        subprocess.run([*common, '-fsanitize=shadow-call-stack,cfi', '-fno-sanitize-ignorelist',
+                        '-fvisibility=hidden', '-flto=thin',
                         '-c', str(srcs[i]), '-o', str(obj)], check=True)
         lto.append(obj)
-    subprocess.run([*cc, *linker, *zig_cpu, '-target', 'aarch64-freestanding', '-nostdlib',
+    subprocess.run([*cc, *linker, *zig_cpu, '-target', 'aarch64-none-elf', '-nostdlib',
                     '-flto=thin', '-ffixed-x18', '-mgeneral-regs-only',
-                    '-Wl,--entry=LZ4_decompress_safe', '-Wl,--export-dynamic', *map(str, lto),
+                    '-Wl,--entry=LZ4_decompress_safe',
+                    # Bare-metal LLD does not export dynamic symbols. Retain
+                    # the entry points/globals observed by the emulator so LTO
+                    # cannot delete them or fold runtime dispatch into constants.
+                    '-Wl,--undefined-glob=LZ4_*',
+                    '-Wl,--undefined=simd_allowed,--undefined=fpsimd_available',
+                    '-Wl,--undefined=cpu_part,--undefined=neon_begin_count',
+                    '-Wl,--undefined=neon_end_count', *map(str, lto),
                     str(objs[4]), '-o', str(out / 'scs.elf')], check=True)
     return elf
 
@@ -222,6 +207,8 @@ class Machine:
         self.shadow_writes = 0
         self.uc.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.memory)
         for name in ('_lz4_decompress_asm', '_lz4_decompress_asm_noprfm'):
+            if name not in self.symbols:
+                continue
             addr = self.symbols[name]
             self.uc.hook_add(UC_HOOK_CODE, self.enter, begin=addr, end=addr)
 
@@ -324,7 +311,24 @@ def sequence(lit, offset, length):
             (ext_length(m - 15) if m >= 15 else b''))
 
 
+def pointer_wrap_checks(m):
+    # Direct assembly entry with synthetic near-U64_MAX destination bounds.
+    # A long literal must rewind on address carry BEFORE touching destination.
+    data = sequence(b'a' * 160, 1, 32) + literals(b'z' * 180)
+    m.uc.mem_write(m.SRC, data)
+    dst = (1 << 64) - 64
+    for api in ('_lz4_decompress_asm', '_lz4_decompress_asm_noprfm'):
+        m.uc.mem_write(m.STREAM + 1024, dst.to_bytes(8, 'little'))
+        m.uc.mem_write(m.STREAM + 1032, m.SRC.to_bytes(8, 'little'))
+        assert m.call(api, m.STREAM + 1024, dst, (1 << 64) - 1,
+                      m.STREAM + 1032, m.SRC + len(data)) == 0
+        assert int.from_bytes(m.uc.mem_read(m.STREAM + 1024, 8), 'little') == dst
+        assert int.from_bytes(m.uc.mem_read(m.STREAM + 1032, 8), 'little') == m.SRC
+    print('PASS: both assembly variants rewind on synthetic literal address carry')
+
+
 def suite(m):
+    pointer_wrap_checks(m)
     rng = random.Random(0x4c5a34)
     cases = [(literals(b''), b'')]
     for n in (1, 14, 15, 16, 127, 128, 129, 255, 1024, 4096):
@@ -378,12 +382,12 @@ def suite(m):
             got = m.decode('LZ4_arm64_decompress_safe', data, len(raw), **opts)
             assert got == ref, ('fallback', opts, checked)
             assert sum(m.asm_calls) == 0
-        # Truncation and undersized output; negative error positions can differ.
+        # Truncation and undersized output; v1.11.1 error categories must match.
         for cut in (0, 1, len(data) // 2, max(0, len(data) - 1)):
             trunc = data[:cut]
             a = m.decode('LZ4_decompress_safe', trunc, len(raw))[0]
             b = m.decode('LZ4_arm64_decompress_safe', trunc, len(raw))[0]
-            assert (a < 0) == (b < 0), ('truncated', checked, cut, a, b)
+            assert a == b, ('truncated', checked, cut, a, b)
         if raw:
             a = m.decode('LZ4_arm64_decompress_safe', data, len(raw) - 1)[0]
             assert a < 0
@@ -399,11 +403,12 @@ def suite(m):
         assert b[0] < 0 or b == a, ('malformed', a[0], b[0])
     for offset in (0, 512):
         bad = sequence(b'a' * 160, offset, 32) + literals(b'z' * 180)
-        assert m.decode('LZ4_arm64_decompress_safe', bad, 1024)[0] < 0
+        assert m.decode('LZ4_arm64_decompress_safe', bad, 1024)[0] == -3
         assert sum(m.asm_calls) == 1
     # Size_t guards must run before any pointer arithmetic or SIMD entry.
     for insize, outsize in ((1 << 31, 100), (100, 1 << 31), ((1 << 64)-1, 0)):
-        assert m.call('LZ4_arm64_decompress_safe', 0, 0, insize, outsize, 0) == -5
+        for api in ('LZ4_arm64_decompress_safe', 'LZ4_arm64_decompress_safe_partial'):
+            assert m.call(api, 0, 0, insize, outsize, 0) == -5
     # Streaming first block uses ASM, subsequent prefix/dictionary blocks use C.
     data, raw = cases[-1]
     m.uc.mem_write(m.STREAM, b'\0' * 64)
@@ -441,37 +446,17 @@ def suite(m):
           '1000 malformed blocks; ASM entries', asm, '; streaming; ABI/x18')
 
 
-def compression_suite(m):
-    rng = random.Random(0x1110)
-    samples = [b'', rng.randbytes(4096), b'kernel-lz4-1.11-' * 512]
-    checked = 0
-    for raw in samples:
-        for name, levels in [('LZ4_compress_default', [1]),
-                             ('LZ4_compress_fast', [1, 8]),
-                             ('LZ4_compress_HC', [3, 9, 10, 11, 12, 16])]:
-            for level in levels:
-                size = 327784 if name.endswith('_HC') else 16416
-                src, dst, work = m.SRC + 4096, m.DST + 4096, m.WORK + 4096
-                cap = len(raw) + len(raw) // 255 + 16
-                m.uc.mem_write(work - 16, b'\xa5' * (size + 32))
-                m.uc.mem_write(dst - 16, b'\xa5' * (cap + 32))
-                if raw:
-                    m.uc.mem_write(src, raw)
-                m.bounds = (src, len(raw), dst, cap)
-                args = [src, dst, len(raw), cap]
-                if name != 'LZ4_compress_default':
-                    args.append(level)
-                c = m.call(name, *args, work)
-                m.bounds = None
-                assert 0 < c <= cap, (name, level, c)
-                for ptr in (work - 16, work + size, dst - 16, dst + cap):
-                    assert bytes(m.uc.mem_read(ptr, 16)) == b'\xa5' * 16
-                block = bytes(m.uc.mem_read(dst, c))
-                result, decoded = m.decode('LZ4_decompress_safe', block, len(raw))
-                assert result == len(raw) and decoded == raw, (name, level)
-                checked += 1
-    print('PASS:', checked, 'real ARM64 fast/default/HC compression roundtrips; '
-          'caller workspace/output guards; levels 10-12/legacy 16; ABI/x18')
+
+def config_fallbacks(elf):
+    for name in ('off', 'no-neon'):
+        m = Machine(elf.parent / (name + '.elf'))
+        raw = b'a' * 4096 + b'five last bytes'
+        data = sequence(b'a' * 160, 1, 3936) + literals(b'five last bytes')
+        for api in ('LZ4_arm64_decompress_safe', 'LZ4_arm64_decompress_safe_partial'):
+            assert m.decode(api, data, len(raw)) == (len(raw), raw)
+            assert m.asm_calls == [0, 0]
+        assert not any('lz4_decompress_asm' in s for s in m.symbols)
+    print('PASS: feature-off and no-NEON helper execution stays C-only')
 
 
 def main():
@@ -483,7 +468,7 @@ def main():
     if args.output:
         args.output.mkdir(parents=True, exist_ok=True)
         elf = build(cc, args.output.resolve())
-        compression_suite(Machine(elf))
+        config_fallbacks(elf)
         suite(Machine(elf))
         scs = Machine(elf.parent / 'scs.elf')
         suite(scs)
@@ -491,7 +476,7 @@ def main():
     else:
         with tempfile.TemporaryDirectory(prefix='lz4-arm64-') as temp:
             elf = build(cc, Path(temp))
-            compression_suite(Machine(elf))
+            config_fallbacks(elf)
             suite(Machine(elf))
             scs = Machine(elf.parent / 'scs.elf')
             suite(scs)

@@ -1174,7 +1174,7 @@ static void binder_do_set_priority(struct task_struct *task,
 	bool has_cap_nice;
 	unsigned int policy = desired.sched_policy;
 
-	if (task->policy == policy && task->normal_prio == desired.prio)
+	if (task->policy == policy && task->prio == desired.prio)
 		return;
 
 	has_cap_nice = has_capability_noaudit(task, CAP_SYS_NICE);
@@ -1211,7 +1211,7 @@ static void binder_do_set_priority(struct task_struct *task,
 			      task->pid, desired.prio,
 			      to_kernel_prio(policy, priority));
 
-	trace_binder_set_priority(task->tgid, task->pid, task->normal_prio,
+	trace_binder_set_priority(task->tgid, task->pid, task->prio,
 				  to_kernel_prio(policy, priority),
 				  desired.prio);
 
@@ -1253,7 +1253,7 @@ static void binder_transaction_priority(struct task_struct *task,
 
 	t->set_priority_called = true;
 	t->saved_priority.sched_policy = task->policy;
-	t->saved_priority.prio = task->normal_prio;
+	t->saved_priority.prio = task->prio;
 
 	if (!inherit_rt && is_rt_policy(desired_prio.sched_policy)) {
 		desired_prio.prio = NICE_TO_PRIO(0);
@@ -3819,10 +3819,6 @@ err_bad_call_stack:
 err_empty_call_stack:
 err_dead_binder:
 err_invalid_target_handle:
-	if (target_thread)
-		binder_thread_dec_tmpref(target_thread);
-	if (target_proc)
-		binder_proc_dec_tmpref(target_proc);
 	if (target_node) {
 		binder_dec_node(target_node, 1, 0);
 		binder_dec_node_tmpref(target_node);
@@ -3837,6 +3833,11 @@ err_invalid_target_handle:
 		     t_debug_id, return_error, return_error_param,
 		     tr->code, (u64)tr->data_size, (u64)tr->offsets_size,
 		     return_error_line);
+
+	if (target_thread)
+		binder_thread_dec_tmpref(target_thread);
+	if (target_proc)
+		binder_proc_dec_tmpref(target_proc);
 
 	{
 		struct binder_transaction_log_entry *fe;
@@ -5572,7 +5573,7 @@ static int binder_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct binder_proc *proc = filp->private_data;
 	const char *failure_string;
 
-	if (proc->tsk != current->group_leader)
+	if (!same_thread_group(proc->tsk, current))
 		return -EINVAL;
 
 	if ((vma->vm_end - vma->vm_start) > SZ_4M)

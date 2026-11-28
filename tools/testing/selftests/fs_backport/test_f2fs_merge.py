@@ -382,7 +382,7 @@ struct f2fs_sb_info {struct ckpt_req_control cprc_info;
  struct super_block *sb;struct rwsem gc_lock;_Atomic bool enabled;};
 struct cp_control {int reason;};
 static struct f2fs_sb_info *global;
-static _Atomic int opu,ipu,cp_calls,cp_error,fail_start,fail_prio,done;
+static _Atomic int opu,ipu,cp_error,fail_start,fail_prio,done;
 static _Atomic bool dispatch_hold,fail_intwrite,quota_check;
 static void init_rwsem(struct rwsem *s) {assert(!pthread_rwlock_init(&s->lock,NULL));s->deny_try=false;}
 static void down_read(struct rwsem *s) {assert(!pthread_rwlock_rdlock(&s->lock));if(s==&global->sb->s_umount)super_read++;if(s==&global->cprc_info.gate)gate_read++;}
@@ -448,7 +448,7 @@ static int f2fs_write_checkpoint(struct f2fs_sb_info *s,struct cp_control *c) {
  assert(s==global && (c->reason==CP_SYNC||c->reason==CP_FASTBOOT));
  if(quota_check)assert(super_read||super_write);
  if(current==READ_ONCE(s->cprc_info.task))assert(super_read && intwrite);
- cp_calls++;return cp_error;
+ return cp_error;
 }
 #define f2fs_bug_on(s,c) assert(!(c))
 static void *trampoline(void *arg) {current=arg;current->fn(current->data);return NULL;}

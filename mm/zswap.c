@@ -30,6 +30,7 @@
 #include <linux/types.h>
 #include <linux/atomic.h>
 #include <linux/frontswap.h>
+#include <linux/zswap.h>
 #include <linux/rbtree.h>
 #include <linux/swap.h>
 #include <linux/crypto.h>
@@ -80,6 +81,12 @@ static u64 zswap_duplicate_entry;
 
 /* Enable/disable zswap (disabled by default) */
 static bool zswap_enabled;
+
+bool zswap_is_enabled(void)
+{
+	return READ_ONCE(zswap_enabled);
+}
+
 static int zswap_enabled_param_set(const char *,
 				   const struct kernel_param *);
 static struct kernel_param_ops zswap_enabled_param_ops = {

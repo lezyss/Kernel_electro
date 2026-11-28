@@ -120,8 +120,10 @@
 
 4:	 mov copy_from_ptr, x3
 	mov	copy_to_ptr, x0
-	add	x3, x3, literal_length
-	add	x0, x0, literal_length
+	adds	x3, x3, literal_length
+	b.cs	Done
+	adds	x0, x0, literal_length
+	b.cs	Done
 	check_dst_overflow
 	check_src_overflow
 
@@ -147,7 +149,8 @@
 	/*
 	 * set x0 to the end of "match copy";
 	 */
-	add	x0, x0, match_length
+	adds	x0, x0, match_length
+	b.cs	Done1
 	cmp	match_length, #19
 	b.lo	8f
 	/*
@@ -156,7 +159,8 @@
 
 7:	 check_src_overflow1
 	ldrb	w_tmp, [x3], #1
-	add	x0, x0, tmp
+	adds	x0, x0, tmp
+	b.cs	Done1
 	add	match_length, match_length, tmp
 	cmp	tmp, #255
 	b.eq	7b

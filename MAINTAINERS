@@ -10679,8 +10679,8 @@ L:	linux-kernel@vger.kernel.org
 S:	Maintained
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/brauner/linux.git
 F:	samples/pidfd/
-F:	tools/testing/selftests/clone3/
 F:	tools/testing/selftests/pidfd/
+F:	tools/testing/selftests/clone3/
 K:	(?i)pidfd
 K:	(?i)clone3
 K:	\b(clone_args|kernel_clone_args)\b
@@ -15000,6 +15000,7 @@ M:	Seth Jennings <sjenning@redhat.com>
 M:	Dan Streetman <ddstreet@ieee.org>
 L:	linux-mm@kvack.org
 S:	Maintained
+F:	include/linux/zswap.h
 F:	mm/zswap.c
 
 THE REST

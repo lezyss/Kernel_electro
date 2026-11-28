@@ -166,7 +166,7 @@ out:
 /* Cache used by tests; if NULL, allocate from kmalloc instead. */
 static struct kmem_cache *test_cache;
 
-static size_t setup_test_cache(struct kunit *test, size_t size, unsigned long flags,
+static size_t setup_test_cache(struct kunit *test, size_t size, slab_flags_t flags,
 			       void (*ctor)(void *))
 {
 	if (test->priv != TEST_PRIV_WANT_MEMCACHE)

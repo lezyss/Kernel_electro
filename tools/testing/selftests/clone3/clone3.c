@@ -59,8 +59,6 @@ static int call_clone3(uint64_t flags, size_t size, enum test_mode test_mode)
 		size = sizeof(struct clone_args);
 
 	switch (test_mode) {
-	case CLONE3_ARGS_NO_TEST:
-		break;
 	case CLONE3_ARGS_ALL_0:
 		args.flags = 0;
 		args.exit_signal = 0;
@@ -100,8 +98,6 @@ static int call_clone3(uint64_t flags, size_t size, enum test_mode test_mode)
 		ksft_print_msg("Child returned %s\n", strerror(errno));
 		return -errno;
 	}
-	if (!WIFEXITED(status))
-		return -1;
 	if (WEXITSTATUS(status))
 		return WEXITSTATUS(status);
 
@@ -129,8 +125,10 @@ static void test_clone3(uint64_t flags, size_t size, int expected,
 			getpid(), ret, expected);
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
+	pid_t pid;
+
 	uid_t uid = getuid();
 
 	test_clone3_supported();
@@ -141,7 +139,7 @@ int main(void)
 	test_clone3(0, 0, 0, CLONE3_ARGS_NO_TEST);
 
 	/* Do a clone3() in a new PID NS.*/
-	if (uid == 0 && access("/proc/self/ns/pid", F_OK) == 0)
+	if (uid == 0)
 		test_clone3(CLONE_NEWPID, 0, 0, CLONE3_ARGS_NO_TEST);
 	else
 		ksft_test_result_skip("Skipping clone3() with CLONE_NEWPID\n");

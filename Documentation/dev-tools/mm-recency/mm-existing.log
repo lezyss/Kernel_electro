@@ -1,0 +1,18 @@
+In function ‘psi_memstall_leave’,
+    inlined from ‘swap_readpage’ at /tmp/mm-backport-t4_sz85d/model.c:287:3:
+/tmp/mm-backport-t4_sz85d/model.c:172:8: error: ‘pflags’ may be used uninitialized [-Werror=maybe-uninitialized]
+  172 |     if (!*flags) { assert(memstall); memstall = 0; }
+      |        ^
+/tmp/mm-backport-t4_sz85d/model.c: In function ‘swap_readpage’:
+/tmp/mm-backport-t4_sz85d/model.c:220:23: note: ‘pflags’ was declared here
+  220 |         unsigned long pflags;
+      |                       ^~~~~~
+cc1: all warnings being treated as errors
+Traceback (most recent call last):
+  File "/home/user/Kernel_electro/tools/testing/selftests/mm_backport/test_backport.py", line 137, in <module>
+    main()
+  File "/home/user/Kernel_electro/tools/testing/selftests/mm_backport/test_backport.py", line 129, in main
+    subprocess.run(shlex.split(args.cc) + ['-std=gnu11', '-O2', '-Wall', '-Wextra',
+  File "/usr/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['cc', '-std=gnu11', '-O2', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-sign-compare', '/tmp/mm-backport-t4_sz85d/model.c', '-o', '/tmp/mm-backport-t4_sz85d/model']' returned non-zero exit status 1.

@@ -1,3 +1,12 @@
+Current repaired-16 reconciliation
+=================================
+
+BBRplus is excluded from this tree. Historical BBRplus references below
+describe earlier checkpoints only, not the current profile. Miatoll builds
+and defaults to bbr3/fq; native BBR/CUBIC and fq_codel remain available.
+The no-BBR3 private-storage fallback stays at the native 88 bytes.
+Current validation and limits: Documentation/dev-tools/carry-over/README.md.
+
 BBRv3 comparison port for Electro 4.14
 =====================================
 

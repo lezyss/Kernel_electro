@@ -1,0 +1,5 @@
+PASS: feature-off and no-NEON helper execution stays C-only
+PASS: both assembly variants rewind on synthetic literal address carry
+PASS: 483 valid blocks, full/partial/fallback/truncation/bounds; 1000 malformed blocks; ASM entries [476, 476] ; streaming; ABI/x18
+PASS: both assembly variants rewind on synthetic literal address carry
+PASS: 483 valid blocks, full/partial/fallback/truncation/bounds; 1000 malformed blocks; ASM entries [476, 476] ; streaming; ABI/x18

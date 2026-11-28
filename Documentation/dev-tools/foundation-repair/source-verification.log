@@ -1,0 +1,3 @@
+PASS: 73279 base paths/modes checked: 9 scoped repairs, 73270 byte-identical to pinned16.
+PASS: 14 added source/test files match repair receipt; historical base-only audit unchanged; no unreviewed old carry-over or BBRplus.
+LIMITS: source verification only; no full image/boot/device qualification.

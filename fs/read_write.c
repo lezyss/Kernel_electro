@@ -588,8 +588,17 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 	return ret;
 }
 
+#ifdef CONFIG_KSU_SUSFS
+extern struct static_key_true ksu_is_init_rc_hook_enabled;
+extern __attribute__((cold)) void ksu_handle_sys_read(unsigned int fd);
+#endif
+
 SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
 {
+#ifdef CONFIG_KSU_SUSFS
+	if (static_branch_unlikely(&ksu_is_init_rc_hook_enabled))
+		ksu_handle_sys_read(fd);
+#endif
 	return ksys_read(fd, buf, count);
 }
 
@@ -2159,24 +2168,3 @@ out:
 	return ret;
 }
 EXPORT_SYMBOL(vfs_dedupe_file_range);
-
-#ifdef CONFIG_MODULES
-/* Legacy module ABI only; in-tree callers use the replacement interfaces. */
-unsigned long iov_shorten(struct iovec *iov, unsigned long nr_segs, size_t to)
-{
-	unsigned long seg = 0;
-	size_t len = 0;
-
-	while (seg < nr_segs) {
-		seg++;
-		if (len + iov->iov_len >= to) {
-			iov->iov_len = to - len;
-			break;
-		}
-		len += iov->iov_len;
-		iov++;
-	}
-	return seg;
-}
-EXPORT_SYMBOL(iov_shorten);
-#endif

@@ -67,6 +67,7 @@ void blk_queue_bypass_start(struct request_queue *q);
 void blk_queue_bypass_end(struct request_queue *q);
 void __blk_queue_free_tags(struct request_queue *q);
 void blk_freeze_queue(struct request_queue *q);
+int elevator_apply_mq_default(struct request_queue *q);
 
 static inline void blk_queue_enter_live(struct request_queue *q)
 {

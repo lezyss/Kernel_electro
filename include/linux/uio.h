@@ -262,9 +262,4 @@ int compat_import_iovec(int type, const struct compat_iovec __user * uvector,
 int import_single_range(int type, void __user *buf, size_t len,
 		 struct iovec *iov, struct iov_iter *i);
 
-/* Legacy module ABI; not used by the converted in-tree paths. */
-#ifdef CONFIG_MODULES
-unsigned long iov_shorten(struct iovec *iov, unsigned long nr_segs, size_t to);
-#endif
-
 #endif

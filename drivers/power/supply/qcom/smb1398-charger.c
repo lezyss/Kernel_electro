@@ -1169,7 +1169,7 @@ static bool is_adapter_in_cc_mode(struct smb1398_chip *chip)
 			POWER_SUPPLY_PROP_ADAPTER_CC_MODE,
 			&pval);
 	if (rc < 0) {
-		dev_err(chip->dev, "Get ADAPTER_CC_MODE failed, rc=%d\n");
+		dev_err(chip->dev, "Get ADAPTER_CC_MODE failed, rc=%d\n", rc);
 		return rc;
 	}
 
@@ -2415,7 +2415,7 @@ static int smb1398_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, chip);
 
-	chip->div2_cp_role = (int)of_device_get_match_data(chip->dev);
+	chip->div2_cp_role = (int)(uintptr_t)of_device_get_match_data(chip->dev);
 	switch (chip->div2_cp_role) {
 	case DIV2_CP_MASTER:
 		rc = smb1398_div2_cp_master_probe(chip);

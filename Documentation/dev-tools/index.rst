@@ -22,12 +22,9 @@ whole; patches welcome!
    ubsan
    kmemleak
    kfence
-   kfence-backport
    gdb-kernel-debugging
    kgdb
    kselftest
-   clone3-backport
-   lz4-backport
 
 
 .. only::  subproject and html

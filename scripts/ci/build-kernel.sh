@@ -4,9 +4,51 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT"
-TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/r614150"}
+TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$ROOT/.toolchains/neutron-06092026"}
 DEFCONFIG=${DEFCONFIG:-vendor/xiaomi/miatoll_defconfig}
 JOBS=${JOBS:-$(nproc)}
+ENABLE_POLLY=${ENABLE_POLLY:-1}
+# Polly and the miatoll storage stack (SCSI blk-mq, mq runtime PM, ADIOS
+# boot default) are fixed defaults; the workflow no longer exposes them as
+# inputs.  The variables remain for local comparison builds.
+storage_default=0
+if [[ "$DEFCONFIG" == vendor/xiaomi/miatoll_defconfig ]]; then
+    storage_default=1
+fi
+TEST_SCSI_MQ=${TEST_SCSI_MQ:-$storage_default}
+TEST_SCSI_MQ_PM=${TEST_SCSI_MQ_PM:-$storage_default}
+TEST_ADIOS=${TEST_ADIOS:-$storage_default}
+if [[ "$TEST_ADIOS" != 0 && "$TEST_ADIOS" != 1 ]]; then
+    echo "TEST_ADIOS must be 0 or 1" >&2
+    exit 1
+fi
+if [[ "$TEST_ADIOS" == 1 && ( "$TEST_SCSI_MQ" != 1 || "$TEST_SCSI_MQ_PM" != 1 ) ]]; then
+    echo "ADIOS prototype requires TEST_SCSI_MQ=1 and TEST_SCSI_MQ_PM=1" >&2
+    exit 1
+fi
+
+if [[ "$TEST_SCSI_MQ_PM" != 0 && "$TEST_SCSI_MQ_PM" != 1 ]]; then
+    echo "TEST_SCSI_MQ_PM must be 0 or 1" >&2
+    exit 1
+fi
+if [[ "$TEST_SCSI_MQ_PM" == 1 && "$TEST_SCSI_MQ" != 1 ]]; then
+    echo "SCSI mq runtime PM requires TEST_SCSI_MQ=1" >&2
+    exit 1
+fi
+
+if [[ "$TEST_SCSI_MQ" != 0 && "$TEST_SCSI_MQ" != 1 ]]; then
+    echo "TEST_SCSI_MQ must be 0 or 1" >&2
+    exit 1
+fi
+if [[ "$TEST_SCSI_MQ" == 1 && "$DEFCONFIG" != vendor/xiaomi/miatoll_defconfig ]]; then
+    echo "SCSI mq experiment is restricted to miatoll_defconfig" >&2
+    exit 1
+fi
+
+if [[ "$ENABLE_POLLY" != 0 && "$ENABLE_POLLY" != 1 ]]; then
+    echo "ENABLE_POLLY must be 0 or 1" >&2
+    exit 1
+fi
 
 # Do not allow workflow inputs to become make options or escape configs/.
 if [[ ! "$DEFCONFIG" =~ ^[a-zA-Z0-9_/-]+_defconfig$ || "$DEFCONFIG" == *..* || "$DEFCONFIG" == /* ]] ||
@@ -27,14 +69,40 @@ for tool in clang clang++ ld.lld llvm-ar llvm-nm llvm-strip llvm-objcopy llvm-ob
         exit 1
     fi
 done
+# Both standalone builds and CI enforce the same immutable release lock.
+python3 scripts/ci/neutron-toolchain.py verify --directory "$TOOLCHAIN_DIR"
+# Neutron is kernel/bare-metal focused. Native LLVM supplies libc-aware host
+# utilities; never substitute GCC or silently assume target runtimes exist.
+HOST_LLVM_BIN=${HOST_LLVM_BIN:-/usr/bin}
+HOST_LLVM_BIN=$(cd "$HOST_LLVM_BIN" && pwd)
+for tool in clang clang++ ld.lld; do
+    if [[ ! -x "$HOST_LLVM_BIN/$tool" ]]; then
+        echo "Missing native host LLVM tool: $HOST_LLVM_BIN/$tool" >&2
+        exit 1
+    fi
+done
+if ! "$HOST_LLVM_BIN/clang" --version | grep -q 'clang version'; then
+    echo "HOST_LLVM_BIN must contain native Clang, not GCC" >&2
+    exit 1
+fi
 mkdir -p out
+# Do not misattribute probe evidence from a prior local build to this build.
+rm -f out/polly-probe.ll out/polly-probe.log
 {
     echo "Kernel commit: $(git rev-parse HEAD)"
+    echo "Tracked worktree changes: $(git status --porcelain --untracked-files=no | wc -l)"
     echo "Defconfig: $DEFCONFIG"
+    echo "SCSI blk-mq: $TEST_SCSI_MQ (runtime activation must be verified)"
+    echo "SCSI mq runtime PM: $TEST_SCSI_MQ_PM"
+    echo "ADIOS enabled as boot default: $TEST_ADIOS"
+    echo "LLVM Polly: $ENABLE_POLLY (flags when enabled: -mllvm -polly -mllvm -polly-position=early)"
     echo "Toolchain directory: $TOOLCHAIN_DIR"
-    if [[ -f "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt" ]]; then
-        echo "AOSP prebuilts commit: $(cat "$TOOLCHAIN_DIR/aosp-prebuilts-commit.txt")"
-    fi
+    echo "Neutron lock:"
+    cat scripts/ci/neutron.lock.json
+    echo "Host glibc: $(getconf GNU_LIBC_VERSION)"
+    echo "Native host LLVM: $HOST_LLVM_BIN"
+    "$HOST_LLVM_BIN/clang" --version
+    "$HOST_LLVM_BIN/ld.lld" --version
     "$TOOLCHAIN_DIR/bin/clang" --version
     "$TOOLCHAIN_DIR/bin/ld.lld" --version
 } | tee out/build-info.txt
@@ -55,34 +123,110 @@ make_args=(
     "OBJCOPY=$TOOLCHAIN_DIR/bin/llvm-objcopy"
     "OBJDUMP=$TOOLCHAIN_DIR/bin/llvm-objdump"
     "READELF=$TOOLCHAIN_DIR/bin/llvm-readelf"
-    "HOSTCC=$TOOLCHAIN_DIR/bin/clang"
-    "HOSTCXX=$TOOLCHAIN_DIR/bin/clang++"
-    HOSTLDFLAGS=-fuse-ld=lld
+    "HOSTCC=$HOST_LLVM_BIN/clang"
+    "HOSTCXX=$HOST_LLVM_BIN/clang++"
+    "HOSTLDFLAGS=-fuse-ld=$HOST_LLVM_BIN/ld.lld"
 )
 
 make "${make_args[@]}" "$DEFCONFIG" 2>&1 | tee out/configure.log
-# The defconfig's custom Polly flags are not portable to stock AOSP LLVM.
-# Keep ThinLTO and the other device settings, changing only the output config.
-scripts/config --file out/.config --disable LLVM_POLLY
+# Polly is the build/boot-tested default; retain an explicit comparison opt-out.
+if [[ "$ENABLE_POLLY" == 1 ]]; then
+    scripts/config --file out/.config --enable LLVM_POLLY
+else
+    scripts/config --file out/.config --disable LLVM_POLLY
+fi
+# Retain explicit comparison opt-outs, including with the new miatoll defconfig.
+# Do not change vendor driver/crypto settings or boot arguments.
+if [[ "$TEST_SCSI_MQ" == 1 ]]; then
+    scripts/config --file out/.config --enable SCSI_MQ_DEFAULT --enable MQ_IOSCHED_DEADLINE
+elif [[ "$DEFCONFIG" == vendor/xiaomi/miatoll_defconfig ]]; then
+    scripts/config --file out/.config --disable SCSI_MQ_DEFAULT
+fi
+if [[ "$TEST_SCSI_MQ_PM" == 1 ]]; then
+    scripts/config --file out/.config --enable BLK_MQ_RUNTIME_PM
+else
+    scripts/config --file out/.config --disable BLK_MQ_RUNTIME_PM
+fi
+if [[ "$TEST_ADIOS" == 1 ]]; then
+    scripts/config --file out/.config --enable MQ_IOSCHED_ADIOS --enable MQ_IOSCHED_DEFAULT_ADIOS
+else
+    scripts/config --file out/.config --disable MQ_IOSCHED_ADIOS --disable MQ_IOSCHED_DEFAULT_ADIOS
+fi
 make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
-# Validate today's resolved config with current checkers. Historical exact-source
-# suites run ONLY on verified detached predecessors, not the updated KSU source.
-# Keep build-output paths absolute: replay trees intentionally exclude out/.
-python3 scripts/ci/check-integrations.py \
-    --config "$ROOT/out/.config" \
-    --defconfig "$ROOT/arch/arm64/configs/$DEFCONFIG" \
-    --cc "$TOOLCHAIN_DIR/bin/clang" 2>&1 | tee out/integrations.log
-# A requested accelerator must survive dependency resolution; do not silently
-# report a successful C-only build as validation of the optional assembly.
-if grep -qx 'CONFIG_LZ4_ARM64_ACCEL=y' "arch/arm64/configs/$DEFCONFIG"; then
-    for setting in CONFIG_ARM64=y CONFIG_KERNEL_MODE_NEON=y \
-                   CONFIG_LZ4_DECOMPRESS=y CONFIG_LZ4_ARM64_ACCEL=y; do
-        if ! grep -qx "$setting" out/.config; then
-            echo "Required LZ4 acceleration setting missing: $setting" >&2
+if [[ "$TEST_ADIOS" == 1 ]]; then
+    if ! grep -qx 'CONFIG_MQ_IOSCHED_ADIOS=y' out/.config; then
+        echo "ADIOS prototype lost CONFIG_MQ_IOSCHED_ADIOS=y" >&2
+        exit 1
+    fi
+    if ! grep -qx 'CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y' out/.config; then
+        echo "ADIOS default selection lost CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y" >&2
+        exit 1
+    fi
+elif grep -Eq '^CONFIG_MQ_IOSCHED_(ADIOS|DEFAULT_ADIOS)=y$' out/.config; then
+    echo "ADIOS must remain disabled without explicit selection" >&2
+    exit 1
+fi
+if [[ "$TEST_SCSI_MQ_PM" == 1 ]]; then
+    if ! grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
+        echo "SCSI mq runtime PM lost CONFIG_BLK_MQ_RUNTIME_PM=y" >&2
+        exit 1
+    fi
+elif grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
+    echo "SCSI mq runtime PM must remain disabled without explicit selection" >&2
+    exit 1
+fi
+if [[ "$TEST_SCSI_MQ" == 1 ]]; then
+    for option in SCSI_MQ_DEFAULT MQ_IOSCHED_DEADLINE SCSI_UFSHCD SCSI_UFS_QCOM \
+                  SCSI_UFS_CRYPTO SCSI_UFS_CRYPTO_QTI BLK_INLINE_ENCRYPTION \
+                  BLK_INLINE_ENCRYPTION_FALLBACK IOSCHED_CFQ DEFAULT_CFQ; do
+        if ! grep -qx "CONFIG_${option}=y" out/.config; then
+            echo "SCSI mq experiment lost required CONFIG_${option}=y" >&2
             exit 1
         fi
     done
-    echo "ARM64 LZ4 acceleration enabled in resolved config" | tee -a out/configure.log
+    echo "WARNING: experimental storage queue mode; build success does not validate device integrity/recovery"
+fi
+if [[ "$ENABLE_POLLY" == 1 ]]; then
+    if ! grep -qx 'CONFIG_LLVM_POLLY=y' out/.config ||
+       grep -qx 'CONFIG_CC_OPTIMIZE_FOR_SIZE=y' out/.config; then
+        echo "Polly build requires resolved CONFIG_LLVM_POLLY=y and non-size optimization" >&2
+        exit 1
+    fi
+    # Prove that this compiler actually schedules Polly, not merely accepts a
+    # flag. Use the same frontend optimization/LTO/ARM64 constraints as Kbuild.
+    # This is pipeline evidence, not proof of a useful transformation or speedup.
+    if ! "$TOOLCHAIN_DIR/bin/clang" --target=aarch64-linux-gnu -O2 -flto=thin \
+        -ffreestanding -fno-builtin -mgeneral-regs-only -ffixed-x18 \
+        -mllvm -polly -mllvm -polly-position=early -Xclang -fdebug-pass-manager -S -emit-llvm -x c \
+        -o out/polly-probe.ll - 2>out/polly-probe.log <<'PROBE'
+void polly_probe(int * restrict dst, const int * restrict src)
+{
+    for (int i = 0; i < 1024; ++i)
+        dst[i] = src[i] + 1;
+}
+PROBE
+    then
+        cat out/polly-probe.log >&2
+        echo "Polly compiler probe failed" >&2
+        exit 1
+    fi
+    if ! grep -q 'Running pass: .*Polly' out/polly-probe.log; then
+        tail -45 out/polly-probe.log >&2
+        echo "Compiler accepted -polly but no Polly pass ran; see out/polly-probe.log" >&2
+        exit 1
+    fi
+elif ! grep -qx '# CONFIG_LLVM_POLLY is not set' out/.config; then
+    echo "Polly opt-out must keep CONFIG_LLVM_POLLY disabled" >&2
+    exit 1
+fi
+# Check the resolved configuration, not just the defconfig request.
+if [[ "$DEFCONFIG" == vendor/xiaomi/miatoll_defconfig ]]; then
+    for option in ARM64 KERNEL_MODE_NEON LZ4_DECOMPRESS LZ4_ARM64_ACCEL; do
+        if ! grep -qx "CONFIG_${option}=y" out/.config; then
+            echo "Required miatoll LZ4 acceleration option lost: CONFIG_${option}" >&2
+            exit 1
+        fi
+    done
 fi
 # Build device trees before packing images; this tree discovers them using find.
 make -j"$JOBS" "${make_args[@]}" dtbs 2>&1 | tee out/dtbs.log

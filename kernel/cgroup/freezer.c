@@ -139,7 +139,7 @@ void cgroup_leave_frozen(bool always_leave)
 		cgroup_update_frozen(cgrp);
 		WARN_ON_ONCE(!current->frozen);
 		current->frozen = false;
-	} else if (!(current->jobctl & JOBCTL_TRAP_FREEZE)) {
+		} else if (!(current->jobctl & JOBCTL_TRAP_FREEZE)) {
 		spin_lock(&current->sighand->siglock);
 		current->jobctl |= JOBCTL_TRAP_FREEZE;
 		set_thread_flag(TIF_SIGPENDING);
@@ -247,6 +247,7 @@ void cgroup_freezer_migrate_task(struct task_struct *task,
 	 */
 	cgroup_freeze_task(task, test_bit(CGRP_FREEZE, &dst->flags));
 }
+
 
 void cgroup_freeze(struct cgroup *cgrp, bool freeze)
 {

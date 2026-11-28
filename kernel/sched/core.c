@@ -5938,14 +5938,15 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 }
 
 /**
- * sched_rr_get_interval - query the default timeslice of a process
- * @pid: pid of the process
- * @t: kernel buffer for the timeslice value
+ * sys_sched_rr_get_interval - return the default timeslice of a process.
+ * @pid: pid of the process.
+ * @interval: userspace pointer to the timeslice value.
  *
- * A value of zero means infinity. Syscall wrappers copy the result to
- * userspace only after this helper succeeds.
+ * this syscall writes the default timeslice value of a given process
+ * into the user-space timespec buffer. A value of '0' means infinity.
  *
- * Return: zero on success, otherwise a negative errno.
+ * Return: On success, 0 and the timeslice is in @interval. Otherwise,
+ * an error code.
  */
 static int sched_rr_get_interval(pid_t pid, struct timespec64 *t)
 {

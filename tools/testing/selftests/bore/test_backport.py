@@ -83,9 +83,11 @@ def main():
     assert 'if (flags & ENQUEUE_WAKEUP)' in fair
     assert 'lru_gen_use_mm(mm);' in core
     cfg = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
-    for opt in ['CONFIG_SCHED_BORE=y', 'CONFIG_SCHED_CASS=y', 'CONFIG_LRU_GEN_ENABLED=y', 'CONFIG_DEFAULT_BBRPLUS=y']:
+    for opt in ['CONFIG_SCHED_BORE=y', 'CONFIG_SCHED_CASS=y', 'CONFIG_LRU_GEN_ENABLED=y']:
         assert opt in cfg, opt
-    print('BORE source integration guards: PASS')
+    assert 'CONFIG_TCP_CONG_BBRPLUS=y' not in cfg
+    assert 'CONFIG_DEFAULT_BBRPLUS=y' not in cfg
+    print('BORE source integration guards: PASS (BBRplus excluded)')
 
 
 if __name__ == '__main__':

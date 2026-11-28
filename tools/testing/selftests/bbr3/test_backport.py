@@ -140,7 +140,7 @@ def main():
     assert '#define BBR_VERSION\t\t3' in bbr
     assert 'return false;' in block(bbr, 'static bool bbr_can_use_ecn(')
     cfg = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
-    for line in ['CONFIG_TCP_CONG_BBR3=y', 'CONFIG_TCP_CONG_BBRPLUS=y',
+    for line in ['CONFIG_TCP_CONG_BBR3=y',
                  'CONFIG_TCP_CONG_BBR=y', 'CONFIG_TCP_CONG_CUBIC=y',
                  'CONFIG_DEFAULT_BBR3=y', 'CONFIG_DEFAULT_TCP_CONG="bbr3"']:
         assert line in cfg.splitlines(), line
@@ -151,6 +151,8 @@ def main():
     timer = (ROOT / 'net/ipv4/tcp_timer.c').read_text()
     for text in [inp, timer]:
         assert 'icsk->icsk_ca_ops->flags & TCP_CONG_RATE_IN_FLIGHT)\n\t\ttcp_rate_check_app_limited(sk);' in text
+    assert 'CONFIG_TCP_CONG_BBRPLUS=y' not in cfg
+    assert not (ROOT / 'net/ipv4/tcp_bbrplus.c').exists()
     print('BBRv3 source/config/ABI guards: PASS', flush=True)
     if args.self_test_negatives:
         assert not args.mutant

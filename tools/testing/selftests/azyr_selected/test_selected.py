@@ -13,7 +13,8 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[4]
-PATCH = ROOT / 'Documentation/dev-tools/azyr-sm6250-selected.diff'
+HIST = ROOT / "Documentation/dev-tools/carry-over/batch-01/historical"
+PATCH = HIST / 'azyr-sm6250-selected.diff'
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 
 

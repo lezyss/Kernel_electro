@@ -10,8 +10,10 @@
 # Normal rules (sorted alphabetically)
 #
 .*
-!/.github/
-!/.github/**
+# Keep the manual build workflow visible when installing a new source base.
+!.github/
+!.github/workflows/
+!.github/workflows/build-kernel.yml
 *.a
 *.bin
 *.bz2
@@ -121,6 +123,14 @@ x509.genkey
 # Kconfig presets
 all.config
 
+# Local outputs and the pinned CI toolchain are not source deliverables.
+/out/
+/.toolchains/
+
+# KernelSU is fetched at build time; see scripts/kernelsu/README.md.
+/KernelSU/
+/drivers/kernelsu
+
 # Kdevelop4
 *.kdev4
 
@@ -131,11 +141,8 @@ kernel/configs/android-*.cfg
 #Ignoring Android.bp link file
 #
 Android.bp
-
-# Local/CI LLVM prebuilts and out-of-tree kernel builds
-/.toolchains/
-/out/
-
-# Python selftest caches
-__pycache__/
-*.py[cod]
+/NoMount/
+/fs/nomount/LICENSE
+/fs/nomount/Makefile
+/fs/nomount/nomount.c
+/fs/nomount/nomount.h

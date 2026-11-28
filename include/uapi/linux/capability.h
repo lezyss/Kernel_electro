@@ -405,6 +405,7 @@ struct vfs_ns_cap_data {
  */
 #define CAP_BPF			39
 
+
 /* Allow checkpoint/restore related operations */
 /* Allow PID selection during clone3() */
 /* Allow writing to ns_last_pid */

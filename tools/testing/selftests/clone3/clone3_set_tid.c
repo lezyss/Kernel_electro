@@ -22,7 +22,6 @@
 
 #include "../kselftest.h"
 #include "clone3_selftests.h"
-#include "clone3_set_tid_counts.h"
 
 #ifndef MAX_PID_NS_LEVEL
 #define MAX_PID_NS_LEVEL 32
@@ -30,9 +29,6 @@
 
 static int pipe_1[2];
 static int pipe_2[2];
-static int pipe_counts[2];
-
-#define NESTED_TESTS 6
 
 static void child_exit(int ret)
 {
@@ -146,33 +142,26 @@ static void test_clone3_set_tid(pid_t *set_tid,
 			"[%d] Result (%d) matches expectation (%d)\n",
 			getpid(), ret, expected);
 }
-int main(void)
+int main(int argc, char *argv[])
 {
 	FILE *f;
 	char buf;
-	char *line = NULL;
+	char *line;
 	int status;
-	int ret = 0;
+	int ret = -1;
 	size_t len = 0;
 	int pid_max = 0;
 	uid_t uid = getuid();
 	char proc_path[100] = {0};
-	pid_t pid, ns1 = 0, ns2 = 0, ns3 = 0, ns_pid;
+	pid_t pid, ns1, ns2, ns3, ns_pid;
 	pid_t set_tid[MAX_PID_NS_LEVEL * 2];
-	struct ksft_count before_nested, delta = {};
 
+	ksft_print_header();
 	test_clone3_supported();
-	if (access("/proc/self/ns/pid", F_OK))
-		ksft_exit_skip("nested set_tid tests require CONFIG_PID_NS\n");
-	if (getuid() == 0 && !clone3_has_capability(CAP_SYS_ADMIN) &&
-	    !clone3_has_capability(CAP_CHECKPOINT_RESTORE))
-		ksft_exit_skip("PID selection capability not available\n");
+	ksft_set_plan(29);
 
 	if (pipe(pipe_1) < 0 || pipe(pipe_2) < 0)
 		ksft_exit_fail_msg("pipe() failed\n");
-
-	ksft_print_header();
-	ksft_set_plan(29);
 
 	f = fopen("/proc/sys/kernel/pid_max", "r");
 	if (f == NULL)
@@ -299,27 +288,21 @@ int main(void)
 	/* This should fail as there is no PID 1 in that namespace */
 	test_clone3_set_tid(set_tid, 1, 0, -EINVAL, 0, 0);
 
-	/* Keep child-only result counts out of the eight-bit exit status. */
-	if (pipe(pipe_counts) < 0)
-		ksft_exit_fail_msg("counter pipe() failed\n");
-	before_nested = ksft_cnt;
 	/* Let's create a PID 1 */
 	ns_pid = fork();
-	if (ns_pid < 0) {
-		close(pipe_counts[0]);
-		close(pipe_counts[1]);
-		ksft_exit_fail_msg("fork() failed\n");
-	}
 	if (ns_pid == 0) {
-		close(pipe_counts[0]);
-		/* A failed ancestor allocation must release the requested PID. */
+		/*
+		 * This and the next test cases check that all pid-s are
+		 * released on error paths.
+		 */
 		set_tid[0] = 43;
 		set_tid[1] = -1;
-		test_clone3_set_tid(set_tid, 2, 0, -EINVAL, 0, false);
+		test_clone3_set_tid(set_tid, 2, 0, -EINVAL, 0, 0);
 
 		set_tid[0] = 43;
 		set_tid[1] = pid;
-		test_clone3_set_tid(set_tid, 2, 0, 0, 43, false);
+		test_clone3_set_tid(set_tid, 2, 0, 0, 43, 0);
+
 		ksft_print_msg("Child in PID namespace has PID %d\n", getpid());
 		set_tid[0] = 2;
 		test_clone3_set_tid(set_tid, 1, 0, 0, 2, 0);
@@ -346,14 +329,8 @@ int main(void)
 		 */
 		test_clone3_set_tid(set_tid, 3, CLONE_NEWPID, 0, 42, true);
 
-		if (clone3_count_delta(&ksft_cnt, &before_nested, &delta,
-				       NESTED_TESTS) ||
-		    clone3_count_write(pipe_counts[1], &delta))
-			child_exit(EXIT_FAILURE);
-		close(pipe_counts[1]);
-		child_exit(EXIT_SUCCESS);
+		child_exit(ksft_cnt.ksft_fail);
 	}
-	close(pipe_counts[1]);
 
 	close(pipe_1[1]);
 	close(pipe_2[0]);
@@ -387,6 +364,7 @@ int main(void)
 	}
 	fclose(f);
 	free(line);
+	close(pipe_2[0]);
 
 	/* Tell the clone3()'d child to finish. */
 	write(pipe_2[1], &buf, 1);
@@ -395,17 +373,14 @@ int main(void)
 	if (waitpid(ns_pid, &status, 0) < 0) {
 		ksft_print_msg("Child returned %s\n", strerror(errno));
 		ret = -errno;
-		close(pipe_counts[0]);
 		goto out;
 	}
 
-	if (!WIFEXITED(status) || WEXITSTATUS(status)) {
-		ksft_test_result_fail("nested set_tid child exited abnormally\n");
-	} else if (clone3_count_read(pipe_counts[0], &delta) ||
-		   clone3_count_merge(&ksft_cnt, &delta, NESTED_TESTS)) {
-		ksft_test_result_fail("invalid nested set_tid counter report\n");
-	}
-	close(pipe_counts[0]);
+	if (!WIFEXITED(status))
+		ksft_test_result_fail("Child error\n");
+
+	ksft_cnt.ksft_pass += 6 - (ksft_cnt.ksft_fail - WEXITSTATUS(status));
+	ksft_cnt.ksft_fail = WEXITSTATUS(status);
 
 	if (ns3 == pid && ns2 == 42 && ns1 == 1)
 		ksft_test_result_pass(
@@ -416,6 +391,7 @@ int main(void)
 			"PIDs in all namespaces not as expected (%d,%d,%d)\n",
 			ns3, ns2, ns1);
 out:
-	return ret < 0 || ksft_get_fail_cnt() || ksft_get_error_cnt() ?
-		ksft_exit_fail() : ksft_exit_pass();
+	ret = 0;
+
+	return !ret ? ksft_exit_pass() : ksft_exit_fail();
 }

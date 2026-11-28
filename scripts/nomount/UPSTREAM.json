@@ -1,0 +1,35 @@
+{
+  "strategy": "latest-release",
+  "repository": "https://github.com/maxsteeel/nomount",
+  "branch": "dev",
+  "commit": "5e9feb6f3fce42423f56b37e344052c59ec16b66",
+  "api_base_version": "23",
+  "latest_release_seen": "v2.3.1",
+  "upstream_files": {
+    "Kconfig": {
+      "path": "kernel/src/Kconfig",
+      "git_blob": "638b9427ef638f786d288d0a93f731676cf32c62"
+    },
+    "LICENSE": {
+      "path": "kernel/LICENSE",
+      "git_blob": "d159169d1050894d3ea3b98e1c965c4058208fe1"
+    },
+    "Makefile": {
+      "path": "kernel/src/Makefile",
+      "git_blob": "cb4d3eef3ae93645591c1dcf8afaf4efef90c20a"
+    },
+    "nomount.c": {
+      "path": "kernel/src/nomount.c",
+      "git_blob": "67ab713280d1a8eda4ebf966f1be36f32aec3600"
+    },
+    "nomount.h": {
+      "path": "kernel/src/nomount.h",
+      "git_blob": "febf6049f0adc4529b40b204f2929704443da32b"
+    }
+  },
+  "local_sha256": {
+    "Kconfig": "e3d7e6fd160d704918b69a90b909c10ec629bffec53b975b0a62144e2adbfeef",
+    "Makefile": "fe7b9ee2c5b62ac61506a9e3924e1ad252830ccafb234e3eef32bfb33f0f1902"
+  },
+  "note": "Pinned default. NOMOUNT_REF=latest fetches the newest release and has not been build-verified on this 4.14 tree; Kconfig is tracked locally and the Makefile is patched to drop the Git probe and -O3."
+}

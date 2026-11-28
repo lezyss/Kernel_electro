@@ -1,0 +1,92 @@
+{
+  "evidence_sha256": {
+    "Documentation/dev-tools/mm-recency/README.md": "3a7afccbf4f0875694ba0e49c70ba0f51d1bb6217a4dd050f56914c6cca99029",
+    "Documentation/dev-tools/mm-recency/aosp-host-tests.log": "2559bc60f7bd283990819be7385ae168220b9f537fab3b796397c4de07ce1824",
+    "Documentation/dev-tools/mm-recency/compile-command-optional.txt": "ea4d055e6c2ce25ea7fc5fd9704260254b4bf39ec56e69b6e7ca86e726137aa3",
+    "Documentation/dev-tools/mm-recency/compile-command.txt": "2688c897990214c9fbac9310ccf4e34f6a74f9e222de1252c3e5c0e310f19636",
+    "Documentation/dev-tools/mm-recency/configure-disabled.log": "d95cc48602e98455ae0625ad7e99809f0836f6ae3b231e0227c024e2a52daa96",
+    "Documentation/dev-tools/mm-recency/configure-optional.log": "d95cc48602e98455ae0625ad7e99809f0836f6ae3b231e0227c024e2a52daa96",
+    "Documentation/dev-tools/mm-recency/configure-restored.log": "d95cc48602e98455ae0625ad7e99809f0836f6ae3b231e0227c024e2a52daa96",
+    "Documentation/dev-tools/mm-recency/configure.log": "d90f2b7e90cf0d2c57c41464140be70ba1239909a331a7e098920b585ddef032",
+    "Documentation/dev-tools/mm-recency/disabled.config": "16570a5635e407a0607a3146a07334cc230e83884c20ca4118bb1452a88f1db0",
+    "Documentation/dev-tools/mm-recency/donors/13b6149f8f0ccff490045990190655c1b284c24c.json": "d9b6b2321786b303732c5b3155c5d42cb6940f294d3e2ab865b992fd1e570c67",
+    "Documentation/dev-tools/mm-recency/donors/9933074572034a9353fbed9fd75761164b5d42e4.json": "f79d3f67f71b7ac9c20570b49e2c16ed2bbb6a34822ee370dc7838f39ddb1d2a",
+    "Documentation/dev-tools/mm-recency/host-tests.log": "2559bc60f7bd283990819be7385ae168220b9f537fab3b796397c4de07ce1824",
+    "Documentation/dev-tools/mm-recency/kbuild-disabled.log": "808cb0ad65a2d1dbfaeffae0f18ddc66a2be9324c5417088c29c6f03bee44889",
+    "Documentation/dev-tools/mm-recency/kbuild-enabled.log": "d0702351a32932f9c6c8e3b11d10fc6a0e028cf0db4e3097cb73024c16b4e04c",
+    "Documentation/dev-tools/mm-recency/kbuild-optional.log": "2acdffcf92a878511520df639af717fb831e3166759ca4be040f09f80eeac704",
+    "Documentation/dev-tools/mm-recency/link-header.txt": "8d49a359a37b4ec33bd5e1bb33dc42ab81d5889d4ccfcdfac18620c77442e4d7",
+    "Documentation/dev-tools/mm-recency/mglru-existing.log": "62f79115882332f76f6e5b13bc7d3c7de58ba9a531055dfdc0b93673bbf3aebc",
+    "Documentation/dev-tools/mm-recency/miatoll.config": "8c3610e84e8f5f874af50d4558f79c5923edcd52005b2d1e4b696ddff49253b3",
+    "Documentation/dev-tools/mm-recency/mm-existing-aosp.log": "7d80fa5b55bdf5a845b2d651c1a2eb2128748b231397fc195ec397e5ff221b44",
+    "Documentation/dev-tools/mm-recency/mm-existing.log": "3e7c656e442cfe0704c2f5ac00de8161da61c74e57d949ac73f58e8ae5395f00",
+    "Documentation/dev-tools/mm-recency/optional.config": "35bcd4ed0d5725a949784bbc349cfaa535977ee59f774a63b2f2ce9165eb67f5",
+    "Documentation/dev-tools/mm-recency/toolchain-recovery.log": "d29c244746ce0ee9fd28cda73fcb2dd81fe4e9f6b9dcdab36503dcb932e4a5d0",
+    "Documentation/dev-tools/mm-recency/toolchains.txt": "6a2ede8f7b4c5537843b526e4a5d54ca7168cf2e9ab9b07142c33784fddd60e2",
+    "Documentation/dev-tools/mm-recency/ubsan-probe.log": "05f9b1b0b7821e52c4aeca4c7acf795c5f0fc2dcd43ccac3d6b24ba37086b0fd",
+    "Documentation/dev-tools/mm-recency/verification.log": "3bb7af19cb96243f173e3ffd2291845619c2e287b599758f5c0c1ba9172b94fb"
+  },
+  "limits": "bounded host models, optional ARM64 object profiles and source provenance, not full-image/device/concurrency/performance qualification",
+  "ordered_donors": [
+    "9933074572034a9353fbed9fd75761164b5d42e4",
+    "13b6149f8f0ccff490045990190655c1b284c24c"
+  ],
+  "patch_sha256": "f42a92210ab87ac0575ea82acd13f4022fa9b1bcebab5b8a602ef927a48969d5",
+  "paths": {
+    "include/linux/fs.h": {
+      "mode": "100644",
+      "postimage": "2766db7df701fd851abd86c8ceb73692b0ea8b4ef1df68150113ccc8377eac6a",
+      "preimage": "ddec3c6bd9f386399aee7667b6fe4dbbc50dacd61c99fa306eae2cf9288315ea",
+      "preimage_mode": "100644"
+    },
+    "include/linux/mm_inline.h": {
+      "mode": "100644",
+      "postimage": "ca45f128c7a3f6c6c57da91fe80cf7ad1ff77c1cc2ab216bf494b1a947980d4c",
+      "preimage": "5fd67d5cf5b71a0c946806271003cc8828945c18ceb8b503fc8bb2813369ae1b",
+      "preimage_mode": "100644"
+    },
+    "mm/fadvise.c": {
+      "mode": "100644",
+      "postimage": "6a7561435a8c3d5293539394a9bd93036e0c161e8adf974fd86d3b1ed973c04c",
+      "preimage": "088485145aa41bda67e9a79d346266095d1be37fbd48b8335ccefef81d0c0633",
+      "preimage_mode": "100644"
+    },
+    "mm/memory.c": {
+      "mode": "100644",
+      "postimage": "bd559a49cdcb9ed6b63db81f360152574a530b28337da9d5dde6e1b45f2bb822",
+      "preimage": "b47957cc8069a9c608bb8894cb521eb9dab0e27b59e6a9606d395e8f34d7402a",
+      "preimage_mode": "100644"
+    },
+    "mm/rmap.c": {
+      "mode": "100644",
+      "postimage": "a70d7e6aa3e2046d0bf726f82ca91e6d917cb49b50dcd6ca54efe3a3ba900b9f",
+      "preimage": "614bd2845cc6ebe6437f26f4d60fc601c0f922d38a0bd14f921e26b5b03bc595",
+      "preimage_mode": "100644"
+    },
+    "mm/vmscan.c": {
+      "mode": "100644",
+      "postimage": "2a239361f277e4867053b7af886803f6d47787ee3ba1d9a1d5e02bf6df046196",
+      "preimage": "8ab70523850fab4851e9bb890825ff1cc2ee933c060648ea886a8e1da4e7c9f5",
+      "preimage_mode": "100644"
+    },
+    "tools/testing/selftests/mm_recency/model.c": {
+      "mode": "100644",
+      "postimage": "cfd363326e9adab852e725f7e006b1af8f4f8c68b00db74001b48b6f473f9a6c",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "tools/testing/selftests/mm_recency/test_backport.py": {
+      "mode": "100644",
+      "postimage": "e0b31c814ac2d899eda026728be9de6641bdca37011c67ced49ea3f435d9cecb",
+      "preimage": null,
+      "preimage_mode": null
+    },
+    "tools/testing/selftests/mm_recency/verify_overlay.py": {
+      "mode": "100644",
+      "postimage": "1f027bf06154a7c6428a8dab55e0fe78b223b35967d471717f460090f5a595b5",
+      "preimage": null,
+      "preimage_mode": null
+    }
+  },
+  "predecessor": "a4f0c77b8d9d01e147aad1d1c9b3261f2ba04bce"
+}

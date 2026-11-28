@@ -21,7 +21,12 @@
 #include <linux/buffer_head.h>
 #include <linux/writeback.h>
 #include <linux/frontswap.h>
+#include <linux/zswap.h>
 #include <linux/blkdev.h>
+#include <linux/slab.h>
+#include <linux/kfifo.h>
+#include <linux/kthread.h>
+#include <linux/freezer.h>
 #include <linux/psi.h>
 #include <linux/uio.h>
 #include <linux/sched/task.h>
@@ -190,6 +195,212 @@ bad_bmap:
 	goto out;
 }
 
+static bool kcompressd_has_work(pg_data_t *pgdat)
+{
+	unsigned long flags;
+	bool has_work;
+
+	spin_lock_irqsave(&pgdat->kcompress_fifo_lock, flags);
+	has_work = !kfifo_is_empty(pgdat->kcompress_fifo);
+	spin_unlock_irqrestore(&pgdat->kcompress_fifo_lock, flags);
+
+	return has_work;
+}
+
+static bool kcompressd_dequeue(pg_data_t *pgdat, struct page **page)
+{
+	unsigned long flags;
+	unsigned int ret;
+
+	spin_lock_irqsave(&pgdat->kcompress_fifo_lock, flags);
+	ret = kfifo_out(pgdat->kcompress_fifo, page, sizeof(*page));
+	spin_unlock_irqrestore(&pgdat->kcompress_fifo_lock, flags);
+
+	return ret == sizeof(*page);
+}
+
+/* Complete the same frontswap-or-swap write path used by swap_writepage(). */
+static void kcompressd_do_swapout(struct page *page)
+{
+	struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_NONE,
+		.nr_to_write = SWAP_CLUSTER_MAX,
+		.range_start = 0,
+		.range_end = LLONG_MAX,
+		.for_reclaim = 1,
+	};
+	struct address_space *mapping = page_mapping(page);
+	int ret;
+
+	if (frontswap_store(page) == 0) {
+		set_page_writeback(page);
+		unlock_page(page);
+		end_page_writeback(page);
+	} else {
+		ret = __swap_writepage(page, &wbc, end_swap_bio_write);
+		if (ret < 0) {
+			/* Match pageout()'s write-error propagation for queued IO. */
+			lock_page(page);
+			if (mapping && page_mapping(page) == mapping)
+				mapping_set_error(mapping, ret);
+			unlock_page(page);
+		}
+	}
+
+	put_page(page);
+}
+
+static int kcompressd(void *data)
+{
+	pg_data_t *pgdat = data;
+	unsigned int saved_flags;
+	struct page *page;
+
+	saved_flags = current->flags & (PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD);
+	current->flags |= PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD;
+	set_freezable();
+
+	while (!kthread_should_stop()) {
+		wait_event_freezable(pgdat->kcompressd_wait,
+			kthread_should_stop() || kcompressd_has_work(pgdat));
+
+		while (kcompressd_dequeue(pgdat, &page)) {
+			kcompressd_do_swapout(page);
+			cond_resched();
+		}
+	}
+
+	current->flags &= ~(PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD);
+	current->flags |= saved_flags;
+	return 0;
+}
+
+int kcompressd_run(int nid)
+{
+	pg_data_t *pgdat = NODE_DATA(nid);
+	struct kfifo *fifo;
+	struct task_struct *task;
+	int ret;
+
+	if (READ_ONCE(pgdat->kcompressd))
+		return 0;
+
+	fifo = kzalloc(sizeof(*fifo), GFP_KERNEL);
+	if (!fifo)
+		return -ENOMEM;
+
+	ret = kfifo_alloc(fifo,
+			  KCOMPRESS_FIFO_SIZE * sizeof(struct page *), GFP_KERNEL);
+	if (ret) {
+		kfree(fifo);
+		return ret;
+	}
+
+	WRITE_ONCE(pgdat->kcompress_fifo, fifo);
+	task = kthread_create_on_node(kcompressd, pgdat, nid, "%s%d",
+				      __func__, nid);
+	if (IS_ERR(task)) {
+		ret = PTR_ERR(task);
+		WRITE_ONCE(pgdat->kcompress_fifo, NULL);
+		kfifo_free(fifo);
+		kfree(fifo);
+		pr_err("%s: failed to create worker on node %d: %d\n",
+		       __func__, nid, ret);
+		return ret;
+	}
+
+	/* Publish the ready FIFO and thread to acquire-loading producers. */
+	smp_store_release(&pgdat->kcompressd, task);
+	wake_up_process(task);
+	return 0;
+}
+
+void kcompressd_stop(int nid)
+{
+	pg_data_t *pgdat = NODE_DATA(nid);
+	struct task_struct *task;
+	struct kfifo *fifo;
+
+	/* Pair with kcompressd_run()'s release publication of the task. */
+	task = smp_load_acquire(&pgdat->kcompressd);
+	if (!task)
+		return;
+
+	/* kswapd is stopped first; this release closes the enqueue path. */
+	smp_store_release(&pgdat->kcompressd, NULL);
+	kthread_stop(task);
+
+	fifo = READ_ONCE(pgdat->kcompress_fifo);
+	WRITE_ONCE(pgdat->kcompress_fifo, NULL);
+	kfifo_free(fifo);
+	kfree(fifo);
+}
+
+/* Queue eligible kswapd writes; false leaves the normal path to the caller. */
+static bool schedule_kcompressd(struct page *page)
+{
+	pg_data_t *pgdat = NODE_DATA(page_to_nid(page));
+	unsigned long flags;
+	unsigned int ret;
+	int depth;
+
+	if (!current_is_kswapd() || READ_ONCE(pgdat->kswapd) != current ||
+	    !PageAnon(page))
+		return false;
+
+	depth = READ_ONCE(vm_kcompressd);
+	if (depth <= 0 || depth > KCOMPRESS_FIFO_SIZE)
+		return false;
+
+	/* Queue zswap or synchronous-I/O swapouts, as in upstream 0.5. */
+	if (!zswap_is_enabled() &&
+	    !(READ_ONCE(page_swap_info(page)->flags) & SWP_SYNCHRONOUS_IO))
+		return false;
+
+	/* Acquire the FIFO initialized before the worker was published. */
+	if (!smp_load_acquire(&pgdat->kcompressd) ||
+	    !READ_ONCE(pgdat->kcompress_fifo))
+		return false;
+
+	for (;;) {
+		struct page *head = NULL;
+
+		spin_lock_irqsave(&pgdat->kcompress_fifo_lock, flags);
+		depth = READ_ONCE(vm_kcompressd);
+		if (depth <= 0 || depth > KCOMPRESS_FIFO_SIZE) {
+			spin_unlock_irqrestore(&pgdat->kcompress_fifo_lock, flags);
+			return false;
+		}
+
+		/*
+		 * Drain the oldest entries synchronously until the current runtime
+		 * depth permits this page to be queued. This also handles a depth
+		 * reduction while the FIFO already contains more entries.
+		 */
+		if (kfifo_len(pgdat->kcompress_fifo) >= depth * sizeof(page)) {
+			ret = kfifo_out(pgdat->kcompress_fifo, &head, sizeof(head));
+			spin_unlock_irqrestore(&pgdat->kcompress_fifo_lock, flags);
+			if (unlikely(ret != sizeof(head)))
+				return false;
+
+			wake_up_interruptible(&pgdat->kcompressd_wait);
+			kcompressd_do_swapout(head);
+			continue;
+		}
+
+		get_page(page);
+		ret = kfifo_in(pgdat->kcompress_fifo, &page, sizeof(page));
+		spin_unlock_irqrestore(&pgdat->kcompress_fifo_lock, flags);
+		if (unlikely(ret != sizeof(page))) {
+			put_page(page);
+			return false;
+		}
+
+		wake_up_interruptible(&pgdat->kcompressd_wait);
+		return true;
+	}
+}
+
 /*
  * We may have stale swap cache pages in memory: notice
  * them here and get rid of the unnecessary final write.
@@ -202,6 +413,8 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 		unlock_page(page);
 		goto out;
 	}
+	if (schedule_kcompressd(page))
+		return 0;
 	if (frontswap_store(page) == 0) {
 		set_page_writeback(page);
 		unlock_page(page);

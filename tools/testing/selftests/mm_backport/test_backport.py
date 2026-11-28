@@ -100,7 +100,7 @@ def source_guards(root):
     assert 'likely(!need_update(smp_processor_id()))' in vmstat
     # Explicitly retain the local LMK retry gate and all untaken policy defaults.
     assert 'if (should_compact_lmk_retry(ac, order, alloc_flags))' in read('mm/page_alloc.c')
-    assert 'int watermark_scale_factor = 35;' in read('mm/page_alloc.c')
+    assert 'int watermark_scale_factor = 20;' in read('mm/page_alloc.c')
     assert 'int sysctl_extfrag_threshold = 500;' in read('mm/compaction.c')
     assert 'sysctl_compact_unevictable_allowed __read_mostly = 1;' in read('mm/compaction.c')
     assert 'int sysctl_stat_interval __read_mostly = HZ;' in read('mm/vmstat.c')

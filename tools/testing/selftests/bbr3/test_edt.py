@@ -91,5 +91,6 @@ for path in ['net/ipv4/ip_output.c', 'net/ipv6/ip6_output.c']:
 assert 'skb->tcp_edt_ns = 0;' in block((ROOT / 'net/core/dev.c').read_text(), 'static int __netif_receive_skb_core(')
 assert 'if (xnet)\n\t\tskb->tcp_edt_ns = 0;' in (ROOT / 'net/core/skbuff.c').read_text()
 assert 'TCP_CONG_EDT' not in re.search(r'#define TCP_CONG_MASK.*(?:\\\n.*)*', h)[0]
-assert 'TCP_CONG_EDT' not in (ROOT / 'net/ipv4/tcp_bbrplus.c').read_text()
+assert not (ROOT / 'net/ipv4/tcp_bbrplus.c').exists()
+assert 'CONFIG_TCP_CONG_BBRPLUS=y' not in (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
 print('PASS: send/clone/GSO-header/IPv4+IPv6-fragment/RX/scrub/BPF/legacy opt-in wiring')

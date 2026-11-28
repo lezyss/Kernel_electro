@@ -76,9 +76,6 @@ config KFENCE_KUNIT_TEST
 	  various allocation types, and checking that reports are correctly
 	  output to console.
 
-	  This backport requires KUnit support to be ported separately before
-	  these tests can be enabled.
-
 	  Say Y here if you want the test to be built into the kernel and run
 	  during boot; say M if you want the test to build as a module; say N
 	  if you are unsure.

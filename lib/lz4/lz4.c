@@ -106,14 +106,13 @@
 #include "lz4.h"
 #include <linux/errno.h>
 
-/* The STATIC preboot decoder and compressor objects must remain C-only. */
+/* Preboot and compressor objects must never acquire a SIMD dependency. */
 #if defined(CONFIG_LZ4_ARM64_ACCEL) && defined(CONFIG_ARM64) && \
-	defined(CONFIG_KERNEL_MODE_NEON) && !defined(STATIC) && \
-	!defined(LZ4_KERNEL_COMPRESS_ONLY) && !defined(LZ4_COMMONDEFS_ONLY)
+    defined(CONFIG_KERNEL_MODE_NEON) && !defined(STATIC) && \
+    !defined(LZ4_KERNEL_COMPRESS_ONLY) && !defined(LZ4_COMMONDEFS_ONLY)
 #define LZ4_USE_ARM64_ACCEL
 #include "lz4armv8/lz4accel.h"
 #endif
-
 /* see also "memory routines" below */
 
 
@@ -478,6 +477,8 @@ static const int      dec64table[8] = {0, 0, 0, -1, -4,  1, 2, 3};
 #    define LZ4_FAST_DEC_LOOP 1
 #  elif defined(__aarch64__)
 #    define LZ4_FAST_DEC_LOOP 1
+#  elif defined(__PPC64__)
+#    define LZ4_FAST_DEC_LOOP 1
 #  elif defined(__riscv) && (__riscv_xlen == 64) && defined(__riscv_misaligned_fast)
 #    define LZ4_FAST_DEC_LOOP 1   /* otherwise, unaligned memcpy() become byte copies, defeating the fast loop */
 #  else
@@ -515,11 +516,11 @@ LZ4_memcpy_using_offset_base(BYTE* dstPtr, const BYTE* srcPtr, BYTE* dstEnd, con
 
 #if LZ4_FAST_DEC_LOOP
 
-/* LZ4_wildCopy64 is faster on aarch64 and x86-64, but not on 32-bit x86.
+/* LZ4_wildCopy64 is faster on aarch64, x86-64 and ppc64, but not on 32-bit x86.
  * On wasm, it depends on the host cpu (faster on Apple silicon, slower on x86-64) :
  * it's not enabled by default, but can be, with LZ4_FAST_DEC_LOOP, from the build command */
 #ifndef LZ4_WILDCOPY64
-#  if defined(__aarch64__) || defined(__x86_64__) || defined(_M_X64)
+#  if defined(__aarch64__) || defined(__x86_64__) || defined(_M_X64) || defined(__PPC64__)
 #    define LZ4_WILDCOPY64 1
 #  else
 #    define LZ4_WILDCOPY64 0
@@ -2188,7 +2189,8 @@ LZ4_FORCE_INLINE int
 __LZ4_decompress_generic(
                  const char* const src,
                  char* const dst,
-                 const BYTE* ip, BYTE* op,
+                 const BYTE* const resumed_ip,
+                 BYTE* const resumed_op,
                  int srcSize,
                  int outputSize,         /* dstCapacity, or MIN(targetOutputSize, dstCapacity) when partialDecoding */
 
@@ -2202,8 +2204,10 @@ __LZ4_decompress_generic(
     if (src == NULL || srcSize < 0 || outputSize < 0 ||
         (dst == NULL && outputSize != 0)) return -1;
 
-    {   const BYTE* const iend = (const BYTE*)src + srcSize;
+    {   const BYTE* ip = resumed_ip;
+        const BYTE* const iend = (const BYTE*)src + srcSize;
 
+        BYTE* op = resumed_op;
         BYTE* const oend = (BYTE*)dst + outputSize;
 
         const BYTE* const dictEnd = (dictStart == NULL) ? NULL : dictStart + dictSize;
@@ -2538,14 +2542,76 @@ __LZ4_decompress_generic(
 }
 
 
+/* Resume only at a sequence boundary, retaining original bounds/history. */
 LZ4_FORCE_INLINE int LZ4_decompress_generic(
-        const char *src, char *dst, int srcSize, int outputSize,
-        earlyEnd_directive partialDecoding, dict_directive dict,
-        const BYTE *lowPrefix, const BYTE *dictStart, size_t dictSize)
+    const char* src, char* dst, int srcSize, int outputSize,
+    earlyEnd_directive partialDecoding, dict_directive dict,
+    const BYTE* lowPrefix, const BYTE* dictStart, size_t dictSize)
 {
-    return __LZ4_decompress_generic(src, dst, (const BYTE *)src, (BYTE *)dst,
-            srcSize, outputSize, partialDecoding, dict, lowPrefix, dictStart, dictSize);
+    return __LZ4_decompress_generic(src, dst, (const BYTE*)src, (BYTE*)dst,
+                                   srcSize, outputSize, partialDecoding, dict,
+                                   lowPrefix, dictStart, dictSize);
 }
+
+#ifndef STATIC
+/*
+ * Decode whole sequences in SIMD, then resume C at the saved sequence boundary.
+ * Keep the original block base: matches in the C tail may refer to SIMD output.
+ */
+LZ4_FORCE_INLINE ssize_t LZ4_arm64_decompress_generic(
+	const void *source, void *dest, size_t inputSize, size_t outputSize,
+	bool dip, earlyEnd_directive partialDecoding)
+{
+	const BYTE *ip = source;
+	BYTE *op = dest;
+
+	if (inputSize > LZ4_INT_MAX || outputSize > LZ4_INT_MAX)
+		return -EIO;
+#ifdef LZ4_USE_ARM64_ACCEL
+	/*
+	 * SIMD wildcopies must not overwrite input awaiting the C tail.
+	 * The old source-rewriting DIP exit has been removed from assembly;
+	 * keep all supported in-place decoding on the C path nonetheless.
+	 * Address differences avoid overflowing end-address calculations.
+	 */
+	if (source && dest && !dip && inputSize > LZ4_FAST_MARGIN &&
+	    outputSize > LZ4_FAST_MARGIN &&
+	    ((unsigned long)dest >= (unsigned long)source ?
+	     (unsigned long)dest - (unsigned long)source >= inputSize :
+	     (unsigned long)source - (unsigned long)dest >= outputSize) &&
+	    lz4_decompress_accel_enable()) {
+		const BYTE *const iend =
+			(const BYTE *)source + inputSize - LZ4_FAST_MARGIN;
+		BYTE *const oend = (BYTE *)dest + outputSize - LZ4_FAST_MARGIN;
+
+		if (lz4_decompress_asm(&op, dest, oend, &ip, iend))
+			return -3; /* v1.11.1 invalid offset */
+	}
+#else
+	(void)dip;
+#endif
+	return __LZ4_decompress_generic(source, dest, ip, op, inputSize,
+					outputSize, partialDecoding, noDict,
+					dest, NULL, 0);
+}
+
+LZ4_FORCE_O2
+ssize_t LZ4_arm64_decompress_safe_partial(const void *source, void *dest,
+					  size_t inputSize, size_t outputSize, bool dip)
+{
+	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
+					  dip, partial_decode);
+}
+
+LZ4_FORCE_O2
+ssize_t LZ4_arm64_decompress_safe(const void *source, void *dest,
+				  size_t inputSize, size_t outputSize, bool dip)
+{
+	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
+					  dip, decode_full_block);
+}
+
+#endif /* !STATIC */
 
 /*===== Instantiate the API decoding functions. =====*/
 
@@ -2741,12 +2807,13 @@ int LZ4_decompress_safe_continue (LZ4_streamDecode_t* LZ4_streamDecode, const ch
     int result;
 
     if (compressedSize < 0 || maxOutputSize < 0) return -1;
+
     if (lz4sd->prefixSize == 0) {
         /* The first call, no dictionary yet. */
         assert(lz4sd->extDictSize == 0);
 #ifdef LZ4_USE_ARM64_ACCEL
-        if (compressedSize < 0 || maxOutputSize < 0) return -1;
-        result = LZ4_arm64_decompress_safe(source, dest, compressedSize, maxOutputSize, false);
+        result = (int)LZ4_arm64_decompress_safe(source, dest, compressedSize,
+                                               maxOutputSize, false);
 #else
         result = LZ4_decompress_safe(source, dest, compressedSize, maxOutputSize);
 #endif
@@ -2872,63 +2939,6 @@ int LZ4_decompress_fast_usingDict(const char* source, char* dest, int originalSi
     return LZ4_decompress_fast_extDict(source, dest, originalSize, dictStart, (size_t)dictSize);
 }
 
-
-/*
- * Decode whole sequences in SIMD, then resume C at the saved sequence boundary.
- * Keep the original block base: matches in the C tail may refer to SIMD output.
- */
-LZ4_FORCE_INLINE ssize_t LZ4_arm64_decompress_generic(
-	const void *source, void *dest, size_t inputSize, size_t outputSize,
-	bool dip, earlyEnd_directive partialDecoding)
-{
-	const BYTE *ip = source;
-	BYTE *op = dest;
-
-	if (inputSize > LZ4_INT_MAX || outputSize > LZ4_INT_MAX)
-		return -EIO;
-#ifdef LZ4_USE_ARM64_ACCEL
-	/*
-	 * SIMD wildcopies must not overwrite input awaiting the C tail.
-	 * The old source-rewriting DIP exit has been removed from assembly;
-	 * keep all supported in-place decoding on the C path nonetheless.
-	 * Address differences avoid overflowing end-address calculations.
-	 */
-	if (source && dest && !dip && inputSize > LZ4_FAST_MARGIN &&
-	    outputSize > LZ4_FAST_MARGIN &&
-	    ((unsigned long)dest >= (unsigned long)source ?
-	     (unsigned long)dest - (unsigned long)source >= inputSize :
-	     (unsigned long)source - (unsigned long)dest >= outputSize) &&
-	    lz4_decompress_accel_enable()) {
-		const BYTE *const iend =
-			(const BYTE *)source + inputSize - LZ4_FAST_MARGIN;
-		BYTE *const oend = (BYTE *)dest + outputSize - LZ4_FAST_MARGIN;
-
-		if (lz4_decompress_asm(&op, dest, oend, &ip, iend))
-			return -EIO;
-	}
-#else
-	(void)dip;
-#endif
-	return __LZ4_decompress_generic(source, dest, ip, op, inputSize,
-					outputSize, partialDecoding, noDict,
-					dest, NULL, 0);
-}
-
-LZ4_FORCE_O2
-ssize_t LZ4_arm64_decompress_safe_partial(const void *source, void *dest,
-					  size_t inputSize, size_t outputSize, bool dip)
-{
-	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
-					  dip, partial_decode);
-}
-
-LZ4_FORCE_O2
-ssize_t LZ4_arm64_decompress_safe(const void *source, void *dest,
-				  size_t inputSize, size_t outputSize, bool dip)
-{
-	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
-					  dip, decode_full_block);
-}
 
 
 #endif /* !LZ4_KERNEL_COMPRESS_ONLY */

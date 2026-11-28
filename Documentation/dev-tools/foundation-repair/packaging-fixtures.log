@@ -1,0 +1,2 @@
+PASS: synthetic build script flow, all LLVM overrides, invalid input/pin rejection
+PASS: synthetic pinned-AK3 package, layout/checksum/stale-entry and negative checks

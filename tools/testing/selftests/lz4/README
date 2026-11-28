@@ -1,93 +1,87 @@
-Native v1.11 block-codec regressions
+LZ4 v1.11.1 kernel block-codec tests
 ==================================
 
-Run from this directory using a native Clang with sanitizer runtimes:
+Upstream pin: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 (official v1.11.1).
+Frame, file, CLI and threading code are NOT imported or tested here.
+The kernel codec uses caller-owned workspaces, not upstream's malloc-owning API.
+The historical foundation repair omitted the ARM64 SIMD accelerator. It is now
+restored as a separate, reproducible overlay on v1.11.1; see
+Documentation/dev-tools/lz4-arm64-restore/README.md. Historical repair receipts
+are unchanged. The ARM64 helper exports and first dictionary-free streaming
+block can use assembly; generic APIs and dictionary continuations stay C-only.
 
-  python3 test_codec.py --cc clang --ubsan --asan \
-    --upstream /path/to/lz4-c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc \
-    --compat-upstream /path/to/lz4-1.10.0
+The current manual CI uses pinned Neutron 06092026 (Clang 24) for
+freestanding/cross and ARM64 assembly tests. Native Clang/LLD supplies the
+userspace ASan/UBSan codec tests because Neutron is kernel/bare-metal focused.
+See Documentation/dev-tools/neutron-clang/README.md and scripts/ci/neutron.lock.json.
+The old AOSP r614150 logs remain historical evidence, not Neutron results.
 
---compat-upstream is optional. Both trees are read-only inputs. Obtain them
-independently from the upstream lz4/lz4 repository; the test validates hashes
-of every source/header used, so another release is not silently substituted.
-The harness downloads nothing and writes nothing to the kernel source tree.
---output /path/outside/the/source/tree retains artifacts; otherwise they are
-removed automatically. --seed changes the deterministic upstream test seed.
-Dependencies also include the Python packages listed below for the shared
-header shims/ELF reader. This is a Linux host test (dlopen and UBSan SIGILL).
+Prerequisites: an x86-64 Linux host with glibc >= 2.43 (use the pinned CI
+container), native Clang/LLD with ASan, make, git, curl, zstd, Python 3,
+pyelftools and Unicorn (see requirements.txt). Do not patch the host system libc.
+Install the SHA-256-pinned Antman-catalogue release, then run the manual entry:
 
-The real three kernel objects are compiled separately, not replaced by an
-upstream userspace library. Upstream v1.11's block/HC unit framework supplies
-70 applicable regressions. Four additional tests check kernel sizes, poisoned
-first-use HC reset and scratch/canaries, exact legacy HC level normalization,
-the real STATIC preboot wrapper, and bidirectional cross-decoding. Test-only
-adapters allocate caller workspaces outside the codec. Userspace allocator,
-obsolete-API and optional-extension-contract tests are printed as OMITTED;
-none are silently counted as successes. The supported alignment checks are
-retained without obsolete reset assertions. No frame/CLI/thread tests run.
-Reference libraries use local symbol binding (-Bsymbolic) to avoid accidentally
-calling the kernel codec instead of the intended reference implementation.
+  python3 scripts/ci/neutron-toolchain.py install
+  HOST_LLVM_BIN=/usr/bin bash scripts/ci/test-lz4.sh
 
-ASan references must be present in all three objects, and an intentional
-signed-overflow probe must actually trap when --ubsan is selected. --asan
-requires a working ASan compiler/runtime. Zig 0.14.1's "cc" driver is not a
-substitute: combined flags can lose ASan instrumentation, and ASan-only
-linking can lack its runtime. Missing instrumentation or link failures are
-not counted as sanitized passes. Its UBSan trap mode can be used with
---ubsan alone. The local ASan run used raw Clang 19.1.7 with the host
-libasan.so.8, plus UBSan traps; that is a host test, not an AOSP kernel build.
+This downloads the pinned upstream archive, creates a temporary venv under
+out/lz4-tests, verifies all upstream test inputs by SHA-256, and retains test
+logs and objects under out/lz4-tests. It does NOT build a bootable image.
 
+For independently obtained, read-only upstream sources and an existing venv:
 
-ARM64 LZ4 standalone regression test
-==================================
+  python3 -m pip install -r tools/testing/selftests/lz4/requirements.txt
+  python3 tools/testing/selftests/lz4/test_codec.py --cc /path/to/native/clang \
+    --asan --ubsan --upstream /path/to/lz4-aa4647fad575d01a874aaaadcdbe8e6a40e072f5
+  python3 tools/testing/selftests/lz4/test_build.py --cc /path/to/neutron/bin/clang
+  python3 tools/testing/selftests/lz4/test_arm64.py --cc /path/to/neutron/bin/clang
+  python3 tools/testing/selftests/lz4/test_ci.py \
+    --anykernel /path/to/clean-pinned-AnyKernel3
 
-This optional developer test cross-compiles the real LZ4 sources and emulates
-AArch64/NEON instructions. It does NOT require an ARM64 host or device, and it
-does not change the kernel configuration. It is deliberately not registered
-in the normal native selftest run because it needs an emulator and a cross
-compiler/linker.
+--output retains artifacts; otherwise a temporary directory is removed.
+--seed changes the upstream unit framework's seed. --compat-upstream optionally
+cross-decodes against a separately obtained v1.10.0 tree (also hash checked).
+The optional v1.10.0 check was not run for this repair.
 
-Requirements:
-  * Python >= 3.9 (run without -O; assertions are test checks)
-  * pip packages unicorn==2.1.4 and pyelftools==0.32
-  * Clang and LLD with AArch64, SCS and ThinLTO support
+Coverage and limitations
+------------------------
 
-Example using a separately installed toolchain:
-  python3 test_arm64.py --cc /path/to/clang
+* test_codec.py compiles the three real kernel codec wrappers separately.
+  70 applicable upstream block/HC unit regressions plus four kernel tests
+  exercise real STATIC preboot framing, sizes/invalid bounds, poisoned HC
+  resets/canaries/levels 1..16, and bidirectional official-upstream decoding.
+  The HC test covers the v1.11.1 arbitrary-first-use reset issue and the
+  kernel's always-extended 327784-byte state. Levels 13..16 clamp to 12.
+* Nine unsupported upstream tests are printed as OMITTED, never counted as
+  passes: userspace allocators/obsolete wrappers and the optional small versus
+  extended HC-state contract (kernel states always include the scratch).
+* Native ASan instrumentation is verified in every codec object; a negative
+  signed-overflow probe must trap with UBSan. The independently built upstream
+  reference is locally bound (-Bsymbolic), avoiding accidental kernel-symbol
+  interposition. Test bridges own allocations outside the codec.
+* test_build.py compiles x86-64, i386 and ARM64 freestanding objects with strict
+  diagnostics and a 2048-byte frame ceiling; checks static stack usage, ELF
+  exports, no duplicate codec symbols or allocator/other-codec dependencies;
+  compiles the real preboot include chain for each target; and evaluates all
+  27 y/m/n selections in the actual lib/lz4/Makefile. Header shims are minimal
+  compile fixtures, NOT a kernel execution environment. The inherited preboot
+  wrapper's pointer-sign/unused/sign-compare diagnostics are suppressed only
+  for that wrapper, not for the codec object checks.
+* test_arm64.py compiles and emulates the repaired donor assembly with strict
+  buffer hooks and ABI/x18 checks. Both normal and ThinLTO/SCS/CFI builds run
+  483 valid and 1,000 malformed blocks each, both CPU variants, partial decode,
+  C-tail history, no-SIMD/no-FPSIMD/DIP/overlap fallbacks and dictionary streaming.
+  Feature-off/no-NEON helpers execute as C; STATIC is checked for SIMD references.
+  The emulator stubs kernel context primitives; it does not prove their runtime
+  behaviour. scripts/ci/test-lz4.sh includes this test in manual CI.
+* test_ci.py runs build-script argument/provenance/LLVM-override fixtures and,
+  when --anykernel is supplied, the real packager with a clean pinned framework
+  and SYNTHETIC NON-BOOTABLE image payloads. It checks ZIP layout/checksum,
+  stale-entry removal and rejection cases. These temporary ZIPs are deleted.
+  The fixture compiler and make are intentionally fake; this is script-contract
+  coverage, not compilation or flash validation. No real source config changes.
 
-An alternative for freestanding checks only (NOT the release compiler) is
-Zig 0.14.1's Clang 19.1.7, available as the ziglang==0.14.1 pip package:
-  python3 test_arm64.py --cc '/path/to/zig cc'
-
-By default artifacts live in an automatically removed temporary directory.
-Use --output /path/outside/the/source/tree to retain objects and ELF files.
-The --cc argument also accepts the CC environment variable. No GCC is used.
-
-Two executables are tested: ordinary Clang and SCS+ThinLTO. The actual .S
-file and C dispatch are used; only kernel headers, SIMD context protection,
-CPU-part/FPSIMD queries, and memory primitives are replaced by small shims.
-Memory-access hooks enforce input/output bounds and read-only compressed
-input for nonoverlapping decoding. Callee-saved registers and x18 are checked.
-The SCS executable must exercise shadow-stack writes, not merely accept a
-compiler flag.
-
-Coverage includes valid and malformed blocks, full/partial output, all short
-match offsets, long lengths, unaligned buffers, multi-sequence blocks, C-tail
-matches into the SIMD prefix, forbidden SIMD/FPSIMD-unavailable fallbacks,
-DIP/overlapping-buffer fallbacks, small buffers, signed/size_t size guards,
-and first/prefix/external-dictionary streaming blocks. Error offsets need
-not be identical. Assembly rejects zero offsets even where upstream C may
-accept them; any accepted random malformed block must match C's output.
-
-The build also checks that STATIC, feature-off, and no-NEON objects do not
-reference SIMD. It does not validate real kernel preemption, FPSIMD ownership,
-module loading, the complete preboot wrapper, device boot or performance.
-A full AOSP Clang r614150 kernel build and device tests remain necessary.
-CONFIG_LZ4_ARM64_ACCEL is experimental and defaults to n.
-
-The v1.11 follow-up also compiles all three C objects for ARM32, audits their
-allocation-free external symbols and the unchanged 16 kernel exports, and
-runs 27 real ARM64 default/fast/HC compression roundtrips with output and
-workspace canaries (including levels 10--12 and legacy 16). These compression
-checks run in the ordinary executable; SCS+ThinLTO remains a decoder-path
-check. No new device, FPSIMD/preemption or performance validation is implied.
+None of these tests proves a complete kernel image links, boots, performs
+better, or safely flashes. No on-device/stress/performance test is implied.
+See Documentation/dev-tools/foundation-repair/README.md for actual results,
+real-header Kbuild compilation, source provenance and remaining limits.

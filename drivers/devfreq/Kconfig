@@ -85,10 +85,10 @@ config SIMPLE_GPU_ALGORITHM
 	bool "Simple GPU algorithm"
 	depends on DEVFREQ_GOV_QCOM_ADRENO_TZ
 	help
-	  Add a load-based GPU frequency algorithm to the Adreno TrustZone
-	  governor. The simple_gpu_activate module parameter selects this
-	  algorithm instead of the secure-world frequency decision. Its ramp
-	  threshold and downclock delay are configurable with module parameters.
+	  Simple user configurable GPU controlling algorithm. While activated
+	  it replaces the secure TrustZone DVFS call used by the Adreno TZ
+	  governor, stepping the GPU one level up or down with configurable
+	  ramp threshold and laziness.
 
 config QCOM_BIMC_BWMON
 	tristate "QCOM BIMC Bandwidth monitor hardware"

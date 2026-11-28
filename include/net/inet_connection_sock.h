@@ -142,13 +142,14 @@ struct inet_connection_sock {
 	} icsk_mtup;
 	u32			  icsk_user_timeout;
 
-/* BBRv3's model needs 144 bytes; retain the old budget when not built. */
+/* BBRv3 needs 144 bytes; retain native storage when it is not built. */
 #if defined(CONFIG_TCP_CONG_BBR3) || defined(CONFIG_TCP_CONG_BBR3_MODULE)
-#define ICSK_CA_PRIV_SIZE 144
+	u64			  icsk_ca_priv[144 / sizeof(u64)];
+#define ICSK_CA_PRIV_SIZE      (18 * sizeof(u64))
 #else
-#define ICSK_CA_PRIV_SIZE 112
+	u64			  icsk_ca_priv[88 / sizeof(u64)];
+#define ICSK_CA_PRIV_SIZE      (11 * sizeof(u64))
 #endif
-	u64			  icsk_ca_priv[ICSK_CA_PRIV_SIZE / sizeof(u64)];
 };
 
 #define ICSK_TIME_RETRANS	1	/* Retransmit timer */

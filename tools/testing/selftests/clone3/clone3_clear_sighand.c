@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 
 #define _GNU_SOURCE
 #include <errno.h>
@@ -22,7 +22,6 @@
 
 static void nop_handler(int signo)
 {
-	(void)signo;
 }
 
 static int wait_for_pid(pid_t pid)
@@ -117,12 +116,13 @@ static void test_clone3_clear_sighand(void)
 	ksft_test_result_pass("Cleared signal handlers for child process\n");
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
 	ksft_print_header();
+	test_clone3_supported();
+
 	ksft_set_plan(1);
 
-	test_clone3_supported();
 	test_clone3_clear_sighand();
 
 	return ksft_exit_pass();

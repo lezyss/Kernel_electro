@@ -1545,7 +1545,7 @@ static inline int task_running(struct rq *rq, struct task_struct *p)
 
 static inline int task_on_rq_queued(struct task_struct *p)
 {
-	return p->on_rq == TASK_ON_RQ_QUEUED;
+	return READ_ONCE(p->on_rq) == TASK_ON_RQ_QUEUED;
 }
 
 static inline int task_on_rq_migrating(struct task_struct *p)
@@ -1966,6 +1966,10 @@ static inline u64 sched_ktime_clock(void)
 #ifdef CONFIG_SMP
 extern void sched_avg_update(struct rq *rq);
 extern unsigned long sched_get_rt_rq_util(int cpu);
+
+#ifdef CONFIG_CPU_FREQ
+extern u64 cpufreq_pelt_decay(u64 val, u64 delta_ns);
+#endif
 
 #ifndef arch_scale_freq_capacity
 static __always_inline

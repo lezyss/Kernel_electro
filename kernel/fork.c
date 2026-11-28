@@ -1364,7 +1364,7 @@ static int copy_io(unsigned long clone_flags, struct task_struct *tsk)
 	return 0;
 }
 
-static int copy_sighand(u64 clone_flags, struct task_struct *tsk)
+static int copy_sighand(unsigned long clone_flags, struct task_struct *tsk)
 {
 	struct sighand_struct *sig;
 
@@ -1682,12 +1682,13 @@ static __latent_entropy struct task_struct *copy_process(
 {
 	int pidfd = -1, retval;
 	struct task_struct *p;
-	struct multiprocess_signals delayed;
 	u64 clone_flags = args->flags;
 	struct file *pidfile = NULL;
+	struct multiprocess_signals delayed;
 
 	/*
-	 * Do not share the filesystem root/cwd with a different mount namespace.
+	 * Don't allow sharing the root directory with processes in a different
+	 * namespace
 	 */
 	if ((clone_flags & (CLONE_NEWNS|CLONE_FS)) == (CLONE_NEWNS|CLONE_FS))
 		return ERR_PTR(-EINVAL);
@@ -2084,7 +2085,6 @@ static __latent_entropy struct task_struct *copy_process(
 		goto bad_fork_cancel_cgroup;
 	}
 
-
 	sched_post_fork(p);
 
 	init_task_pid_links(p);
@@ -2245,6 +2245,8 @@ struct task_struct *fork_idle(int cpu)
  *
  * It copies the process, and if successful kick-starts
  * it and waits for it to finish using the VM if required.
+ *
+ * args->exit_signal is expected to be checked for sanity by the caller.
  */
 long _do_fork(struct kernel_clone_args *args)
 {
@@ -2255,7 +2257,7 @@ long _do_fork(struct kernel_clone_args *args)
 	int trace = 0;
 	long nr;
 
-	/* Keep the pidfd and parent TID outputs independent. */
+	/* The two clone outputs must never alias. */
 	if ((clone_flags & CLONE_PIDFD) &&
 	    (clone_flags & CLONE_PARENT_SETTID) &&
 	    args->pidfd == args->parent_tid)
@@ -2281,16 +2283,17 @@ long _do_fork(struct kernel_clone_args *args)
 
 	p = copy_process(NULL, trace, NUMA_NO_NODE, args);
 	add_latent_entropy();
+
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+
 	/*
 	 * Do this prior waking up the new thread - the thread pointer
 	 * might get invalid after that point, if the thread exits quickly.
 	 */
-	if (IS_ERR(p))
-		return PTR_ERR(p);
+	trace_sched_process_fork(current, p);
 
 	cpufreq_task_times_alloc(p);
-
-	trace_sched_process_fork(current, p);
 
 	pid = get_task_pid(p, PIDTYPE_PID);
 	nr = pid_vnr(pid);
@@ -2305,7 +2308,6 @@ long _do_fork(struct kernel_clone_args *args)
 	}
 
 	if (IS_ENABLED(CONFIG_LRU_GEN) && !(clone_flags & CLONE_VM)) {
-		/* lock the task to synchronize with memcg migration */
 		task_lock(p);
 		lru_gen_add_mm(p->mm);
 		task_unlock(p);
@@ -2323,7 +2325,6 @@ long _do_fork(struct kernel_clone_args *args)
 	}
 
 	put_pid(pid);
-
 	return nr;
 }
 
@@ -2437,9 +2438,6 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
 		.parent_tid	= parent_tidptr,
 		.exit_signal	= (clone_flags & CSIGNAL),
 		.stack		= newsp,
-#ifdef CONFIG_CLONE_BACKWARDS3
-		.stack_size	= stack_size,
-#endif
 		.tls		= tls,
 	};
 
@@ -2461,7 +2459,7 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
 #error clone3 requires copy_thread_tls support in arch
 #endif
 
-static noinline int copy_clone_args_from_user(struct kernel_clone_args *kargs,
+noinline static int copy_clone_args_from_user(struct kernel_clone_args *kargs,
 					      struct clone_args __user *uargs,
 					      size_t usize)
 {
@@ -2495,8 +2493,12 @@ static noinline int copy_clone_args_from_user(struct kernel_clone_args *kargs,
 		     !valid_signal(args.exit_signal)))
 		return -EINVAL;
 
-	if (args.stack != (unsigned long)args.stack ||
-	    args.stack_size != (unsigned long)args.stack_size)
+	/*
+	 * Verify that higher 32bits of exit_signal are unset and that
+	 * it is a valid signal
+	 */
+	if (unlikely((args.exit_signal & ~((u64)CSIGNAL)) ||
+		     !valid_signal(args.exit_signal)))
 		return -EINVAL;
 
 	*kargs = (struct kernel_clone_args){
@@ -2538,8 +2540,7 @@ static inline bool clone3_stack_valid(struct kernel_clone_args *kargs)
 		if (kargs->stack_size == 0)
 			return false;
 
-		if (!access_ok(VERIFY_WRITE, (void __user *)kargs->stack,
-			       kargs->stack_size))
+		if (!access_ok(VERIFY_WRITE, (void __user *)kargs->stack, kargs->stack_size))
 			return false;
 
 #if !defined(CONFIG_STACK_GROWSUP) && !defined(CONFIG_IA64)
@@ -2585,7 +2586,7 @@ static bool clone3_args_valid(struct kernel_clone_args *kargs)
  * clone3() is the extensible successor to clone()/clone2().
  * It takes a struct as argument that is versioned by its size.
  *
- * Return: On success, the child's PID in the parent and zero in the child.
+ * Return: On success, a positive PID for the child process.
  *         On error, a negative errno number.
  */
 SYSCALL_DEFINE2(clone3, struct clone_args __user *, uargs, size_t, size)

@@ -223,6 +223,13 @@ static struct bpf_map *inode_storage_map_alloc(union bpf_attr *attr)
 {
 	struct bpf_local_storage_map *smap;
 
+	/*
+	 * Without BPF LSM initialization, lbs_inode is a size, not a prepared
+	 * security-blob offset. Reject allocation before any storage setup.
+	 */
+	if (!bpf_lsm_initialized)
+		return ERR_PTR(-EOPNOTSUPP);
+
 	smap = bpf_local_storage_map_alloc(attr);
 	if (IS_ERR(smap))
 		return ERR_CAST(smap);

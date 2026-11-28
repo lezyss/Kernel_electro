@@ -492,10 +492,10 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
 	if (copy_from_user(&v, compat, sizeof(compat_sigset_t)))
 		return -EFAULT;
 	switch (_NSIG_WORDS) {
-	case 4: set->sig[3] = v.sig[6] | (((unsigned long)v.sig[7]) << 32 );
-	case 3: set->sig[2] = v.sig[4] | (((unsigned long)v.sig[5]) << 32 );
-	case 2: set->sig[1] = v.sig[2] | (((unsigned long)v.sig[3]) << 32 );
-	case 1: set->sig[0] = v.sig[0] | (((unsigned long)v.sig[1]) << 32 );
+	case 4: set->sig[3] = v.sig[6] | (((long)v.sig[7]) << 32 );
+	case 3: set->sig[2] = v.sig[4] | (((long)v.sig[5]) << 32 );
+	case 2: set->sig[1] = v.sig[2] | (((long)v.sig[3]) << 32 );
+	case 1: set->sig[0] = v.sig[0] | (((long)v.sig[1]) << 32 );
 	}
 #else
 	if (copy_from_user(set, compat, sizeof(compat_sigset_t)))
@@ -544,18 +544,3 @@ void __user *compat_alloc_user_space(unsigned long len)
 	return ptr;
 }
 EXPORT_SYMBOL_GPL(compat_alloc_user_space);
-
-#ifdef CONFIG_MODULES
-/* Legacy module ABI only; in-tree callers use the replacement interfaces. */
-void
-sigset_from_compat(sigset_t *set, const compat_sigset_t *compat)
-{
-	switch (_NSIG_WORDS) {
-	case 4: set->sig[3] = compat->sig[6] | (((unsigned long)compat->sig[7]) << 32 );
-	case 3: set->sig[2] = compat->sig[4] | (((unsigned long)compat->sig[5]) << 32 );
-	case 2: set->sig[1] = compat->sig[2] | (((unsigned long)compat->sig[3]) << 32 );
-	case 1: set->sig[0] = compat->sig[0] | (((unsigned long)compat->sig[1]) << 32 );
-	}
-}
-EXPORT_SYMBOL_GPL(sigset_from_compat);
-#endif

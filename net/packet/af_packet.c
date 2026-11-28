@@ -212,7 +212,7 @@ static void prb_clear_rxhash(struct tpacket_kbdq_core *,
 static void prb_fill_vlan_info(struct tpacket_kbdq_core *,
 		struct tpacket3_hdr *);
 static void packet_flush_mclist(struct sock *sk);
-static void packet_pick_tx_queue(struct net_device *dev, struct sk_buff *skb);
+static u16 packet_pick_tx_queue(struct sk_buff *skb);
 
 struct packet_skb_cb {
 	union {
@@ -246,39 +246,7 @@ static void __fanout_link(struct sock *sk, struct packet_sock *po);
 
 static int packet_direct_xmit(struct sk_buff *skb)
 {
-	struct net_device *dev = skb->dev;
-	struct sk_buff *orig_skb = skb;
-	struct netdev_queue *txq;
-	int ret = NETDEV_TX_BUSY;
-
-	if (unlikely(!netif_running(dev) ||
-		     !netif_carrier_ok(dev)))
-		goto drop;
-
-	skb = validate_xmit_skb_list(skb, dev);
-	if (skb != orig_skb)
-		goto drop;
-
-	packet_pick_tx_queue(dev, skb);
-	txq = skb_get_tx_queue(dev, skb);
-
-	local_bh_disable();
-
-	HARD_TX_LOCK(dev, txq, smp_processor_id());
-	if (!netif_xmit_frozen_or_drv_stopped(txq))
-		ret = netdev_start_xmit(skb, dev, txq, false);
-	HARD_TX_UNLOCK(dev, txq);
-
-	local_bh_enable();
-
-	if (!dev_xmit_complete(ret))
-		kfree_skb(skb);
-
-	return ret;
-drop:
-	atomic_long_inc(&dev->tx_dropped);
-	kfree_skb_list(skb);
-	return NET_XMIT_DROP;
+	return dev_direct_xmit(skb, packet_pick_tx_queue(skb));
 }
 
 static struct net_device *packet_cached_dev_get(struct packet_sock *po)
@@ -315,8 +283,9 @@ static u16 __packet_pick_tx_queue(struct net_device *dev, struct sk_buff *skb)
 	return (u16) raw_smp_processor_id() % dev->real_num_tx_queues;
 }
 
-static void packet_pick_tx_queue(struct net_device *dev, struct sk_buff *skb)
+static u16 packet_pick_tx_queue(struct sk_buff *skb)
 {
+	struct net_device *dev = skb->dev;
 	const struct net_device_ops *ops = dev->netdev_ops;
 	u16 queue_index;
 
@@ -328,7 +297,7 @@ static void packet_pick_tx_queue(struct net_device *dev, struct sk_buff *skb)
 		queue_index = __packet_pick_tx_queue(dev, skb);
 	}
 
-	skb_set_queue_mapping(skb, queue_index);
+	return queue_index;
 }
 
 /* __register_prot_hook must be invoked through register_prot_hook
@@ -2593,6 +2562,7 @@ static int packet_snd_vnet_parse(struct msghdr *msg, size_t *len,
 static int tpacket_fill_skb(struct packet_sock *po, struct sk_buff *skb,
 		void *frame, struct net_device *dev, void *data, int tp_len,
 		__be16 proto, unsigned char *addr, int hlen, int copylen,
+		int hard_header_len,
 		const struct sockcm_cookie *sockc)
 {
 	union tpacket_uhdr ph;
@@ -2623,8 +2593,8 @@ static int tpacket_fill_skb(struct packet_sock *po, struct sk_buff *skb,
 	} else if (copylen) {
 		int hdrlen = min_t(int, copylen, tp_len);
 
-		skb_push(skb, dev->hard_header_len);
-		skb_put(skb, copylen - dev->hard_header_len);
+		skb_push(skb, hard_header_len);
+		skb_put(skb, copylen - hard_header_len);
 		err = skb_store_bits(skb, 0, data, hdrlen);
 		if (unlikely(err))
 			return err;
@@ -2755,7 +2725,7 @@ static int tpacket_snd(struct packet_sock *po, struct msghdr *msg)
 	void *data;
 	int len_sum = 0;
 	int status = TP_STATUS_AVAILABLE;
-	int hlen, tlen, copylen = 0;
+	int hard_header_len, hlen, tlen, copylen = 0;
 	long timeo = 0;
 
 	mutex_lock(&po->pg_vec_lock);
@@ -2835,6 +2805,7 @@ static int tpacket_snd(struct packet_sock *po, struct msghdr *msg)
 
 		status = TP_STATUS_SEND_REQUEST;
 		hlen = LL_RESERVED_SPACE(dev);
+		hard_header_len = READ_ONCE(dev->hard_header_len);
 		tlen = dev->needed_tailroom;
 		if (po->has_vnet_hdr) {
 			vnet_hdr = data;
@@ -2861,7 +2832,7 @@ static int tpacket_snd(struct packet_sock *po, struct msghdr *msg)
 			goto out_status;
 		}
 		tp_len = tpacket_fill_skb(po, skb, ph, dev, data, tp_len, proto,
-					  addr, hlen, copylen, &sockc);
+					  addr, hlen, copylen, hard_header_len, &sockc);
 		if (likely(tp_len >= 0) &&
 		    tp_len > dev->mtu + reserve &&
 		    !po->has_vnet_hdr &&
@@ -2974,7 +2945,7 @@ static int packet_snd(struct socket *sock, struct msghdr *msg, size_t len)
 	int offset = 0;
 	struct packet_sock *po = pkt_sk(sk);
 	bool has_vnet_hdr = false;
-	int hlen, tlen, linear;
+	int hard_header_len, hlen, tlen, linear;
 	int extra_len = 0;
 
 	/*
@@ -3038,7 +3009,8 @@ static int packet_snd(struct socket *sock, struct msghdr *msg, size_t len)
 		goto out_unlock;
 
 	err = -ENOBUFS;
-	hlen = LL_RESERVED_SPACE(dev);
+	hard_header_len = READ_ONCE(dev->hard_header_len);
+	hlen = LL_RESERVED_SPACE_EX(dev, hard_header_len);
 	tlen = dev->needed_tailroom;
 	linear = __virtio16_to_cpu(vio_le(), vnet_hdr.hdr_len);
 	linear = max(linear, min_t(int, len, dev->hard_header_len));
@@ -3158,6 +3130,7 @@ static int packet_release(struct socket *sock)
 
 	spin_lock(&po->bind_lock);
 	unregister_prot_hook(sk, false);
+	WRITE_ONCE(po->num, 0);
 	packet_cached_dev_reset(po);
 
 	if (po->prot_hook.dev) {
@@ -4509,10 +4482,10 @@ static int packet_set_ring(struct sock *sk, union tpacket_req_u *req_u,
 	spin_lock(&po->bind_lock);
 	was_running = po->running;
 	num = po->num;
-	if (was_running) {
-		WRITE_ONCE(po->num, 0);
+	WRITE_ONCE(po->num, 0);
+	if (was_running)
 		__unregister_prot_hook(sk, false);
-	}
+
 	spin_unlock(&po->bind_lock);
 
 	synchronize_net();
@@ -4544,10 +4517,10 @@ static int packet_set_ring(struct sock *sk, union tpacket_req_u *req_u,
 	mutex_unlock(&po->pg_vec_lock);
 
 	spin_lock(&po->bind_lock);
-	if (was_running) {
-		WRITE_ONCE(po->num, num);
+	WRITE_ONCE(po->num, num);
+	if (was_running)
 		register_prot_hook(sk);
-	}
+
 	spin_unlock(&po->bind_lock);
 	if (pg_vec && (po->tp_version > TPACKET_V2)) {
 		/* Because we don't support block-based V3 on tx-ring */

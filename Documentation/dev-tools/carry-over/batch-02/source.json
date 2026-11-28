@@ -1,0 +1,44 @@
+{
+  "foundation": "766a32ab1c8b889ac049ccd367e82786e5953bc0",
+  "historical_source": {
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-adaptation.diff": "Documentation/dev-tools/gpu-dl-adaptation.diff",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-backports.json": "Documentation/dev-tools/gpu-dl-backports.json",
+    "Documentation/dev-tools/carry-over/batch-02/historical/gpu-dl-backports.rst": "Documentation/dev-tools/gpu-dl-backports.rst",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.diff": "Documentation/scheduler/sched-correctness-backport.diff",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.json": "Documentation/scheduler/sched-correctness-backport.json",
+    "Documentation/dev-tools/carry-over/batch-02/historical/sched-correctness-backport.rst": "Documentation/scheduler/sched-correctness-backport.rst"
+  },
+  "ids": [
+    "E021",
+    "E022",
+    "E023",
+    "E024",
+    "E025",
+    "E026",
+    "E027"
+  ],
+  "patch": "Documentation/dev-tools/carry-over/batch-02/applied.diff",
+  "patch_sha256": "9cd06c6bfbe32fef38657a9f18d014bc7bf0123c86e5684ee3fddc0c5d317dcb",
+  "postimage_sha256": {
+    "drivers/gpu/msm/kgsl_sync.c": "c8256c49c91bee2d6b1c2d7488a5ceaee343bb501dc568a7a1a876b3f92814e6",
+    "include/linux/sched.h": "9f1a39f97a621a410ede3e94efc19000a5303620e095b30628d0fa5b1eca8c62",
+    "kernel/cgroup/cpuset.c": "984df2841d2ed39ff73430b4be125c45b13fff074651a7165965d77be400f089",
+    "kernel/sched/core.c": "a28a9784ab35a499413618643a5892233ab75e28354660929d29b56c8671eb52",
+    "kernel/sched/deadline.c": "64564085fb4cc619168e370dcb3f0f6f065f0e5b41ace9df6797a7c0bc08d842",
+    "kernel/sched/fair.c": "efff921bd7235c433149e66868489c7ff1c976dc8a7d476fe5f6120f6040759b",
+    "kernel/sched/idle.c": "6b2424cdad79608f50432a07de06d1bfc2b26ac6ec1a2057f5b37f2e562b65f2",
+    "kernel/sched/sched.h": "0ee2721ba686b488b3f50ffd2d73599c9be6ef2e1a8418e6d5977f80666d90e6"
+  },
+  "preimage_sha256": {
+    "drivers/gpu/msm/kgsl_sync.c": "0a20eeddcceea19d476f43dc6ad58bcf3e5abce280a015d5792019ad9005ab24",
+    "include/linux/sched.h": "03d4020f7917c585b0582d2afe8ec1b62a06810938ae3126c4764349e194dd88",
+    "kernel/cgroup/cpuset.c": "17f2fd00082cb17495e645b6141432668f766d0fb4cc4fac6c96a17547bdb486",
+    "kernel/sched/core.c": "005773fb6b53618d4d1b4abb0425c1388107122a306157f92f324cf9a5ded78d",
+    "kernel/sched/deadline.c": "003226fa539e678ec62d1cdaac77229f763d1d2adffe3ab3779909cd5218d6f4",
+    "kernel/sched/fair.c": "1eff5e363e355fbd91075d2a68b2fe69195558becc452c02e87e234592c53930",
+    "kernel/sched/idle.c": "d1b0e3894adac19b6b4bccfa4664fafbba077f2d14d408a232e80c298dab230d",
+    "kernel/sched/sched.h": "7ce5748827b5c1eead3e159b9df9379a9c11c61a7208f64b19004234f46a149f"
+  },
+  "previous_electro": "402566a8597ae7f0ecf3f87054b77aa7c18acdf0",
+  "schema": 1
+}

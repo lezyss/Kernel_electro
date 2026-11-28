@@ -319,7 +319,7 @@ compound_page_dtor * const compound_page_dtors[] = {
  */
 int min_free_kbytes = 1024;
 int user_min_free_kbytes = -1;
-int watermark_scale_factor = 35;
+int watermark_scale_factor = 20;
 
 /*
  * Extra memory for the system to try freeing. Used to temporarily
@@ -6380,6 +6380,10 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
 	pgdat->split_queue_len = 0;
 #endif
 	init_waitqueue_head(&pgdat->kswapd_wait);
+#ifdef CONFIG_SWAP
+	init_waitqueue_head(&pgdat->kcompressd_wait);
+	spin_lock_init(&pgdat->kcompress_fifo_lock);
+#endif
 	init_waitqueue_head(&pgdat->pfmemalloc_wait);
 #ifdef CONFIG_COMPACTION
 	init_waitqueue_head(&pgdat->kcompactd_wait);

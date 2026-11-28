@@ -24,6 +24,7 @@
  *  Copyright (C) 2007 Red Hat, Inc., Peter Zijlstra
  */
 
+#include <linux/init.h>
 #include <linux/sched/mm.h>
 #include <linux/sched/topology.h>
 
@@ -3061,6 +3062,21 @@ static u64 decay_load(u64 val, u64 n)
 	return val;
 }
 
+#ifdef CONFIG_CPU_FREQ
+/**
+ * cpufreq_pelt_decay - Decay a value over a span exactly as PELT does.
+ * @val: the value to decay.
+ * @delta_ns: the span, in ns; counted in whole PELT periods (1024 * 1024 ns).
+ *
+ * For cpufreq governors that keep their own PELT-paced signal.
+ */
+u64 cpufreq_pelt_decay(u64 val, u64 delta_ns)
+{
+	return decay_load(val, delta_ns >> 20);
+}
+EXPORT_SYMBOL_GPL(cpufreq_pelt_decay);
+#endif
+
 static u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)
 {
 	u32 c1, c2, c3 = d3; /* y^0 == 1 */
@@ -3107,7 +3123,7 @@ static u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)
  *      d1 y^p + 1024 \Sum y^n + d3 y^0		(Step 2)
  *                     n=1
  */
-static __always_inline u32
+static __always_inline u64
 accumulate_sum(u64 delta, int cpu, struct sched_avg *sa,
 	       unsigned long weight, int running, struct cfs_rq *cfs_rq)
 {
@@ -9275,7 +9291,9 @@ enum group_type {
 #define LBF_DST_PINNED  0x04
 #define LBF_SOME_PINNED	0x08
 /* Sticky across more_balance retries; never stores a task pointer. */
-#define LBF_MOVED		0x40
+#define LBF_MOVED		0x20
+/* The requested idle destination was redirected because of task affinity. */
+#define LBF_DST_REDIRECTED	0x40
 #define LBF_IGNORE_BIG_TASKS 0x100
 #define LBF_IGNORE_PREFERRED_CLUSTER_TASKS 0x200
 
@@ -9569,30 +9587,66 @@ static struct task_struct *detach_one_task(struct lb_env *env)
 
 static const unsigned int sched_nr_migrate_break = 32;
 
+#define SCHED_CAMBYSES_AUTHOR	"Masahito Suzuki"
+#define SCHED_CAMBYSES_PROGNAME	"Cambyses CFS Load Balancer modification"
+#define SCHED_CAMBYSES_VERSION	"0.7.2"
+
+static int __init sched_cambyses_init(void)
+{
+	printk(KERN_INFO "%s %s by %s\n", SCHED_CAMBYSES_PROGNAME,
+	       SCHED_CAMBYSES_VERSION, SCHED_CAMBYSES_AUTHOR);
+	return 0;
+}
+late_initcall(sched_cambyses_init);
+
 /*
- * Cambyses v0.6.0 load-budget and block-rotation ideas by Masahito Suzuki,
- * adapted to this tail-first 4.14 balancer.  A concession is valid only while
- * the source rq remains locked: WALT detach_task() can drop that lock.
+ * The cheapest candidate that exceeded the remaining imbalance budget.
+ * It is used only if this scan migrates nothing, so the task pointer remains
+ * protected by src_rq->lock until the concession is applied.
  */
 struct lb_concession {
 	struct task_struct *p;
 	unsigned long cost;
 };
 
-static bool lb_cost_fits(struct lb_env *env, struct lb_concession *concession,
-			 struct task_struct *p, unsigned long cost, bool strict)
+/*
+ * Concede only on the first scan pulling into an idle CPU. A busy destination
+ * can be harmed by an overshoot, and after an affinity redirect env->idle
+ * still describes the original idle CPU rather than the new destination.
+ */
+static inline bool lb_can_concede(struct lb_env *env)
 {
-	if (!strict)
-		return (cost / 2) <= (unsigned long)env->imbalance;
+	return sched_feat(LB_CONCEDE_CHEAPEST) &&
+	       env->idle != CPU_NOT_IDLE &&
+	       !(env->flags & (LBF_MOVED | LBF_DST_REDIRECTED));
+}
 
-	if (cost <= (unsigned long)env->imbalance)
+/*
+ * Test @cost against the remaining imbalance. When concession is ineligible,
+ * preserve this 4.14 tree's original half-imbalance allowance. Otherwise,
+ * remember only overshoots that still reduce the imbalance (cost < 2 *
+ * imbalance), which also prevents an immediate reverse migration.
+ */
+static bool lb_cost_fits(struct lb_env *env, struct lb_concession *concession,
+			 struct task_struct *p, unsigned long cost)
+{
+	unsigned long imbalance = (unsigned long)env->imbalance;
+
+	if (!lb_can_concede(env))
+		return (cost / 2) <= imbalance;
+
+	if (cost <= imbalance)
 		return true;
 
-	if (!(env->flags & LBF_MOVED) &&
-	    (!concession->p || cost < concession->cost)) {
+	/* cost > imbalance here, so this subtraction cannot underflow. */
+	if (cost - imbalance >= imbalance)
+		return false;
+
+	if (!concession->p || cost < concession->cost) {
 		concession->p = p;
 		concession->cost = cost;
 	}
+
 	return false;
 }
 
@@ -9609,7 +9663,6 @@ static int detach_tasks(struct lb_env *env)
 	struct lb_concession concession = { NULL, 0 };
 	struct list_head *cursor;
 	bool rotate = sched_feat(LB_ROTATE_BLOCK);
-	bool strict = sched_feat(LB_STRICT_BUDGET);
 	bool scan_timed_out = false;
 	unsigned long load = 0;
 	int detached = 0;
@@ -9696,7 +9749,7 @@ redo:
 		 */
 		if (((cpu_rq(env->src_cpu)->nr_running > 2) ||
 			(env->flags & LBF_IGNORE_BIG_TASKS)) &&
-			!lb_cost_fits(env, &concession, p, load, strict))
+			!lb_cost_fits(env, &concession, p, load))
 			goto next;
 
 		/*
@@ -9708,9 +9761,9 @@ redo:
 			list_rotate_to_front(p->se.group_node.next, tasks);
 		cursor = NULL;
 		concession.p = NULL;
-		env->flags |= LBF_MOVED;
 		detach_task(p, env);
 		list_add(&p->se.group_node, &env->tasks);
+		env->flags |= LBF_MOVED;
 		cursor = tasks->prev;
 
 		detached++;
@@ -9754,15 +9807,17 @@ next:
 	 * saved task.  Finish rotation before the possible WALT lock drop.
 	 * Respect the existing scan timeout rather than doing extra work.
 	 */
-	if (strict && concession.p && !(env->flags & LBF_MOVED) &&
-	    !scan_timed_out) {
+	if (concession.p && !(env->flags & LBF_MOVED) && !scan_timed_out) {
+		unsigned long overshoot = concession.cost -
+					  (unsigned long)env->imbalance;
+
 		p = concession.p;
 		concession.p = NULL;
-		env->flags |= LBF_MOVED;
 		detach_task(p, env);
 		list_add(&p->se.group_node, &env->tasks);
-		/* Overshoot ends the budget, even for costs above LONG_MAX. */
-		env->imbalance -= min_t(unsigned long, concession.cost, LONG_MAX);
+		/* The strict < 2 * imbalance bound keeps this result representable. */
+		env->imbalance = -(long)overshoot;
+		env->flags |= LBF_MOVED;
 		detached++;
 	}
 
@@ -11461,6 +11516,7 @@ more_balance:
 			env.dst_rq	 = cpu_rq(env.new_dst_cpu);
 			env.dst_cpu	 = env.new_dst_cpu;
 			env.flags	&= ~LBF_DST_PINNED;
+			env.flags	|= LBF_DST_REDIRECTED;
 			env.loop	 = 0;
 			env.loop_break	 = sched_nr_migrate_break;
 
@@ -11549,6 +11605,7 @@ no_move:
 			 * only after active load balance is finished.
 			 */
 			if (!busiest->active_balance &&
+			    busiest->curr->on_rq &&
 			    !cpu_isolated(cpu_of(busiest))) {
 				busiest->active_balance = 1;
 				busiest->push_cpu = this_cpu;

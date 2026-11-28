@@ -192,5 +192,11 @@ obj-$(CONFIG_ESOC)              += esoc/
 obj-$(CONFIG_GNSS_SIRF)		+= gnsssirf/
 obj-$(CONFIG_GNSS)		+= gnss/
 
-# Vendored backslashxx/KernelSU; see drivers/kernelsu/UPSTREAM.md.
+# KernelSU source is fetched by scripts/kernelsu/setup.sh, not tracked here.
+ifneq ($(CONFIG_KSU),)
+KSU_SRC := $(srctree)/drivers/kernelsu
+ifeq ($(wildcard $(KSU_SRC)/Makefile),)
+$(error KernelSU source not found; run scripts/kernelsu/setup.sh)
+endif
 obj-$(CONFIG_KSU) += kernelsu/
+endif

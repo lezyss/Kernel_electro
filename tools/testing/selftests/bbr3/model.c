@@ -410,7 +410,7 @@ static void bpf_members(void)
 		assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==0);
 		assert(bpf_tcp_ca_check_member(&t,&m)==-ENOTSUPP);
 	}
-	m.offset=offsetof(struct tcp_congestion_ops,tso_segs_goal);
+	m.offset=offsetof(struct tcp_congestion_ops,min_tso_segs);
 	assert(bpf_tcp_ca_init_member(&t,&m,&out,&in)==0);
 	assert(bpf_tcp_ca_check_member(&t,&m)==0);
 	m.offset=offsetof(struct tcp_congestion_ops,ssthresh);

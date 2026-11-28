@@ -26,6 +26,7 @@
 #include <linux/export.h>
 #include <linux/suspend.h>
 #include <linux/syscore_ops.h>
+#include <linux/swait.h>
 #include <linux/ftrace.h>
 #include <linux/rtc.h>
 #include <trace/events/power.h>
@@ -63,7 +64,7 @@ EXPORT_SYMBOL_GPL(pm_suspend_global_flags);
 
 static const struct platform_suspend_ops *suspend_ops;
 static const struct platform_s2idle_ops *s2idle_ops;
-static DECLARE_WAIT_QUEUE_HEAD(s2idle_wait_head);
+static DECLARE_SWAIT_QUEUE_HEAD(s2idle_wait_head);
 
 enum s2idle_states __read_mostly s2idle_state;
 static DEFINE_RAW_SPINLOCK(s2idle_lock);
@@ -96,8 +97,8 @@ static void s2idle_enter(void)
 	/* Push all the CPUs into the idle loop. */
 	wake_up_all_idle_cpus();
 	/* Make the current CPU wait so it can enter the idle loop too. */
-	wait_event(s2idle_wait_head,
-		   s2idle_state == S2IDLE_STATE_WAKE);
+	swait_event(s2idle_wait_head,
+		    s2idle_state == S2IDLE_STATE_WAKE);
 
 	put_online_cpus();
 
@@ -188,7 +189,7 @@ void s2idle_wake(void)
 	raw_spin_lock_irqsave(&s2idle_lock, flags);
 	if (s2idle_state > S2IDLE_STATE_NONE) {
 		s2idle_state = S2IDLE_STATE_WAKE;
-		wake_up(&s2idle_wait_head);
+		swake_up(&s2idle_wait_head);
 	}
 	raw_spin_unlock_irqrestore(&s2idle_lock, flags);
 }
@@ -197,13 +198,11 @@ EXPORT_SYMBOL_GPL(s2idle_wake);
 static bool valid_state(suspend_state_t state)
 {
 	/*
-	 * The PM_SUSPEND_STANDBY and PM_SUSPEND_MEM states require low-level
-	 * support and need to be valid to the low-level implementation.
-	 *
-	 * No ->valid() or ->enter() callback implies that none are valid.
+	 * PM_SUSPEND_STANDBY and PM_SUSPEND_MEM states need low level
+	 * support and need to be valid to the low level
+	 * implementation, no valid callback implies that none are valid.
 	 */
-	return suspend_ops && suspend_ops->valid && suspend_ops->valid(state) &&
-		suspend_ops->enter;
+	return suspend_ops && suspend_ops->valid && suspend_ops->valid(state);
 }
 
 void __init pm_states_init(void)
@@ -275,7 +274,7 @@ EXPORT_SYMBOL_GPL(suspend_valid_only_mem);
 
 static bool sleep_state_supported(suspend_state_t state)
 {
-	return state == PM_SUSPEND_TO_IDLE || valid_state(state);
+	return state == PM_SUSPEND_TO_IDLE || (suspend_ops && suspend_ops->enter);
 }
 
 static int platform_suspend_prepare(suspend_state_t state)

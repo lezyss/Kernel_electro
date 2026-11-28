@@ -647,7 +647,7 @@ do {										\
 } while (0)
 
 /**
- * wait_event_idle_exclusive - wait for a condition without contributing to system load
+ * wait_event_idle_exclusive - wait for a condition with contributing to system load
  * @wq_head: the waitqueue to wait on
  * @condition: a C expression for the event to wait for
  *
@@ -709,7 +709,7 @@ do {										\
 		      __ret = schedule_timeout(__ret))
 
 /**
- * wait_event_idle_exclusive_timeout - sleep without load until a condition is true or timeout
+ * wait_event_idle_exclusive_timeout - sleep without load until a condition becomes true or a timeout elapses
  * @wq_head: the waitqueue to wait on
  * @condition: a C expression for the event to wait for
  * @timeout: timeout, in jiffies

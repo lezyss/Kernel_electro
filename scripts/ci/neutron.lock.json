@@ -1,0 +1,13 @@
+{
+  "tag": "06092026",
+  "clang_version": "24.0.0git",
+  "llvm_commit": "f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb",
+  "minimum_glibc": "2.43",
+  "archive_url": "https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/06092026/neutron-clang-06092026.tar.zst",
+  "archive_sha256": "531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30",
+  "catalogue_commit": "4bd827900870b688fbf19c202f6625a13b04fa92",
+  "catalogue_info_sha256": "0e2db658f981e2cde4a2197a0b0dc5ef6a5906bc6f9e31c58c42f6488dc9926b",
+  "antman_reference_commit": "0b32c45e3ad83a953b4bc3fd2feb4ad3cc87c1e8",
+  "container_image": "ubuntu:26.04@sha256:88a381d5b5eeb2b35d3ad70925a362c37ce569daf43ede89ff818ec20e4d3794",
+  "container_reference_commit": "584ae88613547cccf78d1a3b09f196b2888baa43"
+}

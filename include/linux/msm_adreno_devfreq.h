@@ -61,6 +61,13 @@ struct devfreq_msm_adreno_tz_data {
 	bool ctxt_aware_enable;
 };
 
+#ifdef CONFIG_SIMPLE_GPU_ALGORITHM
+extern int simple_gpu_active;
+int simple_gpu_algorithm(int level, int *val,
+			 struct devfreq_msm_adreno_tz_data *priv,
+			 int num_levels);
+#endif
+
 struct msm_adreno_extended_profile {
 	struct devfreq_msm_adreno_tz_data *private_data;
 	struct devfreq_dev_profile profile;
@@ -73,12 +80,6 @@ struct msm_busmon_extended_profile {
 	struct devfreq_msm_adreno_tz_data *private_data;
 	struct devfreq_dev_profile profile;
 };
-
-#ifdef CONFIG_SIMPLE_GPU_ALGORITHM
-extern int simple_gpu_active;
-int simple_gpu_algorithm(int level, int *val,
-			 struct devfreq_msm_adreno_tz_data *priv);
-#endif
 
 #ifdef CONFIG_DEVFREQ_GOV_QCOM_GPUBW_MON
 int devfreq_vbif_update_bw(unsigned long ib, unsigned long ab);

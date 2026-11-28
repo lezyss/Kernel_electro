@@ -5,13 +5,13 @@
 #ifndef STATIC
 #include <linux/module.h>
 
+EXPORT_SYMBOL(LZ4_arm64_decompress_safe);
+EXPORT_SYMBOL(LZ4_arm64_decompress_safe_partial);
 EXPORT_SYMBOL(LZ4_decompress_safe);
 EXPORT_SYMBOL(LZ4_decompress_safe_partial);
 EXPORT_SYMBOL(LZ4_setStreamDecode);
 EXPORT_SYMBOL(LZ4_decompress_safe_continue);
-EXPORT_SYMBOL(LZ4_arm64_decompress_safe);
-EXPORT_SYMBOL(LZ4_arm64_decompress_safe_partial);
 
 MODULE_LICENSE("Dual BSD/GPL");
-MODULE_DESCRIPTION("LZ4 v1.11 lz4_decompress");
+MODULE_DESCRIPTION("LZ4 v1.11.1 lz4_decompress");
 #endif

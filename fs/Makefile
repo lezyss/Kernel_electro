@@ -138,5 +138,9 @@ obj-$(CONFIG_PSTORE)		+= pstore/
 obj-$(CONFIG_EFIVAR_FS)		+= efivarfs/
 obj-$(CONFIG_EROFS_FS)		+= erofs/
 
-# Vendored NoMount path redirection; see fs/nomount/UPSTREAM.md.
+ifneq ($(CONFIG_NOMOUNT),)
+ifeq ($(wildcard $(srctree)/fs/nomount/Makefile),)
+$(error NoMount source not found; run scripts/nomount/setup.sh)
+endif
+endif
 obj-$(CONFIG_NOMOUNT) += nomount/

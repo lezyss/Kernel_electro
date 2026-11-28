@@ -38,6 +38,7 @@ def main():
     parser.add_argument('--cc', default='gcc')
     parser.add_argument('--sanitize', action='store_true')
     parser.add_argument('--self-test-negatives', action='store_true')
+    parser.add_argument('--models-only', action='store_true', help='Run extracted-source models/guards; ordered carry-over verifier handles provenance')
     args = parser.parse_args()
     s = (ROOT / 'fs/f2fs/sysfs.c').read_text()
     # Assert complete special-case bodies are unchanged, not just keywords.
@@ -79,6 +80,9 @@ def main():
                 assert run.returncode < 0 and 'Assertion' in run.stderr, (name, run.returncode, run.stderr)
                 print('PASS: compiled semantic mutant rejected: ' + name)
     print('PASS: all42 local RW/stat declarations use size metadata; special-case store and locking wrapper preserved')
+    if args.models_only:
+        print('LIMIT: historical checkpoint seals not asserted; use carry_over/verify.py for ordered source provenance')
+        return
     receipt = json.loads((ROOT / 'Documentation/filesystems/f2fs-sysfs-width-validation.json').read_text())
     digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     assert digest(ROOT / 'fs/f2fs/sysfs.c') == receipt['after_sha256']
@@ -101,9 +105,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # KSU +50 removes an obsolete config selector, not filesystem/TCP policy.
-    import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'kernelsu'))
-    from update50 import legacy_main
-    legacy_main(__file__)
     main()

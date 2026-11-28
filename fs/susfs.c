@@ -2262,7 +2262,7 @@ void susfs_start_sdcard_monitor_fn(void) {
 
 // - defer extra susfs works to workqueue after do_umount in ksu_handle_setresuid()
 //   so that we do not block there and reduce the risk of time side channel as much as possible.
-static struct work_struct susfs_extra_works;
+struct work_struct susfs_extra_works;
 static void susfs_run_extra_works(struct work_struct *work) {
 	if (!ksu_cred)
 		return;
@@ -2288,3 +2288,26 @@ void susfs_init(void) {
 
 /* No module exit is needed becuase it should never be a loadable kernel module */
 //void __init susfs_exit(void)
+
+/* Compat stubs for BakaSU main (post-2.4.0 susfs4ksu symbols) */
+void susfs_set_sus_path_uid_filter(void __user **user_info) {}
+EXPORT_SYMBOL_GPL(susfs_set_sus_path_uid_filter);
+
+void susfs_parse_sus_path_app_strings(void) {}
+EXPORT_SYMBOL_GPL(susfs_parse_sus_path_app_strings);
+
+void susfs_clear_current_proc_no_su(void) {}
+EXPORT_SYMBOL_GPL(susfs_clear_current_proc_no_su);
+
+void susfs_set_current_proc_no_su(void) {}
+EXPORT_SYMBOL_GPL(susfs_set_current_proc_no_su);
+
+bool susfs_is_current_proc_no_su(void) { return false; }
+EXPORT_SYMBOL_GPL(susfs_is_current_proc_no_su);
+
+void susfs_set_current_proc_umounted_for_zygote_next(void) {}
+EXPORT_SYMBOL_GPL(susfs_set_current_proc_umounted_for_zygote_next);
+
+
+bool susfs_ksu_selinux_hide_active = false;
+EXPORT_SYMBOL_GPL(susfs_ksu_selinux_hide_active);

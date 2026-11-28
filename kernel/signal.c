@@ -2381,6 +2381,10 @@ relock:
 		trace_signal_deliver(SIGKILL, SEND_SIG_NOINFO,
 				&sighand->action[SIGKILL - 1]);
 		recalc_sigpending();
+		current->jobctl &= ~JOBCTL_TRAP_FREEZE;
+		spin_unlock_irq(&sighand->siglock);
+		if (unlikely(cgroup_task_frozen(current)))
+			cgroup_leave_frozen(true);
 		goto fatal;
 	}
 
@@ -2408,7 +2412,7 @@ relock:
 		 */
 		if (unlikely(cgroup_task_frozen(current))) {
 			spin_unlock_irq(&sighand->siglock);
-			cgroup_leave_frozen(false);
+			cgroup_leave_frozen(true);
 			goto relock;
 		}
 
@@ -2502,10 +2506,8 @@ relock:
 			continue;
 		}
 
-fatal:
 		spin_unlock_irq(&sighand->siglock);
-		if (unlikely(cgroup_task_frozen(current)))
-			cgroup_leave_frozen(true);
+	fatal:
 
 		/*
 		 * Anything else is fatal, maybe with a core dump.

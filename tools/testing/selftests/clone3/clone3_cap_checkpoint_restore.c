@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <linux/capability.h>
+#include <sys/capability.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -57,6 +57,8 @@ static int call_clone3_set_tid(struct __test_metadata *_metadata,
 	}
 
 	if (pid == 0) {
+		int ret;
+		char tmp = 0;
 
 		TH_LOG("I am the child, my PID is %d (expected %d)", getpid(), set_tid[0]);
 
@@ -89,35 +91,61 @@ static int test_clone3_set_tid(struct __test_metadata *_metadata,
 	return ret;
 }
 
-/* Use the UAPI directly; no libcap internals or library dependency. */
+struct libcap {
+	struct __user_cap_header_struct hdr;
+	struct __user_cap_data_struct data[2];
+};
+
 static int set_capability(void)
 {
-	struct __user_cap_header_struct hdr = {
-		.version = _LINUX_CAPABILITY_VERSION_3,
-	};
-	struct __user_cap_data_struct data[2] = {};
-	unsigned int caps[] = { CAP_SETUID, CAP_SETGID, CAP_CHECKPOINT_RESTORE };
-	unsigned int i;
+	cap_value_t cap_values[] = { CAP_SETUID, CAP_SETGID };
+	struct libcap *cap;
+	int ret = -1;
+	cap_t caps;
 
-	for (i = 0; i < ARRAY_SIZE(caps); i++) {
-		data[caps[i] / 32].effective |= 1U << (caps[i] % 32);
-		data[caps[i] / 32].permitted |= 1U << (caps[i] % 32);
+	caps = cap_get_proc();
+	if (!caps) {
+		perror("cap_get_proc");
+		return -1;
 	}
-	return syscall(SYS_capset, &hdr, data);
+
+	/* Drop all capabilities */
+	if (cap_clear(caps)) {
+		perror("cap_clear");
+		goto out;
+	}
+
+	cap_set_flag(caps, CAP_EFFECTIVE, 2, cap_values, CAP_SET);
+	cap_set_flag(caps, CAP_PERMITTED, 2, cap_values, CAP_SET);
+
+	cap = (struct libcap *) caps;
+
+	/* 40 -> CAP_CHECKPOINT_RESTORE */
+	cap->data[1].effective |= 1 << (40 - 32);
+	cap->data[1].permitted |= 1 << (40 - 32);
+
+	if (cap_set_proc(caps)) {
+		perror("cap_set_proc");
+		goto out;
+	}
+	ret = 0;
+out:
+	if (cap_free(caps))
+		perror("cap_free");
+	return ret;
 }
 
 TEST(clone3_cap_checkpoint_restore)
 {
 	pid_t pid;
 	int status;
+	int ret = 0;
 	pid_t set_tid[1];
 
 	test_clone3_supported();
 
-	if (getuid() != 0 || !clone3_has_capability(CAP_CHECKPOINT_RESTORE) ||
-	    !clone3_has_capability(CAP_SETUID) ||
-	    !clone3_has_capability(CAP_SETGID))
-		ksft_exit_skip("root and checkpoint/restore capabilities required\n");
+	EXPECT_EQ(getuid(), 0)
+		XFAIL(return, "Skipping all tests as non-root\n");
 
 	memset(&set_tid, 0, sizeof(set_tid));
 

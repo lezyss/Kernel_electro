@@ -24,6 +24,15 @@
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
+#include "internal.h"
+
+#ifdef CONFIG_KSU_SUSFS
+extern struct static_key_true ksu_su_compat_enabled;
+extern bool __ksu_is_allow_uid_for_current(uid_t uid);
+extern int ksu_handle_stat(int *dfd, struct filename **filename, int *flags);
+extern void ksu_handle_vfs_fstat(int fd, loff_t *kstat_size_ptr);
+extern struct static_key_true ksu_is_init_rc_hook_enabled;
+#endif
 
 /**
  * generic_fillattr - Fill in the basic attributes from the inode struct
@@ -241,7 +250,26 @@ int vfs_statx(int dfd, const char __user *filename, int flags,
 		lookup_flags |= LOOKUP_EMPTY;
 
 retry:
+#ifdef CONFIG_KSU_SUSFS
+	if (static_branch_unlikely(&ksu_su_compat_enabled)) {
+		if (dfd == AT_FDCWD && filename && __ksu_is_allow_uid_for_current(current_uid().val)) {
+			struct filename *fname = getname(filename);
+			if (!IS_ERR(fname)) {
+				ksu_handle_stat(&dfd, &fname, &flags);
+				error = (fname->name[0] == '/') ? kern_path(fname->name, lookup_flags, &path) : user_path_at(dfd, filename, lookup_flags, &path);
+				putname(fname);
+			} else {
+				error = PTR_ERR(fname);
+			}
+		} else {
+			error = user_path_at(dfd, filename, lookup_flags, &path);
+		}
+	} else {
+		error = user_path_at(dfd, filename, lookup_flags, &path);
+	}
+#else
 	error = user_path_at(dfd, filename, lookup_flags, &path);
+#endif
 	if (error)
 		goto out;
 
@@ -431,6 +459,10 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
 	struct kstat stat;
 	int error = vfs_fstat(fd, &stat);
 
+#ifdef CONFIG_KSU_SUSFS
+	if (!error && static_branch_unlikely(&ksu_is_init_rc_hook_enabled))
+		ksu_handle_vfs_fstat(fd, &stat.size);
+#endif
 	if (!error)
 		error = cp_new_stat(&stat, statbuf);
 

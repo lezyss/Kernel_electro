@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[4]
+HIST = ROOT / "Documentation/dev-tools/carry-over/batch-01/historical"
 HERE = Path(__file__).resolve().parent
 NAMES = ['memlat_read_cpu', 'memlat_stall_pct', 'memlat_clear_stats',
          'compute_perf_counters', 'get_cnt', 'delete_events', 'stop_hwmon',
@@ -35,12 +36,12 @@ def functions(text, name):
 
 
 def provenance_check():
-    manifest = json.loads((ROOT / 'Documentation/dev-tools/azyr-sm6250-memlat-native-validation.json').read_text())
+    manifest = json.loads((HIST / 'azyr-sm6250-memlat-native-validation.json').read_text())
     paths = {'drivers/devfreq/arm-memlat-mon.c', 'drivers/soc/qcom/scm.c', 'include/soc/qcom/scm.h'}
     assert manifest['schema'] == 1 and set(manifest['postimage_sha256']) == paths
     assert set(manifest['preimage_sha256']) == paths
     assert manifest['patch'] == 'Documentation/dev-tools/azyr-sm6250-memlat-native.diff'
-    patch = ROOT / manifest['patch']
+    patch = HIST / Path(manifest['patch']).name
     assert hashlib.sha256(patch.read_bytes()).hexdigest() == manifest['patch_sha256']
     with tempfile.TemporaryDirectory(prefix='memlat-provenance-') as directory:
         for path in paths:

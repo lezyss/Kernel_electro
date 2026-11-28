@@ -282,11 +282,6 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 	if (!is_el1_instruction_abort(esr) && fixup_exception(regs))
 		return;
 
-	/* Recoverable KFENCE faults must not enter the oops state. */
-	if (addr >= PAGE_SIZE && !is_permission_fault(esr, regs, addr) &&
-	    kfence_handle_page_fault(addr, esr & ESR_ELx_WNR, regs))
-		return;
-
 	/*
 	 * No handler, we'll have to terminate things with extreme prejudice.
 	 */
@@ -300,6 +295,9 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 	} else if (addr < PAGE_SIZE) {
 		msg = "NULL pointer dereference";
 	} else {
+		if (kfence_handle_page_fault(addr, esr & ESR_ELx_WNR, regs))
+			return;
+
 		msg = "paging request";
 	}
 

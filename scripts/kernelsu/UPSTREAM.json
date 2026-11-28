@@ -1,0 +1,8 @@
+{
+  "strategy": "latest-release",
+  "repository": "https://github.com/Baka-SU/BakaSU",
+  "tag": "548d1dda",
+  "commit": "548d1dda060ca198823d8808804d01f5209ef4a9",
+  "upstream_subdirectory": "kernel",
+  "notes": "Baka-SU/BakaSU with in-tree SUSFS 2.4.0 inline hooks."
+}

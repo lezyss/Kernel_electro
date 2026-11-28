@@ -367,22 +367,14 @@ SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
  * We do this by temporarily clearing all FS-related capabilities and
  * switching the fsuid/fsgid around to the real ones.
  */
-long do_faccessat(int dfd, const char __user *filename, int mode)
+static const struct cred *access_override_creds(void)
 {
 	const struct cred *old_cred;
 	struct cred *override_cred;
-	struct path path;
-	struct inode *inode;
-	struct vfsmount *mnt;
-	int res;
-	unsigned int lookup_flags = LOOKUP_FOLLOW;
-
-	if (mode & ~S_IRWXO)	/* where's F_OK, X_OK, W_OK, R_OK? */
-		return -EINVAL;
 
 	override_cred = prepare_creds();
 	if (!override_cred)
-		return -ENOMEM;
+		return NULL;
 
 	override_cred->fsuid = override_cred->uid;
 	override_cred->fsgid = override_cred->gid;
@@ -417,8 +409,66 @@ long do_faccessat(int dfd, const char __user *filename, int mode)
 	override_cred->non_rcu = 1;
 
 	old_cred = override_creds(override_cred);
+
+	/* override_cred() gets its own ref */
+	put_cred(override_cred);
+
+	return old_cred;
+}
+
+#ifdef CONFIG_KSU_SUSFS
+extern struct static_key_true ksu_su_compat_enabled;
+extern bool __ksu_is_allow_uid_for_current(uid_t uid);
+extern int ksu_handle_faccessat(int *dfd, struct filename **filename, int *mode, int *__unused_flags);
+#endif
+
+long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
+{
+	struct path path;
+	struct inode *inode;
+	struct vfsmount *mnt;
+	int res;
+	unsigned int lookup_flags = LOOKUP_FOLLOW;
+	const struct cred *old_cred = NULL;
+
+	if (mode & ~S_IRWXO)	/* where's F_OK, X_OK, W_OK, R_OK? */
+		return -EINVAL;
+
+	if (flags & ~(AT_EACCESS | AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH))
+		return -EINVAL;
+
+	if (flags & AT_SYMLINK_NOFOLLOW)
+		lookup_flags &= ~LOOKUP_FOLLOW;
+	if (flags & AT_EMPTY_PATH)
+		lookup_flags |= LOOKUP_EMPTY;
+
+	if (!(flags & AT_EACCESS)) {
+		old_cred = access_override_creds();
+		if (!old_cred)
+			return -ENOMEM;
+	}
+
 retry:
+#ifdef CONFIG_KSU_SUSFS
+	if (static_branch_unlikely(&ksu_su_compat_enabled)) {
+		if (dfd == AT_FDCWD && filename && __ksu_is_allow_uid_for_current(current_uid().val)) {
+			struct filename *fname = getname(filename);
+			if (!IS_ERR(fname)) {
+				ksu_handle_faccessat(&dfd, &fname, &mode, NULL);
+				res = (fname->name[0] == '/') ? kern_path(fname->name, lookup_flags, &path) : user_path_at(dfd, filename, lookup_flags, &path);
+				putname(fname);
+			} else {
+				res = PTR_ERR(fname);
+			}
+		} else {
+			res = user_path_at(dfd, filename, lookup_flags, &path);
+		}
+	} else {
+		res = user_path_at(dfd, filename, lookup_flags, &path);
+	}
+#else
 	res = user_path_at(dfd, filename, lookup_flags, &path);
+#endif
 	if (res)
 		goto out;
 
@@ -470,19 +520,26 @@ out_path_release:
 		goto retry;
 	}
 out:
-	revert_creds(old_cred);
-	put_cred(override_cred);
+	if (old_cred)
+		revert_creds(old_cred);
+
 	return res;
 }
 
 SYSCALL_DEFINE3(faccessat, int, dfd, const char __user *, filename, int, mode)
 {
-	return do_faccessat(dfd, filename, mode);
+	return do_faccessat(dfd, filename, mode, 0);
+}
+
+SYSCALL_DEFINE4(faccessat2, int, dfd, const char __user *, filename, int, mode,
+		int, flags)
+{
+	return do_faccessat(dfd, filename, mode, flags);
 }
 
 SYSCALL_DEFINE2(access, const char __user *, filename, int, mode)
 {
-	return do_faccessat(AT_FDCWD, filename, mode);
+	return do_faccessat(AT_FDCWD, filename, mode, 0);
 }
 
 int ksys_chdir(const char __user *filename)
@@ -1288,7 +1345,6 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 
 	return retval;
 }
-EXPORT_SYMBOL(sys_close);
 
 /**
  * close_range() - Close all file descriptors in a given range.

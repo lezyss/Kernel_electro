@@ -18,40 +18,24 @@ import subprocess
 import tempfile
 
 from elftools.elf.elffile import ELFFile
-from test_arm64 import ROOT, SHIMS
+from shims import ROOT, SHIMS
 
-PIN = 'c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc'
+PIN = 'aa4647fad575d01a874aaaadcdbe8e6a40e072f5'
 # Exact upstream source hashes; do not silently test another release.
-HASHES = {
-    'lib/lz4.c':
-        '45061782ff932eb8cf71c3aea9495cec0d392f012395272e0550e30c8593c740',
-    'lib/lz4.h':
-        '6fee8f913ce3bc65bf716060f65ce890d83bea905445256c7a56da5bf4824d73',
-    'lib/lz4hc.c':
-        '2511d51c3026999536b8cb56806a7f1b6a5bd8a81295a02ff2e1efc10ab071aa',
-    'lib/lz4hc.h':
-        'a92a509858c3b79afb033bfa64335d633802884e5c1d5a15aaa54cdb3e9e5103',
-    'lib/xxhash.c':
-        '9c5498e00479217d7573b2474397a4248127f013f24d9ef98de0281d2dd30d89',
-    'lib/xxhash.h':
-        'aefdd236f35130495c18764cabed3f7b216906855fc5e6a9025cd2040bc84444',
-    'programs/platform.h':
-        '0a32f1a66f3d4966c75b3dd36c1b8a54186c25a3b7f5bd67a3594c318c8004d7',
-    'programs/util.h':
-        'db888009f6419af2b191e92664275ab394dabddfaec32b03adc7d8eee30bfb77',
-    'tests/tools/datagen.c':
-        '5101ccc0f6cdc28c790c462a69aea846b5d4c067c9733ac61bd4a2bf7e6f2e8a',
-    'tests/tools/datagen.h':
-        '49ff2d1b70db6329f3b5d28d2befa11060a42fddbdad84b9388c40521ea6e71f',
-    'tests/unit/unittest.c':
-        '037bdd0115275a6ff7dc18fd9ab86ab22a20386728af4bfe9b965021f6fd74be',
-    'tests/unit/unittest.h':
-        '79c133cbbf4eedb7197a5b0c14a16856dc9c28b9a98c046ba428419e5d60841a',
-    'tests/unit/unittest_lz4.c':
-        '121922b4aaf870f69a43eea2321121e930025bfae1b850af5f4c02086225cf3e',
-    'tests/unit/unittest_lz4hc.c':
-        '068daacc49a775754b15cbeca381468d6c56803675670e67545ae7549024b64c',
-}
+HASHES = {'lib/lz4.c': '2e58f124f1032f15aecc99772b7de624c4289245729fa5403506f00b06a54937',
+ 'lib/lz4.h': 'c204caad0638a12c9ce80831094ec8fffb34aa57e74307067b08fc9452fc2611',
+ 'lib/lz4hc.c': '44344dc172a6b8f6e4b915d0e792f32911b966d1df1d39731674327ffaec40f3',
+ 'lib/lz4hc.h': '8b55bd835048b399ab451dad77d40227fcbcce5d2db7b622a79d92f36dc563e1',
+ 'lib/xxhash.c': '9c5498e00479217d7573b2474397a4248127f013f24d9ef98de0281d2dd30d89',
+ 'lib/xxhash.h': 'aefdd236f35130495c18764cabed3f7b216906855fc5e6a9025cd2040bc84444',
+ 'programs/platform.h': '0a32f1a66f3d4966c75b3dd36c1b8a54186c25a3b7f5bd67a3594c318c8004d7',
+ 'programs/util.h': 'e6720248093a05c5a76b07209d818d1719e091e97b92ddd6078549dcb79bcf15',
+ 'tests/tools/datagen.c': '5101ccc0f6cdc28c790c462a69aea846b5d4c067c9733ac61bd4a2bf7e6f2e8a',
+ 'tests/tools/datagen.h': '49ff2d1b70db6329f3b5d28d2befa11060a42fddbdad84b9388c40521ea6e71f',
+ 'tests/unit/unittest.c': '037bdd0115275a6ff7dc18fd9ab86ab22a20386728af4bfe9b965021f6fd74be',
+ 'tests/unit/unittest.h': '79c133cbbf4eedb7197a5b0c14a16856dc9c28b9a98c046ba428419e5d60841a',
+ 'tests/unit/unittest_lz4.c': '121922b4aaf870f69a43eea2321121e930025bfae1b850af5f4c02086225cf3e',
+ 'tests/unit/unittest_lz4hc.c': '41f06896f2c1cc7a70a96aa66ce9049e823f45fc28540c515126f83acd6ffd56'}
 
 
 COMPAT_HASHES = {
@@ -324,7 +308,7 @@ def run(cc, out, upstream, sanitizers, seed, compat):
         if 'undefined' in sanitizers:
             flags += ['-fsanitize-trap=undefined']
     objects = []
-    for name in ('lz4_compress', 'lz4_decompress_main', 'lz4hc_compress'):
+    for name in ('lz4_compress', 'lz4_decompress', 'lz4hc_compress'):
         obj = out / (name + '.o')
         subprocess.run([*flags, '-ffreestanding', '-fno-builtin', '-Wall', '-Wextra',
                         '-Werror', '-Wframe-larger-than=2048', '-c',

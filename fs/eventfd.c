@@ -79,14 +79,6 @@ static void eventfd_free(struct kref *kref)
 	eventfd_free_ctx(ctx);
 }
 
-/* Legacy GPL module ABI; native paths use the folded implementation. */
-struct eventfd_ctx *eventfd_ctx_get(struct eventfd_ctx *ctx)
-{
-	kref_get(&ctx->kref);
-	return ctx;
-}
-EXPORT_SYMBOL_GPL(eventfd_ctx_get);
-
 /**
  * eventfd_ctx_put - Releases a reference to the internal eventfd context.
  * @ctx: [in] Pointer to eventfd context.
@@ -201,47 +193,6 @@ int eventfd_ctx_remove_wait_queue(struct eventfd_ctx *ctx, wait_queue_entry_t *w
 	return *cnt != 0 ? 0 : -EAGAIN;
 }
 EXPORT_SYMBOL_GPL(eventfd_ctx_remove_wait_queue);
-
-/* Legacy GPL module ABI; native paths use the folded implementation. */
-ssize_t eventfd_ctx_read(struct eventfd_ctx *ctx, int no_wait, __u64 *cnt)
-{
-	ssize_t res;
-	DECLARE_WAITQUEUE(wait, current);
-
-	spin_lock_irq(&ctx->wqh.lock);
-	*cnt = 0;
-	res = -EAGAIN;
-	if (ctx->count > 0)
-		res = 0;
-	else if (!no_wait) {
-		__add_wait_queue(&ctx->wqh, &wait);
-		for (;;) {
-			set_current_state(TASK_INTERRUPTIBLE);
-			if (ctx->count > 0) {
-				res = 0;
-				break;
-			}
-			if (signal_pending(current)) {
-				res = -ERESTARTSYS;
-				break;
-			}
-			spin_unlock_irq(&ctx->wqh.lock);
-			schedule();
-			spin_lock_irq(&ctx->wqh.lock);
-		}
-		__remove_wait_queue(&ctx->wqh, &wait);
-		__set_current_state(TASK_RUNNING);
-	}
-	if (likely(res == 0)) {
-		eventfd_ctx_do_read(ctx, cnt);
-		if (waitqueue_active(&ctx->wqh))
-			wake_up_locked_poll(&ctx->wqh, POLLOUT);
-	}
-	spin_unlock_irq(&ctx->wqh.lock);
-
-	return res;
-}
-EXPORT_SYMBOL_GPL(eventfd_ctx_read);
 
 static ssize_t eventfd_read(struct file *file, char __user *buf, size_t count,
 			    loff_t *ppos)

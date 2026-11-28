@@ -30,8 +30,43 @@ for file in META-INF/com/google/android/update-binary \
         exit 1
     fi
 done
+# Do not accidentally record the parent kernel repository as AK3 provenance.
+ANYKERNEL_DIR=$(cd "$ANYKERNEL_DIR" && pwd -P)
+expected_ak3_commit=020dfeccf9d7e962a48400fc94d3e451df92eead
+if [[ "$(git -C "$ANYKERNEL_DIR" rev-parse --show-toplevel)" != "$ANYKERNEL_DIR" ]] ||
+   [[ "$(git -C "$ANYKERNEL_DIR" rev-parse HEAD)" != "$expected_ak3_commit" ]] ||
+   [[ -n "$(git -C "$ANYKERNEL_DIR" status --porcelain)" ]]; then
+    echo "Expected clean pinned AnyKernel3 checkout ($expected_ak3_commit)" >&2
+    exit 1
+fi
 release=$(cat out/include/config/kernel.release)
 build=${GITHUB_RUN_NUMBER:-local}
+# Derive the label from the actual resolved build, not a caller's environment.
+variant=
+if grep -qx 'CONFIG_LLVM_POLLY=y' out/.config; then
+    variant=-polly
+fi
+if grep -qx 'CONFIG_SCSI_MQ_DEFAULT=y' out/.config; then
+    variant+=-scsi-mq
+    if ! grep -qx 'CONFIG_MQ_IOSCHED_DEADLINE=y' out/.config; then
+        echo "SCSI mq package requires built-in mq-deadline" >&2
+        exit 1
+    fi
+fi
+if grep -qx 'CONFIG_BLK_MQ_RUNTIME_PM=y' out/.config; then
+    if [[ "$variant" != *-scsi-mq ]]; then
+        echo "mq runtime PM package requires SCSI mq selection" >&2
+        exit 1
+    fi
+    variant+=-pm
+fi
+if grep -qx 'CONFIG_MQ_IOSCHED_ADIOS=y' out/.config; then
+    if [[ "$variant" != *-scsi-mq-pm ]]; then
+        echo "ADIOS package requires SCSI mq and runtime PM" >&2
+        exit 1
+    fi
+    variant+=-adios-prototype
+fi
 if [[ ! "$release" =~ ^[a-zA-Z0-9._+-]+$ || ! "$build" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     echo "Invalid release or build identifier for ZIP filename" >&2
     exit 1
@@ -51,16 +86,32 @@ cp out/arch/arm64/boot/dtb.img "$stage/dtb"
 cp out/arch/arm64/boot/dtbo.img "$stage/dtbo.img"
 {
     echo "Kernel release: $release"
+    echo "Build identifier: $build"
+    echo "Resolved configuration variant: ${variant:-baseline}"
     echo "Kernel commit: $(git rev-parse HEAD)"
     echo "AnyKernel3 commit: $(git -C "$ANYKERNEL_DIR" rev-parse HEAD)"
     echo "Devices: curtana, joyeuse, excalibur, gram (miatoll)"
+    if [[ "$variant" == *-scsi-mq* ]]; then
+        echo "EXPERIMENTAL SCSI blk-mq: runtime queue mode, crypto, recovery and PM require device validation"
+    fi
+    if [[ "$variant" == *-scsi-mq-pm* ]]; then
+        echo "EXPERIMENTAL mq runtime-PM backport: requires device suspend/resume and integrity retest"
+    fi
+    if [[ "$variant" == *-adios-prototype ]]; then
+        echo "EXPERIMENTAL ADIOS prototype: fixed settings, no scheduler merging"
+        if grep -qx 'CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y' out/.config; then
+            echo "ADIOS is the boot default on supported queues; mq-deadline remains the fallback"
+        else
+            echo "mq-deadline remains the boot default; ADIOS requires runtime selection"
+        fi
+    fi
     if [[ -f out/build-info.txt ]]; then
         cat out/build-info.txt
     fi
 } > "$stage/build-info.txt"
 cp "$stage/build-info.txt" out/package-info.txt
 
-zipfile="$ROOT/out/flashable/Electro-miatoll-${release}-r614150-${build}.zip"
+zipfile="$ROOT/out/flashable/kernel-electro-miatoll-4.14.357.zip"
 # Remove an earlier archive so zip cannot retain stale entries on local reruns.
 rm -f "$zipfile"
 (cd "$stage" && zip -9 -r "$zipfile" .)

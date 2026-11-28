@@ -1,0 +1,69 @@
+LZ4 v1.11.1 kernel block-codec tests
+==================================
+
+Upstream pin: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 (official v1.11.1).
+Frame, file, CLI and threading code are NOT imported or tested here.
+The kernel codec uses caller-owned workspaces, not upstream's malloc-owning API.
+There is no optional ARM64 SIMD/assembly accelerator in this foundation repair.
+
+Prerequisites: native Linux, Clang with its native ASan runtime, make, git,
+Python 3, and pyelftools (see requirements.txt). The CI entry point uses the
+pinned AOSP Clang r614150 snapshot, not GCC and not an arbitrary system Clang.
+To use the manual CI test entry point locally, install that complete toolchain
+at .toolchains/r614150 with its aosp-prebuilts-commit.txt provenance file:
+
+  bash scripts/ci/test-lz4.sh
+
+This downloads the pinned upstream archive, creates a temporary venv under
+out/lz4-tests, verifies all upstream test inputs by SHA-256, and retains test
+logs and objects under out/lz4-tests. It does NOT build a bootable image.
+
+For independently obtained, read-only upstream sources and an existing venv:
+
+  python3 -m pip install -r tools/testing/selftests/lz4/requirements.txt
+  python3 tools/testing/selftests/lz4/test_codec.py --cc /path/to/clang \
+    --asan --ubsan --upstream /path/to/lz4-aa4647fad575d01a874aaaadcdbe8e6a40e072f5
+  python3 tools/testing/selftests/lz4/test_build.py --cc /path/to/clang
+  python3 tools/testing/selftests/lz4/test_ci.py \
+    --anykernel /path/to/clean-pinned-AnyKernel3
+
+--output retains artifacts; otherwise a temporary directory is removed.
+--seed changes the upstream unit framework's seed. --compat-upstream optionally
+cross-decodes against a separately obtained v1.10.0 tree (also hash checked).
+The optional v1.10.0 check was not run for this repair.
+
+Coverage and limitations
+------------------------
+
+* test_codec.py compiles the three real kernel codec wrappers separately.
+  70 applicable upstream block/HC unit regressions plus four kernel tests
+  exercise real STATIC preboot framing, sizes/invalid bounds, poisoned HC
+  resets/canaries/levels 1..16, and bidirectional official-upstream decoding.
+  The HC test covers the v1.11.1 arbitrary-first-use reset issue and the
+  kernel's always-extended 327784-byte state. Levels 13..16 clamp to 12.
+* Nine unsupported upstream tests are printed as OMITTED, never counted as
+  passes: userspace allocators/obsolete wrappers and the optional small versus
+  extended HC-state contract (kernel states always include the scratch).
+* Native ASan instrumentation is verified in every codec object; a negative
+  signed-overflow probe must trap with UBSan. The independently built upstream
+  reference is locally bound (-Bsymbolic), avoiding accidental kernel-symbol
+  interposition. Test bridges own allocations outside the codec.
+* test_build.py compiles x86-64, i386 and ARM64 freestanding objects with strict
+  diagnostics and a 2048-byte frame ceiling; checks static stack usage, ELF
+  exports, no duplicate codec symbols or allocator/other-codec dependencies;
+  compiles the real preboot include chain for each target; and evaluates all
+  27 y/m/n selections in the actual lib/lz4/Makefile. Header shims are minimal
+  compile fixtures, NOT a kernel execution environment. The inherited preboot
+  wrapper's pointer-sign/unused/sign-compare diagnostics are suppressed only
+  for that wrapper, not for the codec object checks.
+* test_ci.py runs build-script argument/provenance/LLVM-override fixtures and,
+  when --anykernel is supplied, the real packager with a clean pinned framework
+  and SYNTHETIC NON-BOOTABLE image payloads. It checks ZIP layout/checksum,
+  stale-entry removal and rejection cases. These temporary ZIPs are deleted.
+  The fixture compiler and make are intentionally fake; this is script-contract
+  coverage, not compilation or flash validation. No real source config changes.
+
+None of these tests proves a complete kernel image links, boots, performs
+better, or safely flashes. No on-device/stress/performance test is implied.
+See Documentation/dev-tools/foundation-repair/README.md for actual results,
+real-header Kbuild compilation, source provenance and remaining limits.

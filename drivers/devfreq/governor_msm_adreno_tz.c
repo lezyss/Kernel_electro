@@ -386,10 +386,10 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 			priv->bin.busy_time > CEILING) {
 		val = -1 * level;
 	} else {
-
 #ifdef CONFIG_SIMPLE_GPU_ALGORITHM
 		if (simple_gpu_active) {
-			simple_gpu_algorithm(level, &val, priv);
+			simple_gpu_algorithm(level, &val, priv,
+					     devfreq->profile->max_state);
 		} else {
 			scm_data[0] = level;
 			scm_data[1] = priv->bin.total_time;

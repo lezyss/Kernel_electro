@@ -1,0 +1,1394 @@
+diff --git a/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig b/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
+index 87e63e4..2a02146 100644
+--- a/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
++++ b/arch/arm64/configs/vendor/xiaomi/miatoll_defconfig
+@@ -784,3 +784,5 @@ CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
+ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
+ CONFIG_KSU_SUSFS_SUS_MAP=y
+ CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER=y
++
++CONFIG_LZ4_ARM64_ACCEL=y
+diff --git a/include/linux/lz4.h b/include/linux/lz4.h
+index 03db596..1ff7c4a 100644
+--- a/include/linux/lz4.h
++++ b/include/linux/lz4.h
+@@ -14,4 +14,14 @@
+ #define LZ4_STREAMHCSIZE sizeof(LZ4_streamHC_t)
+ #define LZ4_STREAMHCSIZE_SIZET (sizeof(LZ4_streamHC_t) / sizeof(size_t))
+ 
++/* Dictionary-free blocks only. DIP/overlap and unavailable SIMD use C.
++ * Partial decoding stops at outputSize; input and output sizes must fit int.
++ * Helpers remain available as C fallbacks when ARM64 acceleration is disabled.
++ */
++ssize_t LZ4_arm64_decompress_safe(const void *source, void *dest,
++                                size_t inputSize, size_t outputSize, bool dip);
++ssize_t LZ4_arm64_decompress_safe_partial(const void *source, void *dest,
++                                        size_t inputSize, size_t outputSize,
++                                        bool dip);
++
+ #endif
+diff --git a/lib/Kconfig b/lib/Kconfig
+index df001a6..69e2938 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -251,6 +251,16 @@ config LZ4KD_COMPRESS
+ config LZ4_DECOMPRESS
+ 	tristate
+ 	
++config LZ4_ARM64_ACCEL
++	bool "ARM64 NEON LZ4 decompression acceleration (experimental)"
++	depends on ARM64 && KERNEL_MODE_NEON && LZ4_DECOMPRESS != n
++	default n
++	help
++	  Accelerate dictionary-free blocks through the ARM64 helpers and the
++	  first streaming block. Generic APIs, dictionaries, in-place decoding,
++	  preboot and contexts without usable SIMD retain the C decoder.
++	  Enable only after validating on the target device.
++
+ config LZ4KD_DECOMPRESS
+ 	tristate
+ 
+diff --git a/lib/lz4/Makefile b/lib/lz4/Makefile
+index 3e3c572..ec04227 100644
+--- a/lib/lz4/Makefile
++++ b/lib/lz4/Makefile
+@@ -4,3 +4,7 @@ ccflags-y += -O3 -DLZ4_FREESTANDING=1 -DLZ4_FAST_DEC_LOOP=1
+ obj-$(CONFIG_LZ4_COMPRESS) += lz4_compress.o
+ obj-$(CONFIG_LZ4HC_COMPRESS) += lz4hc_compress.o
+ obj-$(CONFIG_LZ4_DECOMPRESS) += lz4_decompress.o
++
++# Keep the exported module name while linking optional assembly into it.
++lz4_decompress-y := lz4_decompress_main.o
++lz4_decompress-$(CONFIG_LZ4_ARM64_ACCEL) += lz4armv8/lz4accel.o lz4armv8/lz4armv8.o
+diff --git a/lib/lz4/lz4.c b/lib/lz4/lz4.c
+index d63263c..09f4229 100644
+--- a/lib/lz4/lz4.c
++++ b/lib/lz4/lz4.c
+@@ -104,6 +104,15 @@
+ #  define LZ4_STATIC_LINKING_ONLY
+ #endif
+ #include "lz4.h"
++#include <linux/errno.h>
++
++/* Preboot and compressor objects must never acquire a SIMD dependency. */
++#if defined(CONFIG_LZ4_ARM64_ACCEL) && defined(CONFIG_ARM64) && \
++    defined(CONFIG_KERNEL_MODE_NEON) && !defined(STATIC) && \
++    !defined(LZ4_KERNEL_COMPRESS_ONLY) && !defined(LZ4_COMMONDEFS_ONLY)
++#define LZ4_USE_ARM64_ACCEL
++#include "lz4armv8/lz4accel.h"
++#endif
+ /* see also "memory routines" below */
+ 
+ 
+@@ -2177,9 +2186,11 @@ LZ4_copyExtDictMatch(BYTE* op, const BYTE* match, size_t length,
+  *  in order to remove useless branches during compilation optimization.
+  */
+ LZ4_FORCE_INLINE int
+-LZ4_decompress_generic(
++__LZ4_decompress_generic(
+                  const char* const src,
+                  char* const dst,
++                 const BYTE* const resumed_ip,
++                 BYTE* const resumed_op,
+                  int srcSize,
+                  int outputSize,         /* dstCapacity, or MIN(targetOutputSize, dstCapacity) when partialDecoding */
+ 
+@@ -2193,11 +2204,11 @@ LZ4_decompress_generic(
+     if (src == NULL || srcSize < 0 || outputSize < 0 ||
+         (dst == NULL && outputSize != 0)) return -1;
+ 
+-    {   const BYTE* ip = (const BYTE*) src;
+-        const BYTE* const iend = ip + srcSize;
++    {   const BYTE* ip = resumed_ip;
++        const BYTE* const iend = (const BYTE*)src + srcSize;
+ 
+-        BYTE* op = (BYTE*) dst;
+-        BYTE* const oend = op + outputSize;
++        BYTE* op = resumed_op;
++        BYTE* const oend = (BYTE*)dst + outputSize;
+ 
+         const BYTE* const dictEnd = (dictStart == NULL) ? NULL : dictStart + dictSize;
+ 
+@@ -2531,6 +2542,77 @@ LZ4_decompress_generic(
+ }
+ 
+ 
++/* Resume only at a sequence boundary, retaining original bounds/history. */
++LZ4_FORCE_INLINE int LZ4_decompress_generic(
++    const char* src, char* dst, int srcSize, int outputSize,
++    earlyEnd_directive partialDecoding, dict_directive dict,
++    const BYTE* lowPrefix, const BYTE* dictStart, size_t dictSize)
++{
++    return __LZ4_decompress_generic(src, dst, (const BYTE*)src, (BYTE*)dst,
++                                   srcSize, outputSize, partialDecoding, dict,
++                                   lowPrefix, dictStart, dictSize);
++}
++
++#ifndef STATIC
++/*
++ * Decode whole sequences in SIMD, then resume C at the saved sequence boundary.
++ * Keep the original block base: matches in the C tail may refer to SIMD output.
++ */
++LZ4_FORCE_INLINE ssize_t LZ4_arm64_decompress_generic(
++	const void *source, void *dest, size_t inputSize, size_t outputSize,
++	bool dip, earlyEnd_directive partialDecoding)
++{
++	const BYTE *ip = source;
++	BYTE *op = dest;
++
++	if (inputSize > LZ4_INT_MAX || outputSize > LZ4_INT_MAX)
++		return -EIO;
++#ifdef LZ4_USE_ARM64_ACCEL
++	/*
++	 * SIMD wildcopies must not overwrite input awaiting the C tail.
++	 * The old source-rewriting DIP exit has been removed from assembly;
++	 * keep all supported in-place decoding on the C path nonetheless.
++	 * Address differences avoid overflowing end-address calculations.
++	 */
++	if (source && dest && !dip && inputSize > LZ4_FAST_MARGIN &&
++	    outputSize > LZ4_FAST_MARGIN &&
++	    ((unsigned long)dest >= (unsigned long)source ?
++	     (unsigned long)dest - (unsigned long)source >= inputSize :
++	     (unsigned long)source - (unsigned long)dest >= outputSize) &&
++	    lz4_decompress_accel_enable()) {
++		const BYTE *const iend =
++			(const BYTE *)source + inputSize - LZ4_FAST_MARGIN;
++		BYTE *const oend = (BYTE *)dest + outputSize - LZ4_FAST_MARGIN;
++
++		if (lz4_decompress_asm(&op, dest, oend, &ip, iend))
++			return -3; /* v1.11.1 invalid offset */
++	}
++#else
++	(void)dip;
++#endif
++	return __LZ4_decompress_generic(source, dest, ip, op, inputSize,
++					outputSize, partialDecoding, noDict,
++					dest, NULL, 0);
++}
++
++LZ4_FORCE_O2
++ssize_t LZ4_arm64_decompress_safe_partial(const void *source, void *dest,
++					  size_t inputSize, size_t outputSize, bool dip)
++{
++	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
++					  dip, partial_decode);
++}
++
++LZ4_FORCE_O2
++ssize_t LZ4_arm64_decompress_safe(const void *source, void *dest,
++				  size_t inputSize, size_t outputSize, bool dip)
++{
++	return LZ4_arm64_decompress_generic(source, dest, inputSize, outputSize,
++					  dip, decode_full_block);
++}
++
++#endif /* !STATIC */
++
+ /*===== Instantiate the API decoding functions. =====*/
+ 
+ LZ4_FORCE_O2
+@@ -2724,10 +2806,17 @@ int LZ4_decompress_safe_continue (LZ4_streamDecode_t* LZ4_streamDecode, const ch
+     LZ4_streamDecode_t_internal* lz4sd = &LZ4_streamDecode->internal_donotuse;
+     int result;
+ 
++    if (compressedSize < 0 || maxOutputSize < 0) return -1;
++
+     if (lz4sd->prefixSize == 0) {
+         /* The first call, no dictionary yet. */
+         assert(lz4sd->extDictSize == 0);
++#ifdef LZ4_USE_ARM64_ACCEL
++        result = (int)LZ4_arm64_decompress_safe(source, dest, compressedSize,
++                                               maxOutputSize, false);
++#else
+         result = LZ4_decompress_safe(source, dest, compressedSize, maxOutputSize);
++#endif
+         if (result <= 0) return result;
+         lz4sd->prefixSize = (size_t)result;
+         lz4sd->prefixEnd = (BYTE*)dest + result;
+diff --git a/lib/lz4/lz4_decompress.c b/lib/lz4/lz4_decompress.c
+index 46cb1ef..360e362 100644
+--- a/lib/lz4/lz4_decompress.c
++++ b/lib/lz4/lz4_decompress.c
+@@ -5,6 +5,8 @@
+ #ifndef STATIC
+ #include <linux/module.h>
+ 
++EXPORT_SYMBOL(LZ4_arm64_decompress_safe);
++EXPORT_SYMBOL(LZ4_arm64_decompress_safe_partial);
+ EXPORT_SYMBOL(LZ4_decompress_safe);
+ EXPORT_SYMBOL(LZ4_decompress_safe_partial);
+ EXPORT_SYMBOL(LZ4_setStreamDecode);
+diff --git b/lib/lz4/lz4_decompress_main.c b/lib/lz4/lz4_decompress_main.c
+new file mode 100644
+index 0000000..164515f
+--- /dev/null
++++ b/lib/lz4/lz4_decompress_main.c
+@@ -0,0 +1,3 @@
++// SPDX-License-Identifier: BSD-2-Clause
++/* Kbuild composite entry; keep lz4_decompress.c usable by STATIC preboot. */
++#include "lz4_decompress.c"
+diff --git b/lib/lz4/lz4armv8/lz4accel.c b/lib/lz4/lz4armv8/lz4accel.c
+new file mode 100644
+index 0000000..6edcff3
+--- /dev/null
++++ b/lib/lz4/lz4armv8/lz4accel.c
+@@ -0,0 +1,29 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <linux/linkage.h>
++#include "lz4accel.h"
++#include <asm/cputype.h>
++#include <asm/neon.h>
++
++asmlinkage int _lz4_decompress_asm(u8 **dst_ptr, u8 *dst_begin, u8 *dst_end,
++				   const u8 **src_ptr, const u8 *src_end);
++asmlinkage int _lz4_decompress_asm_noprfm(u8 **dst_ptr, u8 *dst_begin,
++					  u8 *dst_end, const u8 **src_ptr,
++					  const u8 *src_end);
++
++int lz4_decompress_asm(u8 **dst_ptr, u8 *dst_begin, u8 *dst_end,
++		       const u8 **src_ptr, const u8 *src_end)
++{
++	int ret;
++
++	/* Pins the CPU and protects the SIMD register file until neon_end. */
++	kernel_neon_begin();
++	/* Direct calls avoid an assembly function-pointer target under CFI. */
++	if (read_cpuid_part_number() == ARM_CPU_PART_CORTEX_A53)
++		ret = _lz4_decompress_asm_noprfm(dst_ptr, dst_begin, dst_end,
++						 src_ptr, src_end);
++	else
++		ret = _lz4_decompress_asm(dst_ptr, dst_begin, dst_end,
++					  src_ptr, src_end);
++	kernel_neon_end();
++	return ret;
++}
+diff --git b/lib/lz4/lz4armv8/lz4accel.h b/lib/lz4/lz4armv8/lz4accel.h
+new file mode 100644
+index 0000000..5a54abd
+--- /dev/null
++++ b/lib/lz4/lz4armv8/lz4accel.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef LZ4_ARM64_ACCEL_H
++#define LZ4_ARM64_ACCEL_H
++
++#include <linux/types.h>
++#include <asm/cpufeature.h>
++#include <asm/simd.h>
++
++/* Assembly may wildcopy beyond a sequence, but not beyond these margins. */
++#define LZ4_FAST_MARGIN 128
++
++static inline bool lz4_decompress_accel_enable(void)
++{
++	return system_supports_fpsimd() && may_use_simd();
++}
++
++int lz4_decompress_asm(u8 **dst_ptr, u8 *dst_begin, u8 *dst_end,
++		       const u8 **src_ptr, const u8 *src_end);
++
++#endif /* LZ4_ARM64_ACCEL_H */
+diff --git b/lib/lz4/lz4armv8/lz4armv8.S b/lib/lz4/lz4armv8/lz4armv8.S
+new file mode 100644
+index 0000000..19c92fb
+--- /dev/null
++++ b/lib/lz4/lz4armv8/lz4armv8.S
+@@ -0,0 +1,283 @@
++/*
++ * lz4armv8.S
++ * LZ4 decompression optimization based on arm64 NEON instruction
++ */
++
++#include <linux/linkage.h>
++#include <asm/assembler.h>
++
++/**
++ * _lz4_decompress_asm: The fast LZ4 decompression, lz4 decompression algothrim asm
++ * routine,support Huawei EROFS filesystem striving for maximum decompression speed.
++ * Entry point _lz4_decompress_asm.
++ * @para:
++ * x0 = current destination address ptr
++ * x1 = destination start position
++ * x2 = destination end position
++ * x3 = current source address ptr
++ * x4 = source end position
++ * Disjoint input/output only; exits rewind to a complete sequence boundary.
++ * @ret:
++ * 0 on success, -1 on failure
++ *
++ * x7: match_length
++ * x8: literal_legth
++ * x9: copy start ptr
++ * x10: copy end ptr
++ */
++
++
++#define match_length		x7
++#define literal_length		x8
++#define copy_from_ptr		x9    /* copy source ptr*/
++#define copy_to_ptr		x10   /* copy destination ptr*/
++#define w_tmp			w11   /* temp var */
++#define tmp			x11
++#define w_offset		w12
++#define offset			x12
++#define permtable_addr		x13
++#define cplen_table_addr	x14
++#define save_dst		x15
++#define save_src		x16
++/* x18 is reserved for Shadow Call Stack; x6 is caller-saved scratch. */
++#define w_tmp_match_length	w6
++#define tmp_match_length	x6
++
++
++/* x3 >= x4 src overflow */
++.macro check_src_overflow
++	cmp	x3, x4
++	b.hs	Done
++.endm
++
++.macro check_src_overflow1
++	cmp	x3, x4
++	b.hs	Done1
++.endm
++/* x0 >= x2 dst overflow */
++.macro check_dst_overflow
++	cmp	x0, x2
++	b.hs	Done
++.endm
++
++.macro check_dst_overflow1
++	cmp	x0, x2
++	b.hs	Done1
++.endm
++
++.altmacro
++.macro lz4_decompress_asm_generic	doprfm=1
++	stp     x29, x30, [sp, #-16]!
++	mov     x29, sp
++	stp	x3, x0, [sp, #-16]!		/* push src and dst in stack */
++	ldr	x3, [x3]				/* x3 = *src_ptr */
++	ldr	x0, [x0]				/* x0 = *dst_ptr */
++	adr	permtable_addr, Permtable
++	adr	cplen_table_addr, Copylength_table
++
++	/*
++	 * save current dst and src ,ensure when return from asm routine
++	 * current both of "dst" and "src" save good position.
++	 */
++1: 	 mov save_dst, x0
++	mov	save_src, x3
++
++	check_dst_overflow
++	check_src_overflow
++
++.if \doprfm
++	add tmp, x0, #512
++	cmp x2, tmp
++	b.ls 2f
++	prfm pstl2strm,[x0,#512]
++.endif
++
++	/* Decode Token Byte: */
++2:	 ldrb w_tmp, [x3], #1		/* read Token Byte */
++	lsr	literal_length, tmp, #4	/* get literal_length */
++	and	tmp_match_length, tmp, #0xf	/* get match_length */
++	add	match_length, tmp_match_length, #4	/* match_length >=4 */
++
++	/*
++	 * literal_length <= 14 : no more literal length byte,fllowing zero
++	 * or more bytes are liteal bytes.
++	 */
++	cmp	literal_length, #14
++	b.ls	5f
++
++	/*
++	 * literal_length == 15 : more literal length bytes after TokenByte.
++	 * continue decoding more literal length bytes.
++	 */
++
++3: 	 check_src_overflow
++	ldrb	w_tmp, [x3], #1
++	add	literal_length, literal_length, tmp
++	cmp	tmp, #255
++	b.eq	3b
++
++/* literal copy */
++
++4:	 mov copy_from_ptr, x3
++	mov	copy_to_ptr, x0
++	adds	x3, x3, literal_length
++	b.cs	Done
++	adds	x0, x0, literal_length
++	b.cs	Done
++	check_dst_overflow
++	check_src_overflow
++
++4:	 ldr	q0, [copy_from_ptr], #16
++	str	q0, [copy_to_ptr], #16
++
++	cmp	x0, copy_to_ptr
++	b.ls	6f
++	b	4b
++
++5:	 ldr q0, [x3]
++	str q0, [x0]
++	add	x3, x3, literal_length
++	add	x0, x0, literal_length
++
++	/* Decode offset and match_length */
++6:	 ldrh	w_offset, [x3], #2	/* 2Byte:offset bytes */
++	cbz	offset, Failed			/* match_length == 0 is invalid */
++	sub	copy_from_ptr, x0, offset
++	cmp	copy_from_ptr, x1
++	b.lo	Failed
++	mov	copy_to_ptr, x0
++	/*
++	 * set x0 to the end of "match copy";
++	 */
++	adds	x0, x0, match_length
++	b.cs	Done1
++	cmp	match_length, #19
++	b.lo	8f
++	/*
++	 * continue decoding more match length bytes.
++	 */
++
++7:	 check_src_overflow1
++	ldrb	w_tmp, [x3], #1
++	adds	x0, x0, tmp
++	b.cs	Done1
++	add	match_length, match_length, tmp
++	cmp	tmp, #255
++	b.eq	7b
++
++	/*
++	 * here got the matchlength,start "match copy".
++	 */
++
++8:	 check_dst_overflow1
++	cmp	offset , match_length
++	b.hs	13f
++
++9:	 cmp	offset , #32
++	b.hs	13f
++
++10:  ldr	q1, [copy_from_ptr]
++	add	tmp, permtable_addr, offset, lsl #5
++	ldp	q2, q3, [tmp]
++	tbl	v0.16b, {v1.16b}, v2.16b
++	tbl	v1.16b, {v1.16b}, v3.16b
++	cmp     offset , #16
++	b.lo    11f
++	ldp     q0, q1, [copy_from_ptr]
++
++11:	 ldrb	w_tmp, [cplen_table_addr, offset]
++	stp	q0, q1, [copy_to_ptr]
++	add	copy_to_ptr, copy_to_ptr, tmp
++	cmp	x0, copy_to_ptr
++	b.ls	1b
++
++12:  stp	q0, q1, [copy_to_ptr]
++	add	copy_to_ptr, copy_to_ptr, tmp
++	stp	q0, q1, [copy_to_ptr]
++	add	copy_to_ptr, copy_to_ptr, tmp
++	cmp	x0, copy_to_ptr
++	b.hi	12b
++	b	1b
++
++/* offset >= match */
++
++13:	 ldr	q0, [copy_from_ptr], #16
++	str	q0, [copy_to_ptr], #16
++
++	cmp	x0, copy_to_ptr
++	b.ls	1b
++
++14:  ldp	q0, q1, [copy_from_ptr], #32
++	stp	q0, q1, [copy_to_ptr], #32
++
++	cmp	x0, copy_to_ptr
++	b.hi	14b
++	b	1b
++.endm
++
++.text
++.p2align 4
++
++ENTRY(_lz4_decompress_asm)
++	lz4_decompress_asm_generic
++ENDPROC(_lz4_decompress_asm)
++
++Failed:
++	mov	tmp, #-1
++	b	Exit_here
++
++/* Rewind the whole sequence; never rewrite the compressed input (old DIP). */
++Done1:
++Done:
++	mov	tmp, #0
++
++Exit_here:
++	ldp	x3, x0, [sp], #16
++	str	save_src, [x3]
++	str	save_dst, [x0]
++	mov	x0, tmp
++	ldp     x29, x30, [sp], #16
++	ret     x30
++
++
++/*
++ * In case of offset <= 31 < matchlength ,expand the pattern and store in
++ * repeating pattern size(RPS),store the RPS in Copylength_table.
++ * case 1): 1 <= offset <= 15
++ * expand the pattern according to the Permtable and store their repeating pattern in q0 q1;
++ * RPS = 32 - (32 % offset) offset <= 31
++ * case 2): offset >= 16
++ * read the pattern and store in q0 q1.
++ * RPS = offset.
++ */
++.text
++.p2align 8
++Permtable:
++.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  //offset = 0
++.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  //offset = 1
++.byte 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1  //offset = 2
++.byte 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1  //offset = 3
++.byte 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3  //offset = 4
++.byte 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1  //offset = 5
++.byte 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1  //offset = 6
++.byte 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3  //offset = 7
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7  //offset = 8
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4  //offset = 9
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1  //offset = 10
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9  //offset = 11
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11, 0, 1, 2, 3, 4, 5, 6, 7  //offset = 12
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12, 0, 1, 2, 3, 4, 5  //offset = 13
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13, 0, 1, 2, 3  //offset = 14
++.byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14, 0, 1  //offset = 15
++
++.p2align 8
++Copylength_table:
++.byte 32,32,32,30,32,30,30,28,32,27,30,22,24,26,28,30  // 0  .. 15
++.byte 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31  // 16 .. 31
++
++
++.text
++.p2align 4
++ENTRY(_lz4_decompress_asm_noprfm)
++	lz4_decompress_asm_generic	0
++ENDPROC(_lz4_decompress_asm_noprfm)
+diff --git a/scripts/ci/build-kernel.sh b/scripts/ci/build-kernel.sh
+index b760107..622e0de 100755
+--- a/scripts/ci/build-kernel.sh
++++ b/scripts/ci/build-kernel.sh
+@@ -77,6 +77,15 @@ make "${make_args[@]}" "$DEFCONFIG" 2>&1 | tee out/configure.log
+ # Keep ThinLTO and the other device settings, changing only the output config.
+ scripts/config --file out/.config --disable LLVM_POLLY
+ make "${make_args[@]}" olddefconfig 2>&1 | tee -a out/configure.log
++# Check the resolved configuration, not just the defconfig request.
++if [[ "$DEFCONFIG" == vendor/xiaomi/miatoll_defconfig ]]; then
++    for option in ARM64 KERNEL_MODE_NEON LZ4_DECOMPRESS LZ4_ARM64_ACCEL; do
++        if ! grep -qx "CONFIG_${option}=y" out/.config; then
++            echo "Required miatoll LZ4 acceleration option lost: CONFIG_${option}" >&2
++            exit 1
++        fi
++    done
++fi
+ # Build device trees before packing images; this tree discovers them using find.
+ make -j"$JOBS" "${make_args[@]}" dtbs 2>&1 | tee out/dtbs.log
+ make -j"$JOBS" "${make_args[@]}" Image.gz-dtb dtb.img dtbo.img modules 2>&1 | tee out/build.log
+diff --git a/scripts/ci/test-lz4.sh b/scripts/ci/test-lz4.sh
+index bd8d2fb..df033b6 100755
+--- a/scripts/ci/test-lz4.sh
++++ b/scripts/ci/test-lz4.sh
+@@ -26,4 +26,6 @@ python3 -m venv "$work/venv"
+ "$work/venv/bin/python" tools/testing/selftests/lz4/test_codec.py \
+     --cc "$TOOLCHAIN_DIR/bin/clang" --upstream "$work/source" \
+     --asan --ubsan --output out/lz4-tests/codec 2>&1 | tee out/lz4-tests/codec.log
++"$work/venv/bin/python" tools/testing/selftests/lz4/test_arm64.py \
++    --cc "$TOOLCHAIN_DIR/bin/clang" --output out/lz4-tests/arm64 2>&1 | tee out/lz4-tests/arm64.log
+ "$work/venv/bin/python" tools/testing/selftests/lz4/test_ci.py 2>&1 | tee out/lz4-tests/scripts.log
+diff --git b/tools/testing/selftests/carry_over/lz4_overlay.py b/tools/testing/selftests/carry_over/lz4_overlay.py
+new file mode 100644
+index 0000000..f768cae
+--- /dev/null
++++ b/tools/testing/selftests/carry_over/lz4_overlay.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: GPL-2.0
++"""Explicit post-reconciliation LZ4 overlay; never reseal historical receipts.
++
++The caller checks returned preimages against the original foundation/batch
++receipts. This module independently replays the overlay and checks CURRENT
++files, modes and evidence. Neither manifest is a signed attestation.
++"""
++import hashlib
++import json
++from pathlib import Path
++import subprocess
++import tempfile
++
++DOC = 'Documentation/dev-tools/lz4-arm64-restore'
++
++
++def sha(data):
++    return hashlib.sha256(data).hexdigest()
++
++
++class Overlay:
++    def __init__(self, root):
++        self.root = root
++        self.doc = root / DOC
++        self.receipt = json.loads((self.doc / 'manifest.json').read_text())
++        assert self.receipt['donor'] == '1a206aea00ea8e1788f12639251304de28083659'
++        assert self.receipt['lz4_upstream'] == 'aa4647fad575d01a874aaaadcdbe8e6a40e072f5'
++        self.paths = self.receipt['paths']
++        self.preimages = {}
++        for name, record in self.paths.items():
++            assert not Path(name).is_absolute() and '..' not in Path(name).parts, name
++            if record['preimage'] is not None:
++                p = self.doc / 'preimages' / (name + '.preimage')
++                data = p.read_bytes()
++                assert sha(data) == record['preimage'], 'restoration preimage hash: ' + name
++                self.preimages[name] = data, record['preimage_mode']
++            else:
++                assert record['preimage_mode'] is None
++
++    @property
++    def additions(self):
++        return set(self.paths) - set(self.preimages)
++
++    def verify_current(self):
++        patch = self.doc / 'restoration.patch'
++        assert sha(patch.read_bytes()) == self.receipt['patch_sha256'], 'restoration patch hash'
++        with tempfile.TemporaryDirectory(prefix='lz4-overlay-replay-') as tmp:
++            tmp = Path(tmp)
++            for name, (data, mode) in self.preimages.items():
++                p = tmp / name
++                p.parent.mkdir(parents=True, exist_ok=True)
++                p.write_bytes(data)
++                p.chmod(0o755 if mode == '100755' else 0o644)
++            subprocess.run(['git', 'apply', '--whitespace=nowarn', str(patch.resolve())],
++                           cwd=tmp, check=True)
++            actual_paths = {p.relative_to(tmp).as_posix() for p in tmp.rglob('*') if p.is_file()}
++            assert actual_paths == set(self.paths), 'restoration patch path set'
++            for name, record in self.paths.items():
++                p = self.root / name
++                assert p.is_file() and not p.is_symlink(), 'missing restoration source: ' + name
++                data = p.read_bytes()
++                assert data == (tmp / name).read_bytes(), 'not the replayed restoration: ' + name
++                assert sha(data) == record['postimage'], 'restoration postimage hash: ' + name
++                mode = '100755' if p.stat().st_mode & 0o111 else '100644'
++                assert mode == record['mode'], 'restoration mode: ' + name
++            for name, digest in self.receipt['evidence_sha256'].items():
++                assert sha((self.root / name).read_bytes()) == digest, 'restoration evidence: ' + name
++        for name, donor_path in self.receipt['unchanged_donor_sources'].items():
++            data = subprocess.check_output(['git', 'show', self.receipt['donor'] + ':' + donor_path],
++                                           cwd=self.root)
++            assert data == (self.root / name).read_bytes(), 'changed repaired donor glue/assembly: ' + name
++        print('PASS: LZ4 1.11.1 ARM64 restoration replay, current sources/modes and evidence;',
++              len(self.preimages), 'explicit historical preimages;', len(self.additions), 'additions.')
++
++
++if __name__ == '__main__':
++    Overlay(Path(__file__).resolve().parents[4]).verify_current()
+diff --git b/tools/testing/selftests/carry_over/test_lz4_overlay.py b/tools/testing/selftests/carry_over/test_lz4_overlay.py
+new file mode 100644
+index 0000000..9e5003f
+--- /dev/null
++++ b/tools/testing/selftests/carry_over/test_lz4_overlay.py
+@@ -0,0 +1,57 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: GPL-2.0
++"""Negative controls for the explicit restoration replay, not runtime tests."""
++from pathlib import Path
++import shutil
++import tempfile
++
++from lz4_overlay import DOC, Overlay
++
++ROOT = Path(__file__).resolve().parents[4]
++
++
++def rejected(root, marker):
++    try:
++        Overlay(root).verify_current()
++    except AssertionError as error:
++        assert marker in str(error), str(error)
++    else:
++        raise AssertionError('corruption was accepted: ' + marker)
++
++
++def main():
++    overlay = Overlay(ROOT)
++    overlay.verify_current()
++    with tempfile.TemporaryDirectory(prefix='lz4-overlay-negative-') as tmp:
++        tmp = Path(tmp)
++        shutil.copytree(ROOT / DOC, tmp / DOC)
++        for name in overlay.paths:
++            p = tmp / name
++            p.parent.mkdir(parents=True, exist_ok=True)
++            shutil.copyfile(ROOT / name, p)
++            shutil.copymode(ROOT / name, p)
++        name = 'lib/lz4/lz4.c'
++        p = tmp / name
++        data = p.read_bytes()
++        p.write_bytes(data + b'\n/* unreviewed change */\n')
++        rejected(tmp, 'not the replayed restoration')
++        p.write_bytes(data)
++        p = tmp / DOC / 'preimages' / (name + '.preimage')
++        data = p.read_bytes()
++        p.write_bytes(data + b'\n')
++        rejected(tmp, 'restoration preimage hash')
++        p.write_bytes(data)
++        p = tmp / DOC / 'restoration.patch'
++        data = p.read_bytes()
++        p.write_bytes(data + b'\n')
++        rejected(tmp, 'restoration patch hash')
++        p.write_bytes(data)
++        name = next(iter(overlay.receipt['evidence_sha256']))
++        p = tmp / name
++        p.write_bytes(p.read_bytes() + b'\n')
++        rejected(tmp, 'restoration evidence')
++    print('PASS: four restoration negative controls (current source, preimage, patch, evidence) rejected')
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/tools/testing/selftests/carry_over/verify.py b/tools/testing/selftests/carry_over/verify.py
+index f108a1e..a9b05fd 100644
+--- a/tools/testing/selftests/carry_over/verify.py
++++ b/tools/testing/selftests/carry_over/verify.py
+@@ -17,6 +17,10 @@ DOC = ROOT / 'Documentation/dev-tools/carry-over'
+ BASE = '766a32ab1c8b889ac049ccd367e82786e5953bc0'
+ OLD = '402566a8597ae7f0ecf3f87054b77aa7c18acdf0'
+ 
++from lz4_overlay import Overlay
++
++RESTORATION = Overlay(ROOT)
++
+ 
+ def sha(data):
+     return hashlib.sha256(data).hexdigest()
+@@ -39,6 +43,10 @@ def tree(commit):
+ 
+ 
+ def file_data(name):
++    # Verify the historical view against its UNCHANGED receipts. The overlay
++    # below separately checks every current postimage by ordered patch replay.
++    if name in RESTORATION.preimages:
++        return RESTORATION.preimages[name]
+     p = ROOT / name
+     if p.is_symlink():
+         return os.readlink(p).encode(), '120000'
+@@ -125,6 +133,12 @@ def main():
+         data, mode = file_data(name)
+         assert sha(data) == record['sha256'] and mode == record['mode'], name
+ 
++    assert set(RESTORATION.preimages) <= (set(base) | set(foundation['added_source']) |
++                                          set(index['added_source']) | set(additions))
++    assert not RESTORATION.additions & (set(base) | set(foundation['added_source']) |
++                                       set(index['added_source']) | set(additions))
++    RESTORATION.verify_current()
++
+     original_rows = json.loads((ROOT / 'Documentation/dev-tools/base-sync-16/audit.json').read_text())['rows']
+     rows = {r['id']: r for r in progress['items']}
+     assert len(rows) == len(progress['items']) == len(original_rows) == 143
+@@ -146,16 +160,17 @@ def main():
+     # additions and unchanged historical evidence. No wholesale old-tree import.
+     allowed = (set(additions) | set(index['added_source']) | set(foundation['added_source']) |
+                set(checkpoint['artifacts_sha256']) |
++               RESTORATION.additions |
+                {'Documentation/dev-tools/base-sync-16/checkpoint.json'})
+     for name in tree(OLD).keys() - base.keys() - allowed:
+         assert not (ROOT / name).exists(), 'unreviewed old carry-over: ' + name
+     config = (ROOT / 'arch/arm64/configs/vendor/xiaomi/miatoll_defconfig').read_text()
+     assert 'CONFIG_TCP_CONG_BBRPLUS=y' not in config
+     print(f'PASS: {len(base)} base paths/modes checked; {len(all_paths)} carried source paths '
+-          'reproduced by ordered patch replay; repaired LZ4/build sources unchanged.')
++          'reproduced by ordered patch replay; historical foundation receipts unchanged; explicit LZ4 overlay checked above.')
+     print(f'PASS: {len(applied)} inventory references covered; '
+           f'{sum(r["status"] == "pending-review" for r in rows.values())} pending; E143 native equivalent (reference unresolved); '
+-          'LZ4 superseded by 1.11.1; BBRplus excluded.')
++          'LZ4 codec superseded by 1.11.1, ARM64 accelerator restored separately; BBRplus excluded.')
+     print('PASS: historical receipts, batch evidence, new test hashes and no-unreviewed-old-carry-over checks.')
+     print('LIMITS: source/provenance only; no whole-image, device, concurrency or performance qualification.')
+ 
+diff --git a/tools/testing/selftests/lz4/README b/tools/testing/selftests/lz4/README
+index 62ba899..1471468 100644
+--- a/tools/testing/selftests/lz4/README
++++ b/tools/testing/selftests/lz4/README
+@@ -4,10 +4,14 @@ LZ4 v1.11.1 kernel block-codec tests
+ Upstream pin: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 (official v1.11.1).
+ Frame, file, CLI and threading code are NOT imported or tested here.
+ The kernel codec uses caller-owned workspaces, not upstream's malloc-owning API.
+-There is no optional ARM64 SIMD/assembly accelerator in this foundation repair.
++The historical foundation repair omitted the ARM64 SIMD accelerator. It is now
++restored as a separate, reproducible overlay on v1.11.1; see
++Documentation/dev-tools/lz4-arm64-restore/README.md. Historical repair receipts
++are unchanged. The ARM64 helper exports and first dictionary-free streaming
++block can use assembly; generic APIs and dictionary continuations stay C-only.
+ 
+ Prerequisites: native Linux, Clang with its native ASan runtime, make, git,
+-Python 3, and pyelftools (see requirements.txt). The CI entry point uses the
++Python 3, pyelftools and Unicorn (see requirements.txt). The CI entry point uses the
+ pinned AOSP Clang r614150 snapshot, not GCC and not an arbitrary system Clang.
+ To use the manual CI test entry point locally, install that complete toolchain
+ at .toolchains/r614150 with its aosp-prebuilts-commit.txt provenance file:
+@@ -24,6 +28,7 @@ For independently obtained, read-only upstream sources and an existing venv:
+   python3 tools/testing/selftests/lz4/test_codec.py --cc /path/to/clang \
+     --asan --ubsan --upstream /path/to/lz4-aa4647fad575d01a874aaaadcdbe8e6a40e072f5
+   python3 tools/testing/selftests/lz4/test_build.py --cc /path/to/clang
++  python3 tools/testing/selftests/lz4/test_arm64.py --cc /path/to/clang
+   python3 tools/testing/selftests/lz4/test_ci.py \
+     --anykernel /path/to/clean-pinned-AnyKernel3
+ 
+@@ -56,6 +61,13 @@ Coverage and limitations
+   compile fixtures, NOT a kernel execution environment. The inherited preboot
+   wrapper's pointer-sign/unused/sign-compare diagnostics are suppressed only
+   for that wrapper, not for the codec object checks.
++* test_arm64.py compiles and emulates the repaired donor assembly with strict
++  buffer hooks and ABI/x18 checks. Both normal and ThinLTO/SCS/CFI builds run
++  483 valid and 1,000 malformed blocks each, both CPU variants, partial decode,
++  C-tail history, no-SIMD/no-FPSIMD/DIP/overlap fallbacks and dictionary streaming.
++  Feature-off/no-NEON helpers execute as C; STATIC is checked for SIMD references.
++  The emulator stubs kernel context primitives; it does not prove their runtime
++  behaviour. scripts/ci/test-lz4.sh includes this test in manual CI.
+ * test_ci.py runs build-script argument/provenance/LLVM-override fixtures and,
+   when --anykernel is supplied, the real packager with a clean pinned framework
+   and SYNTHETIC NON-BOOTABLE image payloads. It checks ZIP layout/checksum,
+diff --git a/tools/testing/selftests/lz4/requirements.txt b/tools/testing/selftests/lz4/requirements.txt
+index d9312ed..c41adad 100644
+--- a/tools/testing/selftests/lz4/requirements.txt
++++ b/tools/testing/selftests/lz4/requirements.txt
+@@ -1 +1,2 @@
+ pyelftools==0.33
++unicorn==2.1.4
+diff --git b/tools/testing/selftests/lz4/test_arm64.py b/tools/testing/selftests/lz4/test_arm64.py
+new file mode 100644
+index 0000000..aa9605a
+--- /dev/null
++++ b/tools/testing/selftests/lz4/test_arm64.py
+@@ -0,0 +1,483 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: GPL-2.0
++"""Freestanding Clang + Unicorn differential test of the actual ARM64 LZ4 code.
++
++Not a kernel-context or device validation. Pass --cc to select the toolchain.
++See Documentation/dev-tools/lz4-arm64-restore for the recorded AOSP run.
++"""
++import argparse
++import os
++from pathlib import Path
++import random
++import shlex
++import subprocess
++import tempfile
++
++from elftools.elf.elffile import ELFFile
++from unicorn import (Uc, UC_ARCH_ARM64, UC_MODE_ARM, UC_HOOK_CODE,
++                     UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE, UC_MEM_WRITE)
++import unicorn.arm64_const as arm64
++from unicorn.arm64_const import (UC_ARM64_REG_X0, UC_ARM64_REG_X18,
++                                 UC_ARM64_REG_X19, UC_ARM64_REG_X30,
++                                 UC_ARM64_REG_SP, UC_ARM64_REG_PC, UC_ARM64_REG_CPACR_EL1)
++
++from shims import SHIMS as BASE_SHIMS
++
++ROOT = Path(__file__).resolve().parents[4]
++SHIMS = {
++    'linux/types.h': '''#ifndef TEST_TYPES_H
++#define TEST_TYPES_H
++typedef __SIZE_TYPE__ size_t;
++typedef __PTRDIFF_TYPE__ ssize_t;
++typedef __UINT8_TYPE__ uint8_t;
++typedef __UINT16_TYPE__ uint16_t;
++typedef __UINT32_TYPE__ uint32_t;
++typedef __UINT64_TYPE__ uint64_t;
++typedef __INT8_TYPE__ int8_t;
++typedef __INT16_TYPE__ int16_t;
++typedef __INT32_TYPE__ int32_t;
++typedef __INT64_TYPE__ int64_t;
++typedef __UINTPTR_TYPE__ uintptr_t;
++typedef uint8_t u8;
++typedef uint16_t u16;
++typedef uint32_t u32;
++typedef uint64_t u64;
++typedef _Bool bool;
++#define true 1
++#define false 0
++#define NULL ((void *)0)
++#define asmlinkage
++#endif
++''',
++    'linux/compiler.h': '''#define __always_inline inline __attribute__((always_inline))
++#define likely(x) __builtin_expect(!!(x), 1)
++#define unlikely(x) __builtin_expect(!!(x), 0)
++''',
++    'linux/string.h': '''#include <linux/types.h>
++void *memcpy(void *, const void *, size_t);
++void *memmove(void *, const void *, size_t);
++void *memset(void *, int, size_t);
++''',
++    'linux/errno.h': '#define EIO 5\n',
++    'linux/module.h': '''#define EXPORT_SYMBOL(x)
++#define MODULE_LICENSE(x)
++#define MODULE_DESCRIPTION(x)
++''',
++    'asm/simd.h': '''extern int simd_allowed;
++static inline int may_use_simd(void) { return simd_allowed; }
++''',
++    'asm/cpufeature.h': '''extern int fpsimd_available;
++static inline int system_supports_fpsimd(void) { return fpsimd_available; }
++''',
++    'asm/neon.h': '''void kernel_neon_begin(void);
++void kernel_neon_end(void);
++''',
++    'asm/cputype.h': '''#define ARM_CPU_PART_CORTEX_A53 0xd03
++extern unsigned int cpu_part;
++static inline unsigned int read_cpuid_part_number(void) { return cpu_part; }
++''',
++    'linux/linkage.h': '''#define ENTRY(name) .globl name; .type name, %function; name:
++#define ENDPROC(name) .size name, .-name
++''',
++    'asm/assembler.h': '',
++}
++SHIMS.update(BASE_SHIMS)
++RUNTIME = '''#include <linux/types.h>
++int simd_allowed = 1;
++int fpsimd_available = 1;
++unsigned int cpu_part;
++unsigned int neon_begin_count, neon_end_count;
++void kernel_neon_begin(void) { neon_begin_count++; }
++void kernel_neon_end(void) { neon_end_count++; }
++void *memcpy(void *d, const void *s, size_t n)
++{ size_t i; for (i = 0; i < n; i++) ((u8 *)d)[i] = ((const u8 *)s)[i]; return d; }
++void *memset(void *d, int c, size_t n)
++{ size_t i; for (i = 0; i < n; i++) ((u8 *)d)[i] = c; return d; }
++void *memmove(void *d, const void *s, size_t n)
++{ size_t i; if ((unsigned long)d < (unsigned long)s) return memcpy(d, s, n);
++  for (i = n; i; i--) ((u8 *)d)[i-1] = ((const u8 *)s)[i-1]; return d; }
++'''
++
++
++def build(cc, out):
++    shim = out / 'shim'
++    for name, text in SHIMS.items():
++        p = shim / name
++        p.parent.mkdir(parents=True, exist_ok=True)
++        p.write_text(text)
++    (out / 'runtime.c').write_text(RUNTIME)
++    # Avoid compiler-generated SIMD in kernel C; assembly uses NEON explicitly.
++    # Zig's driver otherwise overrides Clang's fixed-register/FP features.
++    zig_cpu = ['-mcpu=generic+reserve_x18-fp_armv8-neon'] if Path(cc[0]).name == 'zig' else []
++    linker = [] if Path(cc[0]).name == 'zig' else ['-fuse-ld=lld']
++    common = [*cc, *zig_cpu, '-target', 'aarch64-none-elf', '-O3', '-std=gnu89',
++              '-ffreestanding', '-fno-builtin', '-mgeneral-regs-only',
++              '-ffixed-x18', '-Wall', '-Wextra', '-Werror',
++              '-Wframe-larger-than=2048', '-I' + str(shim),
++              '-DCONFIG_ARM64', '-DCONFIG_KERNEL_MODE_NEON',
++              '-DCONFIG_LZ4_ARM64_ACCEL', '-DLZ4_FAST_DEC_LOOP=1']
++    # Include the real wrappers, not a reimplementation of their dispatch.
++    srcs = [ROOT / 'lib/lz4/lz4_decompress_main.c',
++            ROOT / 'lib/lz4/lz4_compress.c',
++            ROOT / 'lib/lz4/lz4hc_compress.c',
++            ROOT / 'lib/lz4/lz4armv8/lz4accel.c',
++            ROOT / 'lib/lz4/lz4armv8/lz4armv8.S', out / 'runtime.c']
++    objs = []
++    for i, src in enumerate(srcs):
++        obj = out / (str(i) + '.o')
++        flags = [x for x in common if src.suffix != '.S' or
++                 (x != '-mgeneral-regs-only' and x not in zig_cpu)]
++        subprocess.run([*flags, '-c', str(src), '-o', str(obj)], check=True)
++        objs.append(obj)
++    elf = out / 'test.elf'
++    subprocess.run([*cc, *linker, '-target', 'aarch64-none-elf', '-nostdlib',
++                    '-Wl,--entry=LZ4_decompress_safe',
++                    *map(str, objs), '-o', str(elf)], check=True)
++    # Compile feature-off, no-NEON and STATIC paths with the option defined too.
++    for name, extra in [('off', ['-UCONFIG_LZ4_ARM64_ACCEL']),
++                        ('no-neon', ['-UCONFIG_KERNEL_MODE_NEON']),
++                        ('preboot', ['-DSTATIC'])]:
++        obj = out / (name + '.o')
++        subprocess.run([*common, *extra, '-c', str(srcs[0]), '-o', str(obj)],
++                       check=True)
++        with obj.open('rb') as f:
++            symbols = ELFFile(f).get_section_by_name('.symtab').iter_symbols()
++            assert not any('neon' in x.name or 'lz4_decompress_asm' in x.name
++                           for x in symbols), name
++        if name != 'preboot':
++            subprocess.run([*cc, *linker, '-target', 'aarch64-none-elf', '-nostdlib',
++                            '-Wl,--entry=LZ4_decompress_safe', str(obj), str(objs[5]),
++                            '-o', str(out / (name + '.elf'))], check=True)
++    # Also exercise Clang's SCS/ThinLTO compiler and linker on the whole path.
++    lto = []
++    for i in (0, 3, 5):
++        obj = out / ('scs' + str(i) + '.o')
++        subprocess.run([*common, '-fsanitize=shadow-call-stack,cfi', '-fvisibility=hidden', '-flto=thin',
++                        '-c', str(srcs[i]), '-o', str(obj)], check=True)
++        lto.append(obj)
++    subprocess.run([*cc, *linker, *zig_cpu, '-target', 'aarch64-none-elf', '-nostdlib',
++                    '-flto=thin', '-ffixed-x18', '-mgeneral-regs-only',
++                    '-Wl,--entry=LZ4_decompress_safe',
++                    # Bare-metal LLD does not export dynamic symbols. Retain
++                    # the entry points/globals observed by the emulator so LTO
++                    # cannot delete them or fold runtime dispatch into constants.
++                    '-Wl,--undefined-glob=LZ4_*',
++                    '-Wl,--undefined=simd_allowed,--undefined=fpsimd_available',
++                    '-Wl,--undefined=cpu_part,--undefined=neon_begin_count',
++                    '-Wl,--undefined=neon_end_count', *map(str, lto),
++                    str(objs[4]), '-o', str(out / 'scs.elf')], check=True)
++    return elf
++
++
++class Machine:
++    SRC, DST, STACK, STREAM, WORK, STOP, SHADOW = (
++        0x4000000, 0x5000000, 0x6000000, 0x7000000,
++        0x8000000, 0x9000000, 0xa000000)
++    REGION = 0x200000
++
++    def __init__(self, elf):
++        self.uc = Uc(UC_ARCH_ARM64, UC_MODE_ARM)
++        self.symbols = {}
++        with elf.open('rb') as f:
++            e = ELFFile(f)
++            pages = set()
++            for seg in e.iter_segments():
++                if seg['p_type'] != 'PT_LOAD':
++                    continue
++                start, size = seg['p_vaddr'], seg['p_memsz']
++                for page in range(start & ~4095, (start + size + 4095) & ~4095, 4096):
++                    if page not in pages:
++                        self.uc.mem_map(page, 4096)
++                        pages.add(page)
++                if seg['p_filesz']:
++                    self.uc.mem_write(start, seg.data())
++            for sym in e.get_section_by_name('.symtab').iter_symbols():
++                if sym['st_value']:
++                    self.symbols[sym.name] = sym['st_value']
++        for base in (self.SRC, self.DST, self.STACK, self.STREAM,
++                     self.WORK, self.STOP, self.SHADOW):
++            self.uc.mem_map(base, self.REGION)
++        self.uc.reg_write(UC_ARM64_REG_CPACR_EL1, 3 << 20)
++        self.bounds = None
++        self.asm_calls = [0, 0]
++        self.shadow_writes = 0
++        self.uc.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.memory)
++        for name in ('_lz4_decompress_asm', '_lz4_decompress_asm_noprfm'):
++            if name not in self.symbols:
++                continue
++            addr = self.symbols[name]
++            self.uc.hook_add(UC_HOOK_CODE, self.enter, begin=addr, end=addr)
++
++    def enter(self, uc, addr, size, data):
++        if addr == self.symbols.get('_lz4_decompress_asm'):
++            self.asm_calls[0] += 1
++        elif addr == self.symbols.get('_lz4_decompress_asm_noprfm'):
++            self.asm_calls[1] += 1
++
++    def memory(self, uc, access, addr, size, value, data):
++        if self.SHADOW <= addr < self.SHADOW + self.REGION and access == UC_MEM_WRITE:
++            self.shadow_writes += 1
++        if self.bounds is None:
++            return
++        src, insize, dst, outsize = self.bounds
++        for base in (self.SRC, self.DST):
++            if base <= addr < base + self.REGION:
++                in_src = src <= addr and addr + size <= src + insize
++                in_dst = dst <= addr and addr + size <= dst + outsize
++                if not (in_dst or (in_src and access != UC_MEM_WRITE)):
++                    raise AssertionError(('buffer access', access, hex(addr), size,
++                                          self.bounds))
++
++    def setvar(self, name, value):
++        self.uc.mem_write(self.symbols[name], value.to_bytes(4, 'little'))
++
++    def var(self, name):
++        return int.from_bytes(self.uc.mem_read(self.symbols[name], 4), 'little')
++
++    def call(self, name, *args):
++        uc = self.uc
++        uc.reg_write(UC_ARM64_REG_SP, self.STACK + self.REGION - 256)
++        uc.reg_write(UC_ARM64_REG_X18, self.SHADOW + 4096)
++        for i in range(11):
++            uc.reg_write(getattr(arm64, 'UC_ARM64_REG_X' + str(19 + i)), 0xabcdef0000 + i)
++        for i, val in enumerate(args):
++            uc.reg_write(UC_ARM64_REG_X0 + i, val & ((1 << 64) - 1))
++        uc.reg_write(UC_ARM64_REG_X30, self.STOP)
++        uc.emu_start(self.symbols[name], self.STOP, count=10000000)
++        assert uc.reg_read(UC_ARM64_REG_PC) == self.STOP, 'instruction limit reached'
++        assert uc.reg_read(UC_ARM64_REG_SP) == self.STACK + self.REGION - 256
++        assert uc.reg_read(UC_ARM64_REG_X18) == self.SHADOW + 4096, 'x18 clobbered'
++        for i in range(11):
++            assert uc.reg_read(getattr(arm64, 'UC_ARM64_REG_X' + str(19 + i))) == 0xabcdef0000 + i, i
++        value = uc.reg_read(UC_ARM64_REG_X0)
++        # int return values need only the lower 32 bits to be defined.
++        bits = 64 if name.startswith('LZ4_arm64') else 32
++        value &= (1 << bits) - 1
++        return value - (1 << bits) if value >> (bits - 1) else value
++
++    def decode(self, name, compressed, capacity, simd=1, cpu=0, dip=False,
++               overlap=False, src_align=0, dst_align=0, fp=1):
++        self.setvar('simd_allowed', simd)
++        self.setvar('cpu_part', cpu)
++        self.setvar('fpsimd_available', fp)
++        self.setvar('neon_begin_count', 0)
++        self.setvar('neon_end_count', 0)
++        self.asm_calls = [0, 0]
++        src = self.SRC + 4096 + src_align
++        dst = self.DST + 4096 + dst_align
++        if overlap:
++            # Valid LZ4 in-place placement, leaving the documented margin.
++            dst = self.SRC + 4096
++            src = dst + capacity + capacity // 255 + 64 - len(compressed)
++        self.uc.mem_write(dst - 64, b'\xa5' * (capacity + 128))
++        self.uc.mem_write(src, compressed)
++        self.bounds = (src, len(compressed), dst, capacity)
++        args = [src, dst, len(compressed), capacity]
++        if name.startswith('LZ4_arm64'):
++            args.append(int(dip))
++        elif name.endswith('_partial'):
++            args.append(capacity)
++        result = self.call(name, *args)
++        self.bounds = None
++        assert self.var('neon_begin_count') == self.var('neon_end_count')
++        assert self.var('neon_begin_count') == sum(self.asm_calls)
++        if not overlap:
++            assert bytes(self.uc.mem_read(src, len(compressed))) == compressed, 'input modified'
++        assert bytes(self.uc.mem_read(dst - 64, 64)) == b'\xa5' * 64
++        if not overlap:
++            assert bytes(self.uc.mem_read(dst + capacity, 64)) == b'\xa5' * 64
++        return result, bytes(self.uc.mem_read(dst, max(0, result)))
++
++
++def ext_length(n):
++    return b'\xff' * (n // 255) + bytes([n % 255])
++
++
++def literals(data):
++    n = len(data)
++    return bytes([min(n, 15) << 4]) + (ext_length(n - 15) if n >= 15 else b'') + data
++
++
++def sequence(lit, offset, length):
++    assert length >= 4
++    n, m = len(lit), length - 4
++    return (bytes([(min(n, 15) << 4) | min(m, 15)]) +
++            (ext_length(n - 15) if n >= 15 else b'') + lit +
++            offset.to_bytes(2, 'little') +
++            (ext_length(m - 15) if m >= 15 else b''))
++
++
++def pointer_wrap_checks(m):
++    # Direct assembly entry with synthetic near-U64_MAX destination bounds.
++    # A long literal must rewind on address carry BEFORE touching destination.
++    data = sequence(b'a' * 160, 1, 32) + literals(b'z' * 180)
++    m.uc.mem_write(m.SRC, data)
++    dst = (1 << 64) - 64
++    for api in ('_lz4_decompress_asm', '_lz4_decompress_asm_noprfm'):
++        m.uc.mem_write(m.STREAM + 1024, dst.to_bytes(8, 'little'))
++        m.uc.mem_write(m.STREAM + 1032, m.SRC.to_bytes(8, 'little'))
++        assert m.call(api, m.STREAM + 1024, dst, (1 << 64) - 1,
++                      m.STREAM + 1032, m.SRC + len(data)) == 0
++        assert int.from_bytes(m.uc.mem_read(m.STREAM + 1024, 8), 'little') == dst
++        assert int.from_bytes(m.uc.mem_read(m.STREAM + 1032, 8), 'little') == m.SRC
++    print('PASS: both assembly variants rewind on synthetic literal address carry')
++
++
++def suite(m):
++    pointer_wrap_checks(m)
++    rng = random.Random(0x4c5a34)
++    cases = [(literals(b''), b'')]
++    for n in (1, 14, 15, 16, 127, 128, 129, 255, 1024, 4096):
++        raw = rng.randbytes(n)
++        cases.append((literals(raw), raw))
++    # Every short-match permutation and the general-copy path, long lengths,
++    # and a C tail referencing bytes produced by assembly.
++    for offset in (*range(1, 65), 127, 255, 1024):
++        for length in (4, 18, 19, 32, 129, 300, 4096):
++            prefix = rng.randbytes(max(160, offset))
++            raw = bytearray(prefix)
++            for _ in range(length):
++                raw.append(raw[-offset])
++            tail = rng.randbytes(180)
++            cases.append((sequence(prefix, offset, length) + literals(tail),
++                          bytes(raw) + tail))
++    # Multiple SIMD sequences followed by a tail match into the SIMD prefix.
++    for count in (2, 8, 32):
++        data, raw = bytearray(), bytearray()
++        for i in range(count):
++            lit = rng.randbytes(160)
++            offset, length = rng.randrange(1, 160), rng.randrange(4, 600)
++            data += sequence(lit, offset, length)
++            raw += lit
++            for _ in range(length):
++                raw.append(raw[-offset])
++        data += sequence(b'xyz', 127, 64) + literals(b'last five bytes')
++        raw += b'xyz'
++        for _ in range(64):
++            raw.append(raw[-127])
++        raw += b'last five bytes'
++        cases.append((bytes(data), bytes(raw)))
++    checked = 0
++    asm = [0, 0]
++    for data, raw in cases:
++        ref = m.decode('LZ4_decompress_safe', data, len(raw))
++        assert ref == (len(raw), raw)
++        for cpu in (0, 0xd03):
++            got = m.decode('LZ4_arm64_decompress_safe', data, len(raw), cpu=cpu,
++                           src_align=checked % 16, dst_align=(checked * 7) % 16)
++            assert got == ref, ('full', checked, len(data), len(raw), got[0])
++            asm = [a + b for a, b in zip(asm, m.asm_calls)]
++        if len(data) <= 128 or len(raw) <= 128:
++            assert sum(m.asm_calls) == 0
++        for cap in sorted({0, min(1, len(raw)), min(129, len(raw)),
++                           len(raw) // 2, len(raw)}):
++            refp = m.decode('LZ4_decompress_safe_partial', data, cap)
++            got = m.decode('LZ4_arm64_decompress_safe_partial', data, cap)
++            assert got == refp, ('partial', checked, cap, got[0], refp[0])
++        for opts in ({'simd': 0}, {'fp': 0}, {'dip': True}, {'overlap': True}):
++            got = m.decode('LZ4_arm64_decompress_safe', data, len(raw), **opts)
++            assert got == ref, ('fallback', opts, checked)
++            assert sum(m.asm_calls) == 0
++        # Truncation and undersized output; v1.11.1 error categories must match.
++        for cut in (0, 1, len(data) // 2, max(0, len(data) - 1)):
++            trunc = data[:cut]
++            a = m.decode('LZ4_decompress_safe', trunc, len(raw))[0]
++            b = m.decode('LZ4_arm64_decompress_safe', trunc, len(raw))[0]
++            assert a == b, ('truncated', checked, cut, a, b)
++        if raw:
++            a = m.decode('LZ4_arm64_decompress_safe', data, len(raw) - 1)[0]
++            assert a < 0
++        checked += 1
++    assert min(asm) > 0, 'assembly never exercised'
++    # Fuzz malformed blocks. Zero-offset blocks are rejected by assembly even
++    # though upstream C can accept them; accepted outputs must otherwise match.
++    for _ in range(1000):
++        data = rng.randbytes(rng.randrange(0, 600))
++        cap = rng.randrange(0, 2048)
++        a = m.decode('LZ4_decompress_safe', data, cap)
++        b = m.decode('LZ4_arm64_decompress_safe', data, cap, cpu=rng.choice((0, 0xd03)))
++        assert b[0] < 0 or b == a, ('malformed', a[0], b[0])
++    for offset in (0, 512):
++        bad = sequence(b'a' * 160, offset, 32) + literals(b'z' * 180)
++        assert m.decode('LZ4_arm64_decompress_safe', bad, 1024)[0] == -3
++        assert sum(m.asm_calls) == 1
++    # Size_t guards must run before any pointer arithmetic or SIMD entry.
++    for insize, outsize in ((1 << 31, 100), (100, 1 << 31), ((1 << 64)-1, 0)):
++        for api in ('LZ4_arm64_decompress_safe', 'LZ4_arm64_decompress_safe_partial'):
++            assert m.call(api, 0, 0, insize, outsize, 0) == -5
++    # Streaming first block uses ASM, subsequent prefix/dictionary blocks use C.
++    data, raw = cases[-1]
++    m.uc.mem_write(m.STREAM, b'\0' * 64)
++    m.uc.mem_write(m.SRC, data)
++    m.setvar('simd_allowed', 1)
++    m.asm_calls = [0, 0]
++    assert m.call('LZ4_decompress_safe_continue', m.STREAM, m.SRC, m.DST,
++                  len(data), len(raw)) == len(raw)
++    assert sum(m.asm_calls) == 1
++    assert bytes(m.uc.mem_read(m.DST, len(raw))) == raw
++    # An all-match dictionary reference followed by the required final literals.
++    second = sequence(b'', 64, 256) + literals(b'hello world!')
++    history = bytearray(raw)
++    m.uc.mem_write(m.SRC, second)
++    for dst in (m.DST + len(raw), m.DST + 65536):
++        expected = bytearray(history)
++        for _ in range(256):
++            expected.append(expected[-64])
++        expected = bytes(expected[len(history):]) + b'hello world!'
++        before = sum(m.asm_calls)
++        assert m.call('LZ4_decompress_safe_continue', m.STREAM, m.SRC, dst,
++                      len(second), len(expected)) == len(expected)
++        assert sum(m.asm_calls) == before
++        assert bytes(m.uc.mem_read(dst, len(expected))) == expected
++        history += expected
++    # Reject negative signed stream sizes without invoking SIMD or changing state.
++    for insize, outsize in ((-1, 1024), (1024, -1)):
++        m.uc.mem_write(m.STREAM, b'\0' * 64)
++        before = sum(m.asm_calls)
++        assert m.call('LZ4_decompress_safe_continue', m.STREAM, m.SRC, m.DST,
++                      insize, outsize) < 0
++        assert bytes(m.uc.mem_read(m.STREAM, 64)) == b'\0' * 64
++        assert sum(m.asm_calls) == before
++    print('PASS:', checked, 'valid blocks, full/partial/fallback/truncation/bounds;',
++          '1000 malformed blocks; ASM entries', asm, '; streaming; ABI/x18')
++
++
++
++def config_fallbacks(elf):
++    for name in ('off', 'no-neon'):
++        m = Machine(elf.parent / (name + '.elf'))
++        raw = b'a' * 4096 + b'five last bytes'
++        data = sequence(b'a' * 160, 1, 3936) + literals(b'five last bytes')
++        for api in ('LZ4_arm64_decompress_safe', 'LZ4_arm64_decompress_safe_partial'):
++            assert m.decode(api, data, len(raw)) == (len(raw), raw)
++            assert m.asm_calls == [0, 0]
++        assert not any('lz4_decompress_asm' in s for s in m.symbols)
++    print('PASS: feature-off and no-NEON helper execution stays C-only')
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--cc', default=os.environ.get('CC', 'clang'))
++    parser.add_argument('--output', type=Path)
++    args = parser.parse_args()
++    cc = shlex.split(args.cc)
++    if args.output:
++        args.output.mkdir(parents=True, exist_ok=True)
++        elf = build(cc, args.output.resolve())
++        config_fallbacks(elf)
++        suite(Machine(elf))
++        scs = Machine(elf.parent / 'scs.elf')
++        suite(scs)
++        assert scs.shadow_writes > 0, 'SCS instrumentation not exercised'
++    else:
++        with tempfile.TemporaryDirectory(prefix='lz4-arm64-') as temp:
++            elf = build(cc, Path(temp))
++            config_fallbacks(elf)
++            suite(Machine(elf))
++            scs = Machine(elf.parent / 'scs.elf')
++            suite(scs)
++            assert scs.shadow_writes > 0, 'SCS instrumentation not exercised'
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/tools/testing/selftests/lz4/test_build.py b/tools/testing/selftests/lz4/test_build.py
+index bb25715..6597e5f 100755
+--- a/tools/testing/selftests/lz4/test_build.py
++++ b/tools/testing/selftests/lz4/test_build.py
+@@ -21,7 +21,8 @@ EXPORTS = {
+                        'LZ4_compress_HC_continue', 'LZ4_saveDictHC',
+                        'LZ4_initStreamHC', 'LZ4_resetStreamHC',
+                        'LZ4_resetStreamHC_fast', 'LZ4_setCompressionLevel'},
+-    'lz4_decompress': {'LZ4_decompress_safe', 'LZ4_decompress_safe_partial',
++    'lz4_decompress': {'LZ4_arm64_decompress_safe', 'LZ4_arm64_decompress_safe_partial',
++                       'LZ4_decompress_safe', 'LZ4_decompress_safe_partial',
+                        'LZ4_setStreamDecode', 'LZ4_decompress_safe_continue'},
+ }
+ 
+diff --git a/tools/testing/selftests/lz4/test_ci.py b/tools/testing/selftests/lz4/test_ci.py
+index 922e871..3ee709e 100755
+--- a/tools/testing/selftests/lz4/test_ci.py
++++ b/tools/testing/selftests/lz4/test_ci.py
+@@ -55,7 +55,7 @@ import json, pathlib, sys
+ with open('make-calls.jsonl', 'a') as f: f.write(json.dumps(sys.argv[1:])+'\\n')
+ out=pathlib.Path('out');out.mkdir(exist_ok=True)
+ if 'vendor/xiaomi/miatoll_defconfig' in sys.argv:
+- (out/'.config').write_text('CONFIG_ARCH_ATOLL=y\\nCONFIG_LLVM_POLLY=y\\n')
++ (out/'.config').write_text('CONFIG_ARCH_ATOLL=y\\nCONFIG_LLVM_POLLY=y\\n' + ''.join('CONFIG_'+x+'=y\\n' for x in ('ARM64','KERNEL_MODE_NEON','LZ4_DECOMPRESS','LZ4_ARM64_ACCEL') if x != __import__('os').environ.get('DROP_OPTION')))
+ if 'Image.gz-dtb' in sys.argv:
+  for name in ('Image.gz-dtb','Image.gz','dtb.img','dtbo.img'):
+   p=out/'arch/arm64/boot'/name;p.parent.mkdir(parents=True,exist_ok=True)
+@@ -81,7 +81,10 @@ if 'Image.gz-dtb' in sys.argv:
+                          'OBJDUMP', 'READELF', 'HOSTCC', 'HOSTCXX'):
+             assert any(x.startswith(variable + '=' + str(toolchain / 'bin') + '/') for x in call), call
+     assert '# CONFIG_LLVM_POLLY is not set' in (root / 'out/.config').read_text()
+-    print('PASS: synthetic build script flow, all LLVM overrides, invalid input/pin rejection')
++    for option in ('ARM64', 'KERNEL_MODE_NEON', 'LZ4_DECOMPRESS', 'LZ4_ARM64_ACCEL'):
++        log = run(root, 'build-kernel.sh', {**env, 'DROP_OPTION': option}, False)
++        assert 'Required miatoll LZ4 acceleration option lost: CONFIG_' + option in log
++    print('PASS: synthetic build script flow, all LLVM overrides, invalid input/pin rejection; four resolved LZ4 config guards')
+ 
+     if anykernel:
+         env = {'ANYKERNEL_DIR': str(anykernel), 'GITHUB_RUN_NUMBER': 'fixture',

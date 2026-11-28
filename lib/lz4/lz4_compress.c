@@ -12,6 +12,10 @@ EXPORT_SYMBOL(LZ4_loadDict);
 EXPORT_SYMBOL(LZ4_saveDict);
 EXPORT_SYMBOL(LZ4_compress_fast_continue);
 
+EXPORT_SYMBOL(LZ4_initStream);
+EXPORT_SYMBOL(LZ4_resetStream);
+EXPORT_SYMBOL(LZ4_resetStream_fast);
+
 MODULE_LICENSE("Dual BSD/GPL");
-MODULE_DESCRIPTION("LZ4 v1.11 lz4_compress");
+MODULE_DESCRIPTION("LZ4 v1.11.1 lz4_compress");
 #endif
