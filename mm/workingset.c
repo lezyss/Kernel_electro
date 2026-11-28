@@ -287,7 +287,7 @@ void lru_gen_refault(struct page *page, void *shadow)
 	lruvec = mem_cgroup_lruvec(pgdat, memcg);
 	lrugen = &lruvec->lrugen;
 	min_seq = READ_ONCE(lrugen->min_seq[type]);
-	if (token != (min_seq & (EVICTION_MASK >> LRU_REFS_WIDTH)))
+	if (((min_seq - token) & (EVICTION_MASK >> LRU_REFS_WIDTH)) >= MAX_NR_GENS)
 		goto unlock;
 
 	hist = lru_hist_from_seq(min_seq);

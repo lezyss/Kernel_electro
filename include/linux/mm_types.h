@@ -523,9 +523,9 @@ struct mm_struct {
 		/*
 		* Set when switching to this mm_struct, as a hint of
 		* whether it has been used since the last time per-node
-		* page table walkers cleared the corresponding bits.
+		* page table walkers cleared the corresponding type's bits.
 		*/
-		nodemask_t nodes;
+		nodemask_t nodes[2];
 	} lru_gen;
 #endif /* CONFIG_LRU_GEN */
 } __randomize_layout;
@@ -563,20 +563,30 @@ void lru_gen_migrate_mm(struct mm_struct *mm);
 
 static inline void lru_gen_init_mm(struct mm_struct *mm)
 {
+	int type;
+
 	INIT_LIST_HEAD(&mm->lru_gen.list);
 #ifdef CONFIG_MEMCG
 	mm->lru_gen.memcg = NULL;
 #endif
-	nodes_clear(mm->lru_gen.nodes);
+	for (type = 0; type < ARRAY_SIZE(mm->lru_gen.nodes); type++)
+		nodes_clear(mm->lru_gen.nodes[type]);
 }
 
 static inline void lru_gen_use_mm(struct mm_struct *mm)
 {
+	int type;
+
 	/* unlikely but not a bug when racing with lru_gen_migrate_mm() */
 	VM_WARN_ON(list_empty(&mm->lru_gen.list));
 
-	if (!(current->flags & PF_KTHREAD) && !nodes_full(mm->lru_gen.nodes))
-		nodes_setall(mm->lru_gen.nodes);
+	if (current->flags & PF_KTHREAD)
+		return;
+
+	for (type = 0; type < ARRAY_SIZE(mm->lru_gen.nodes); type++) {
+		if (!nodes_full(mm->lru_gen.nodes[type]))
+			nodes_setall(mm->lru_gen.nodes[type]);
+	}
 }
 
 #else /* !CONFIG_LRU_GEN */

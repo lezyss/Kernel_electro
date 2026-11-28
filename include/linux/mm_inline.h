@@ -210,7 +210,8 @@ static inline bool lru_gen_add_page(struct lruvec *lruvec, struct page *page, bo
 	if (PageActive(page))
 		gen = lru_gen_from_seq(lrugen->max_seq[type]);
 	else if ((type == LRU_GEN_ANON && !PageSwapCache(page)) ||
-		 (PageReclaim(page) && (PageDirty(page) || PageWriteback(page))))
+		 (PageReclaim(page) &&
+		  (PageDirty(page) || PageWriteback(page) || PageSwapCache(page))))
 		gen = lru_gen_from_seq(lrugen->min_seq[type] + 1);
 	else
 		gen = lru_gen_from_seq(lrugen->min_seq[type]);

@@ -101,14 +101,24 @@ def check_independent_windows(source):
     isolate = function_body(source, 'static int isolate_pages(')
     assert 'target_seq >= min_seq[type]' in isolate
     assert 'target_seq <= max_seq[type] - MIN_NR_GENS' in isolate
-    assert 'time_before(anon_birth, file_birth)' in isolate
-    assert 'timestamps[LRU_GEN_ANON]' in isolate
-    assert 'timestamps[LRU_GEN_FILE]' in isolate
+    assert 'time_before(anon_birth, file_birth)' not in isolate
+    assert 'get_type_to_scan(lruvec, swappiness, &tier)' in isolate
     advance = function_body(source, 'static bool try_to_inc_min_seq(')
     assert 'target_seq > lrugen->max_seq[type] - MIN_NR_GENS' in advance
     assert 'min_seq[type] <= target_seq' in advance
     evict = function_body(source, 'static int evict_pages(')
     assert 'target_seq > lrugen->max_seq[type_i] - MIN_NR_GENS' in evict
+    assert 'PageSwapCache(page)' in evict
+    pageout = function_body(source, 'static pageout_t pageout(')
+    assert '!PageWriteback(page) && (res || !PageLocked(page))' in pageout
+    skip_mm = function_body(source, 'static bool should_skip_mm(')
+    assert 'mm->lru_gen.nodes[type]' in skip_mm
+    age_lruvec = function_body(source, 'static bool age_lruvec(')
+    assert 'pace_aging[!type] = true;' in age_lruvec
+    assert 'max_seq[!type] - min_seq[!type] + 1 < MAX_NR_GENS' in age_lruvec
+    nr_to_scan = function_body(source, 'static long get_nr_to_scan(')
+    assert 'return ready_without_aging ? nr_to_scan : 0;' in nr_to_scan
+    assert 'pace_aging[!type] = true;' in nr_to_scan
 
 
 def main():
@@ -142,6 +152,14 @@ def main():
     assert 'static unsigned long lru_gen_min_ttl __read_mostly;' in text
     assert 'if (!sc->may_swap || nr_swap_pages < MIN_LRU_BATCH)' in text
     check_independent_windows(text)
+    mm_inline = (ROOT / 'include/linux/mm_inline.h').read_text()
+    add_page = function_body(mm_inline, 'static inline bool lru_gen_add_page(')
+    assert 'PageSwapCache(page)' in add_page
+    mm_types = (ROOT / 'include/linux/mm_types.h').read_text()
+    assert 'nodemask_t nodes[2];' in mm_types
+    workingset = (ROOT / 'mm/workingset.c').read_text()
+    refault = function_body(workingset, 'void lru_gen_refault(')
+    assert '((min_seq - token) & (EVICTION_MASK >> LRU_REFS_WIDTH)) >= MAX_NR_GENS' in refault
     assert '__handle_speculative_fault' not in (ROOT / 'mm/memory.c').read_text()
     print('Backport source guards: PASS')
 

@@ -703,8 +703,8 @@ static pageout_t pageout(struct page *page, struct address_space *mapping,
 			return PAGE_ACTIVATE;
 		}
 
-		if (!PageWriteback(page)) {
-			/* synchronous write or broken a_ops? */
+		if (!PageWriteback(page) && (res || !PageLocked(page))) {
+			/* synchronous write, write error, or queued-write completion */
 			ClearPageReclaim(page);
 		}
 		trace_mm_vmscan_writepage(page);
@@ -2993,15 +2993,16 @@ static void reset_mm_stats(struct lruvec *lruvec, struct lru_gen_mm_walk *walk,
 static bool should_skip_mm(struct mm_struct *mm, struct lru_gen_mm_walk *walk)
 {
 	unsigned long size;
+	int type = walk->aging_type;
 	struct pglist_data *pgdat = lruvec_pgdat(walk->lruvec);
 
 	if (!walk->full_scan && cpumask_empty(mm_cpumask(mm)) &&
-	    !node_isset(pgdat->node_id, mm->lru_gen.nodes))
+	    !node_isset(pgdat->node_id, mm->lru_gen.nodes[type]))
 		return true;
 
-	node_clear(pgdat->node_id, mm->lru_gen.nodes);
+	node_clear(pgdat->node_id, mm->lru_gen.nodes[type]);
 
-	if (walk->aging_type == LRU_GEN_ANON) {
+	if (type == LRU_GEN_ANON) {
 		if (!walk->can_swap)
 			return true;
 
@@ -4059,8 +4060,28 @@ static bool age_lruvec(struct lruvec *lruvec, struct scan_control *sc,
 		nr_to_scan++;
 
 	if (nr_to_scan && (!mem_cgroup_low(NULL, memcg) || sc->memcg_low_reclaim)) {
+		bool pace_aging[ANON_AND_FILE] = {};
+		unsigned long born[ANON_AND_FILE] = {};
+
 		for (type = !swappiness; type < ANON_AND_FILE; type++) {
-			if (!type_need_aging[type] || !type_ttl_expired[type])
+			int gen = lru_gen_from_seq(max_seq[type]);
+
+			born[type] = READ_ONCE(lruvec->lrugen.timestamps[type][gen]);
+		}
+
+		if (swappiness) {
+			for (type = 0; type < ANON_AND_FILE; type++) {
+				if (type_need_aging[type] && type_ttl_expired[type] &&
+				    type_has_pages[!type] && type_ttl_expired[!type] &&
+				    max_seq[!type] - min_seq[!type] + 1 < MAX_NR_GENS &&
+				    !time_after(born[!type], born[type]))
+					pace_aging[!type] = true;
+			}
+		}
+
+		for (type = !swappiness; type < ANON_AND_FILE; type++) {
+			if ((!type_need_aging[type] && !pace_aging[type]) ||
+			    !type_ttl_expired[type])
 				continue;
 
 			try_to_inc_max_seq(lruvec, max_seq[type], sc, swappiness,
@@ -4494,8 +4515,6 @@ static int isolate_pages(struct lruvec *lruvec, struct scan_control *sc, int swa
 	int type;
 	int scanned = 0;
 	int tier = -1;
-	unsigned long anon_birth;
-	unsigned long file_birth;
 	DEFINE_MAX_SEQ(lruvec);
 	DEFINE_MIN_SEQ(lruvec);
 
@@ -4513,31 +4532,16 @@ static int isolate_pages(struct lruvec *lruvec, struct scan_control *sc, int swa
 		return 0;
 	}
 
-	/*
-	 * Per-type sequence numbers aren't comparable once the types age
-	 * independently. Compare the birth times of their oldest generations.
-	 */
-	if (!can_scan[LRU_GEN_ANON]) {
+	if (!can_scan[LRU_GEN_ANON])
 		type = LRU_GEN_FILE;
-	} else if (!can_scan[LRU_GEN_FILE]) {
+	else if (!can_scan[LRU_GEN_FILE])
 		type = LRU_GEN_ANON;
-	} else if (!swappiness) {
+	else if (!swappiness || swappiness == 1)
 		type = LRU_GEN_FILE;
-	} else {
-		anon_birth = READ_ONCE(lruvec->lrugen.timestamps[LRU_GEN_ANON]
-				       [lru_gen_from_seq(min_seq[LRU_GEN_ANON])]);
-		file_birth = READ_ONCE(lruvec->lrugen.timestamps[LRU_GEN_FILE]
-				       [lru_gen_from_seq(min_seq[LRU_GEN_FILE])]);
-
-		if (time_before(anon_birth, file_birth))
-			type = LRU_GEN_ANON;
-		else if (swappiness == 1)
-			type = LRU_GEN_FILE;
-		else if (swappiness == 200)
-			type = LRU_GEN_ANON;
-		else
-			type = get_type_to_scan(lruvec, swappiness, &tier);
-	}
+	else if (swappiness == 200)
+		type = LRU_GEN_ANON;
+	else
+		type = get_type_to_scan(lruvec, swappiness, &tier);
 
 	for (i = 0; i < ANON_AND_FILE; i++) {
 		if (!can_scan[type]) {
@@ -4621,7 +4625,8 @@ static int evict_pages(struct lruvec *lruvec, struct scan_control *sc, int swapp
 		ClearPageReferenced(page);
 		ClearPageWorkingset(page);
 
-		if (PageReclaim(page) && (PageDirty(page) || PageWriteback(page)))
+		if (PageReclaim(page) &&
+		    (PageDirty(page) || PageWriteback(page) || PageSwapCache(page)))
 			ClearPageActive(page);
 		else
 			SetPageActive(page);
@@ -4659,15 +4664,19 @@ static long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *sc, bool 
 	int priority;
 	int type;
 	bool type_need_aging[ANON_AND_FILE];
+	bool type_has_pages[ANON_AND_FILE];
+	bool pace_aging[ANON_AND_FILE] = {};
 	bool aged = false;
 	bool can_evict = false;
+	bool ready_without_aging = false;
+	unsigned long born[ANON_AND_FILE] = {};
 	long nr_to_scan;
 	struct mem_cgroup *memcg = lruvec_memcg(lruvec);
 	DEFINE_MAX_SEQ(lruvec);
 	DEFINE_MIN_SEQ(lruvec);
 
 	nr_to_scan = get_nr_evictable(lruvec, max_seq, min_seq, can_swap,
-				      type_need_aging, NULL);
+				      type_need_aging, type_has_pages);
 	if (!nr_to_scan)
 		return 0;
 
@@ -4675,8 +4684,11 @@ static long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *sc, bool 
 	*need_aging = false;
 	for (type = !can_swap; type < ANON_AND_FILE; type++) {
 		*need_aging |= type_need_aging[type];
-		if (min_seq[type] + MIN_NR_GENS <= max_seq[type])
+		if (min_seq[type] + MIN_NR_GENS <= max_seq[type]) {
 			can_evict = true;
+			if (!type_need_aging[type])
+				ready_without_aging = true;
+		}
 	}
 
 	/* adjust priority if memcg is offline or the target is met */
@@ -4698,12 +4710,27 @@ static long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *sc, bool 
 	if (priority == DEF_PRIORITY)
 		goto done;
 
-	/* leave the work to lru_gen_age_node() */
+	/* leave the work to lru_gen_age_node() unless a type is ready */
 	if (current_is_kswapd())
-		return 0;
+		return ready_without_aging ? nr_to_scan : 0;
 
 	for (type = !can_swap; type < ANON_AND_FILE; type++) {
-		if (!type_need_aging[type])
+		int gen = lru_gen_from_seq(max_seq[type]);
+
+		born[type] = READ_ONCE(lruvec->lrugen.timestamps[type][gen]);
+	}
+
+	if (can_swap) {
+		for (type = 0; type < ANON_AND_FILE; type++) {
+			if (type_need_aging[type] && type_has_pages[!type] &&
+			    max_seq[!type] - min_seq[!type] + 1 < MAX_NR_GENS &&
+			    !time_after(born[!type], born[type]))
+				pace_aging[!type] = true;
+		}
+	}
+
+	for (type = !can_swap; type < ANON_AND_FILE; type++) {
+		if (!type_need_aging[type] && !pace_aging[type])
 			continue;
 
 		if (try_to_inc_max_seq(lruvec, max_seq[type], sc, can_swap, type, false))
@@ -5513,6 +5540,7 @@ static int __init init_lru_gen(void)
 	BUILD_BUG_ON(MIN_NR_GENS + 1 >= MAX_NR_GENS);
 	BUILD_BUG_ON(BIT(LRU_GEN_WIDTH) <= MAX_NR_GENS);
 	BUILD_BUG_ON(sizeof(MM_STAT_CODES) != NR_MM_STATS + 1);
+	BUILD_BUG_ON(ARRAY_SIZE(init_mm.lru_gen.nodes) != ANON_AND_FILE);
 
 	pr_info("%s %s by %s\n", RESWAPPINESS_PROGNAME,
 		RESWAPPINESS_VERSION, RESWAPPINESS_AUTHOR);
