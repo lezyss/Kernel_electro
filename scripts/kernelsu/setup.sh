@@ -59,13 +59,6 @@ latest_release() {
 		-H 'User-Agent: kernel-electro' \
 		https://api.github.com/repos/Baka-SU/BakaSU/releases/latest 2>/dev/null |
 		sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1) || true
-	if [[ -z "$tag" ]]; then
-		tag=$(curl -fsSL --max-time 20 \
-			-H 'Accept: application/vnd.github+json' \
-			-H 'User-Agent: kernel-electro' \
-			'https://api.github.com/repos/Baka-SU/BakaSU/releases?per_page=1' 2>/dev/null |
-			sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1) || true
-	fi
 	printf '%s\n' "$tag"
 }
 

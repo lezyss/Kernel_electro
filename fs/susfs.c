@@ -2309,5 +2309,5 @@ void susfs_set_current_proc_umounted_for_zygote_next(void) {}
 EXPORT_SYMBOL_GPL(susfs_set_current_proc_umounted_for_zygote_next);
 
 
-bool susfs_ksu_selinux_hide_active = false;
+bool susfs_ksu_selinux_hide_active(void) { return false; }
 EXPORT_SYMBOL_GPL(susfs_ksu_selinux_hide_active);
