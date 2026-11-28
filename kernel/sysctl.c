@@ -146,6 +146,8 @@ static unsigned long one_ul = 1;
 static unsigned long long_max = LONG_MAX;
 static int one_hundred = 100;
 static int two_hundred = 200;
+int vm_kcompressd = 24;
+static int max_kcompressd = KCOMPRESS_FIFO_SIZE;
 #ifdef CONFIG_OPLUS_MM_HACKS
 extern int direct_vm_swappiness;
 #endif /* CONFIG_OPLUS_MM_HACKS */
@@ -1686,6 +1688,15 @@ static struct ctl_table vm_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &zero,
 		.extra2		= &two_hundred,
+	},
+	{
+		.procname	= "kcompressd",
+		.data		= &vm_kcompressd,
+		.maxlen		= sizeof(vm_kcompressd),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &max_kcompressd,
 	},
 #ifdef CONFIG_OPLUS_MM_HACKS
 	{

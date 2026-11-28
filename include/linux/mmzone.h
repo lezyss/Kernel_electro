@@ -20,6 +20,8 @@
 #include <linux/atomic.h>
 #include <asm/page.h>
 
+struct kfifo;
+
 /* Free memory management - zoned buddy allocator.  */
 #ifndef CONFIG_FORCE_MAX_ZONEORDER
 #define MAX_ORDER 11
@@ -886,10 +888,13 @@ typedef struct pglist_data {
 	wait_queue_head_t kswapd_wait;
 	wait_queue_head_t pfmemalloc_wait;
 	struct task_struct *kswapd;
+#ifdef CONFIG_SWAP
 	struct task_struct *kcompressd;
 	wait_queue_head_t kcompressd_wait;
 	struct kfifo *kcompress_fifo;	/* Protected by
 					   mem_hotplug_begin/end() */
+	spinlock_t kcompress_fifo_lock;
+#endif
 	int kswapd_order;
 	enum zone_type kswapd_classzone_idx;
 

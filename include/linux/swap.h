@@ -370,6 +370,8 @@ extern unsigned long mem_cgroup_shrink_node(struct mem_cgroup *mem,
 						unsigned long *nr_scanned);
 extern unsigned long shrink_all_memory(unsigned long nr_pages);
 extern int vm_swappiness;
+#define KCOMPRESS_FIFO_SIZE 256
+extern int vm_kcompressd;
 extern int sysctl_swap_ratio;
 extern int sysctl_swap_ratio_enable;
 extern int remove_mapping(struct address_space *mapping, struct page *page);
@@ -387,8 +389,10 @@ extern int page_evictable(struct page *page);
 extern void check_move_unevictable_pages(struct page **, int nr_pages);
 
 extern int kswapd_run(int nid);
+#ifdef CONFIG_SWAP
 extern int kcompressd_run(int nid);
 extern void kcompressd_stop(int nid);
+#endif
 extern void kswapd_stop(int nid);
 
 #ifdef CONFIG_SWAP

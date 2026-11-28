@@ -6643,9 +6643,12 @@ int kswapd_run(int nid)
 {
 	pg_data_t *pgdat = NODE_DATA(nid);
 	int ret = 0;
+#ifdef CONFIG_SWAP
+	int kcompressd_ret;
+#endif
 
 	if (pgdat->kswapd)
-		return 0;
+		goto maybe_start_kcompressd;
 
 	pgdat->kswapd = kthread_run(kswapd, pgdat, "kswapd%d", nid);
 	if (IS_ERR(pgdat->kswapd)) {
@@ -6655,6 +6658,16 @@ int kswapd_run(int nid)
 		ret = PTR_ERR(pgdat->kswapd);
 		pgdat->kswapd = NULL;
 	}
+
+maybe_start_kcompressd:
+#ifdef CONFIG_SWAP
+	if (!ret && pgdat->kswapd) {
+		kcompressd_ret = kcompressd_run(nid);
+		if (kcompressd_ret)
+			pr_warn("Continuing without kcompressd on node %d: %d\n",
+				nid, kcompressd_ret);
+	}
+#endif
 	return ret;
 }
 
@@ -6669,8 +6682,10 @@ void kswapd_stop(int nid)
 	if (kswapd) {
 		kthread_stop(kswapd);
 		NODE_DATA(nid)->kswapd = NULL;
-		kcompressd_stop(nid);
 	}
+#ifdef CONFIG_SWAP
+	kcompressd_stop(nid);
+#endif
 }
 
 static int __init kswapd_init(void)
