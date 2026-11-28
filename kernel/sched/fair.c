@@ -9289,8 +9289,6 @@ enum group_type {
 #define LBF_NEED_BREAK	0x02
 #define LBF_DST_PINNED  0x04
 #define LBF_SOME_PINNED	0x08
-#define LBF_MOVED	0x20
-#define LBF_DST_REDIRECTED	0x40
 /* Sticky across more_balance retries; never stores a task pointer. */
 #define LBF_MOVED		0x40
 #define LBF_IGNORE_BIG_TASKS 0x100
@@ -9798,9 +9796,6 @@ next:
 	 * than inside detach_one_task().
 	 */
 	schedstat_add(env->sd->lb_gained[env->idle], detached);
-
-	if (detached)
-		env->flags |= LBF_MOVED;
 
 	return detached;
 }
@@ -11481,7 +11476,6 @@ more_balance:
 			env.dst_rq	 = cpu_rq(env.new_dst_cpu);
 			env.dst_cpu	 = env.new_dst_cpu;
 			env.flags	&= ~LBF_DST_PINNED;
-			env.flags	|= LBF_DST_REDIRECTED;
 			env.loop	 = 0;
 			env.loop_break	 = sched_nr_migrate_break;
 
